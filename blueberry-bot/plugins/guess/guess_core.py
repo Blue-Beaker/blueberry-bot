@@ -1,9 +1,8 @@
 import json
 import random
 import os,sys
-from . import utils
+from . import utils,guess_data
 
-DATA_DIR="blueberry-bot/plugins/guess/data"
 MAP_DATA_DIR="blueberry-bot/plugins/guess/map_export_data"
 
 class GuessSession:

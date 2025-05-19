@@ -1,8 +1,8 @@
 {
     "berry":{
         "name":"草莓",
-        "do_count":1,
-        "always_valid":1,
+        "count_mode":"precise",
+        "mention_when":"always",
         "entities":[
             "strawberry",
             "LunaticHelper/StrawberryWithReturn",
@@ -14,14 +14,14 @@
     },
     "berry_seed":{
         "name":"草莓碎片",
-        "do_count":1,
+        "count_mode":"precise",
         "entities":[
             "MaxHelpingHand/MultiRoomStrawberrySeed"
         ]
     },
     "spinner":{
         "name":"圆刺, 煤球及类似物",
-        "always_valid":1,
+        "mention_when":"always",
         "entities":[
             "spinner",
             "VivHelper/CustomSpinner",
@@ -44,22 +44,22 @@
     },
     "key":{
         "name":"钥匙",
-        "do_count":1,
+        "count_mode":"precise",
         "entities":[
             "key"
         ]
     },
     "lockBlock":{
         "name":"锁",
-        "do_count":1,
+        "count_mode":"precise",
         "entities":[
             "lockBlock"
         ]
     },
     "heart":{
         "name":"水晶之心",
-        "do_count":1,
-        "always_valid":1,
+        "count_mode":"precise",
+        "mention_when":"always",
         "entities":[
             "CollabUtils2/MiniHeart",
             "MaxHelpingHand/ReskinnableCrystalHeart",
@@ -96,7 +96,7 @@
     },
     "switchGate":{
         "name":"机关门",
-        "always_valid":1,
+        "mention_when":"always",
         "entities":[
             "MaxHelpingHand/FlagSwitchGate",
             "MaxHelpingHand/ShatterFlagSwitchGate",
@@ -109,7 +109,7 @@
     },
     "spring":{
         "name":"弹簧",
-        "always_valid":1,
+        "mention_when":"always",
         "entities":[
             "wallSpringLeft",
             "spring",
