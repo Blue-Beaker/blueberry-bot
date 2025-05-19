@@ -42,18 +42,16 @@ class EntityCategory:
             inst.mention_when=MentionMode.from_name(json_data["mention_when"])
         return inst
     def __repr__(self) -> str:
+        return f"{self.__class__.__name__}: {self.id} {self.name}"
+    def info(self) -> str:
         return f"{self.__class__.__name__}, count_mode={self.count_mode}, mention_when={self.mention_when}, entities=[{', '.join(self.entities)}]"
 
 class EntityDataManager:
     category_data:dict[str,EntityCategory]
     entity_to_categories:dict[str,list[EntityCategory]]
-    def __init__(self) -> None:
-        self.map_aliases={}
-        self.alias_to_map={}
+    def load(self):
         self.category_data={}
         self.entity_to_categories={}
-        
-    def load(self):
         with open(os.path.join(DATA_DIR,"entity_categories.json")) as f:
             data:dict[str,dict]=json.load(f)
         for k,v in data.items():
@@ -73,8 +71,10 @@ class EntityDataManager:
                 if e not in self.entity_to_categories.keys():
                     self.entity_to_categories[e]=[]
                 self.entity_to_categories[e].append(cat)
-    def get_categories(self,entity:str):
-        return self.entity_to_categories[entity].copy()
+    def get_categories(self,entity:str)->list[EntityCategory]:
+        if(entity in self.entity_to_categories.keys()):
+            return self.entity_to_categories[entity].copy()
+        return []
     
     
 class MapData:
@@ -93,19 +93,21 @@ class MapData:
         if("aliases" in json_data.keys()):
             inst.aliases=json_data["aliases"].copy()
         return inst
+    
     def __repr__(self) -> str:
+        return f"{self.__class__.__name__}: {self.id} {self.name}"
+    def info(self) -> str:
         return f"{self.__class__.__name__}, filePath={self.filePath}, aliases=[{', '.join(self.aliases)}]"
 
 
 class MapDataManager:
     map_data:dict[str,MapData]
+    file_to_mapdata:dict[str,MapData]
     alias_to_mapdata:dict[str,MapData]
-    def __init__(self) -> None:
+    def load(self):
         self.map_data={}
         self.alias_to_mapdata={}
-        
-    def load(self):
-        with open(os.path.join(DATA_DIR,"entity_categories.json")) as f:
+        with open(os.path.join(DATA_DIR,"map_data.json")) as f:
             data:dict[str,dict]=json.load(f)
         for k,v in data.items():
             # load category from json
@@ -121,10 +123,21 @@ class MapDataManager:
             # add to entity_to_categories
             for e in mapData.aliases:
                 self.alias_to_mapdata[e]=mapData
+            self.file_to_mapdata[mapData.filePath]=mapData
     def get_map_from_alias(self,map:str):
-        return self.alias_to_mapdata[map]
-    
-            
+        return self.alias_to_mapdata[map] if map in self.alias_to_mapdata.keys() else None
+    def get_map_from_file(self,map:str):
+        return self.file_to_mapdata[map] if map in self.file_to_mapdata.keys() else None
+
+ENTITY_MANAGER=EntityDataManager()
+MAP_MANAGER=MapDataManager()
+
+def load_all_data():
+    ENTITY_MANAGER.load()
+    ENTITY_MANAGER.process()
+    MAP_MANAGER.load()
+    MAP_MANAGER.process()
+
 if __name__ == '__main__':
     manager=EntityDataManager()
     manager.load()
