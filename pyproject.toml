@@ -11,5 +11,5 @@ adapters = [
     { name = "Discord", module_name = "nonebot.adapters.discord" }
 ]
 plugins = []
-plugin_dirs = []
-builtin_plugins = ["echo"]
+plugin_dirs = ["blueberry-bot/plugins"]
+builtin_plugins = []
