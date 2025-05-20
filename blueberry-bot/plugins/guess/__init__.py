@@ -32,8 +32,9 @@ def guess_command(cmd:str,manager:guess_core.GuessManager)->str|None:
     if cmd.startswith("start"):
         if(session):
             return "当前有正在进行的guess 请先猜出来"
-        feedback=manager.start_guess().reveal_info()
-        return feedback
+        session=manager.start_guess()
+        session.reveal_info()
+        return session.get_final_message()
     elif cmd.startswith("giveup"):
         if(not session):
             return "当前有正在进行的guess 请先猜出来"
