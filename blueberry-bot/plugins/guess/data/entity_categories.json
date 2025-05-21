@@ -94,9 +94,23 @@
             "CommunalHelper/DreamRefill"
         ]
     },
+    "refill":{
+        "name":"冲刺水晶",
+        "entities":[
+            "DJMapHelper/colorfulRefill",
+            "FrostHelper/PlusOneRefill#dashCount>=1",
+            "LunaticHelper/CustomRefill",
+            "MaxHelpingHand/CustomizableRefill",
+            "SJ2021/ExpiringDashRefill",
+            "SJ2021/ResettingRefill#Dashes>=1",
+            "TwigHelper/LargeRefill",
+            "VivHelper/CustomRefill",
+            "VivHelper/RefillWall",
+            "refill"
+        ]
+    },
     "switchGate":{
-        "name":"机关门",
-        "mention_when":"always",
+        "name":"硬币机关门",
         "entities":[
             "MaxHelpingHand/FlagSwitchGate",
             "MaxHelpingHand/ShatterFlagSwitchGate",
@@ -105,6 +119,16 @@
             "MaxHelpingHand/ReskinnableSwitchGate",
             "spirialis/timeswitchgate",
             "CommunalHelper/DreamSwitchGate"
+        ]
+    },
+    "templeGate":{
+        "name":"神庙门",
+        "entities":[
+            "DJMapHelper/templeGateReversed",
+            "SJ2021/GrabTempleGate",
+            "SJ2021/HorizontalTempleGate",
+            "XaphanHelper/FlagTempleGate",
+            "templeGate"
         ]
     },
     "spring":{
@@ -140,6 +164,12 @@
             "MaxHelpingHand/NoDashRefillSpringRight",
             "MaxHelpingHand/NoDashRefillSpringLeft",
             "MaxHelpingHand/NoDashRefillSpring"
+        ]
+    },
+    "cat":{
+        "name":"猫",
+        "entities":[
+            "HonlyHelper/PettableCat"
         ]
     }
 }
