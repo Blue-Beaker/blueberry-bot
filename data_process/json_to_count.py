@@ -5,6 +5,8 @@ import shutil
 import time,os,sys
 import json
 
+os.chdir(sys.path[0])
+
 MAP_FOLDER="map_json"
 EXPORT_FOLDER="map_export_data"
 
