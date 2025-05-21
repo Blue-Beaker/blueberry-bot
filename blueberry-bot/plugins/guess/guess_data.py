@@ -1,7 +1,9 @@
 from enum import Enum
 import os,json
+import random
 import traceback
 
+MAP_DATA_DIR="blueberry-bot/plugins/guess/map_export_data"
 DATA_DIR="blueberry-bot/plugins/guess/data"
 
 class CountMode(Enum):
@@ -89,7 +91,7 @@ class MapData:
         
     @classmethod
     def from_json(cls,json_data:dict):
-        inst=MapData(json_data["name"],json_data["filePath"])
+        inst=MapData(json_data["answer"],json_data["filePath"])
         if("aliases" in json_data.keys()):
             inst.aliases=json_data["aliases"].copy()
         return inst
@@ -104,15 +106,20 @@ class MapDataManager:
     map_data:dict[str,MapData]
     file_to_mapdata:dict[str,MapData]
     alias_to_mapdata:dict[str,MapData]
+    
     def load(self):
         self.map_data={}
+        self.file_to_mapdata={}
         self.alias_to_mapdata={}
         with open(os.path.join(DATA_DIR,"map_data.json")) as f:
             data:dict[str,dict]=json.load(f)
         for k,v in data.items():
             # load category from json
             try:
-                self.map_data[k]=MapData.from_json(v)
+                mapData=MapData.from_json(v)
+                if(len(mapData.filePath)==0 or not os.path.isfile(os.path.join(MAP_DATA_DIR,mapData.filePath))):
+                    continue
+                self.map_data[k]=mapData
                 self.map_data[k].id=k
             except Exception as e:
                 print("Error when reading: ",k,v)
@@ -124,10 +131,16 @@ class MapDataManager:
             for e in mapData.aliases:
                 self.alias_to_mapdata[e]=mapData
             self.file_to_mapdata[mapData.filePath]=mapData
+        print(self.alias_to_mapdata)
+        print(self.file_to_mapdata)
+        
     def get_map_from_alias(self,map:str):
         return self.alias_to_mapdata[map] if map in self.alias_to_mapdata.keys() else None
     def get_map_from_file(self,map:str):
         return self.file_to_mapdata[map] if map in self.file_to_mapdata.keys() else None
+    
+    def pickMap(self) -> MapData:
+        return random.choice(list(self.map_data.values()))
 
 ENTITY_MANAGER=EntityDataManager()
 MAP_MANAGER=MapDataManager()
@@ -138,8 +151,8 @@ def load_all_data():
     MAP_MANAGER.load()
     MAP_MANAGER.process()
 
-if __name__ == '__main__':
-    manager=EntityDataManager()
-    manager.load()
-    manager.process()
-    print(manager,manager.category_data)
+# if __name__ == '__main__':
+#     manager=EntityDataManager()
+#     manager.load()
+#     manager.process()
+#     print(manager,manager.category_data)

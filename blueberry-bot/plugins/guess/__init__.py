@@ -28,19 +28,9 @@ async def run_command(cmd:str)->str|None:
 
 
 def guess_command(cmd:str,manager:guess_core.GuessManager)->str|None:
-    session=manager.get_session()
     if cmd.startswith("start"):
-        if(session):
-            return "当前有正在进行的guess 请先猜出来"
-        session=manager.start_guess()
-        session.reveal_info()
-        return session.get_final_message()
+        return manager.start()
     elif cmd.startswith("giveup"):
-        if(not session):
-            return "当前有正在进行的guess 请先猜出来"
-        manager.session=None
-        return f"你放弃了! 答案是: {session.map_name}"
+        return manager.cancel()
     else:
-        if(not session):
-            return "当前没有正在进行的guess 请&guess start开始猜图"
-        return session.do_guess(cmd)
+        return manager.do_guess(cmd)
