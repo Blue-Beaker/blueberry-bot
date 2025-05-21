@@ -6,6 +6,7 @@ import time,os,sys
 import json
 
 os.chdir(sys.path[0])
+import entity_category_preprocess
 
 MAP_FOLDER="map_json"
 EXPORT_FOLDER="map_export_data"
@@ -100,7 +101,15 @@ def processMapData(mapdata:dict):
                     
     entityCount=dict(sorted(entityCount.items(), key=lambda item: item[0]))
     triggerCount=dict(sorted(triggerCount.items(), key=lambda item: item[0]))
-    return {"mapName":mapName,"levelCount":levelCount,"levels":levelNames,"fillers":fillers,"entities":entityCount,"triggers":triggerCount}
+    
+    exportData={}
+    exportData["mapName"]=mapName
+    exportData["levelCount"]=levelCount
+    exportData["levels"]=levelNames
+    exportData["fillers"]=fillers
+    exportData["entities"]=entityCount
+    exportData["triggers"]=triggerCount
+    return exportData
 
 entityCount:dict[str,int]={}
 triggerCount:dict[str,int]={}
@@ -117,10 +126,15 @@ for inputFile,outputFile in mapsToExport.items():
     
     os.makedirs(os.path.dirname(outputFile),exist_ok=True)
     with open(outputFile,"w") as f2:
-        json.dump(exported_data,f2,indent=2)
+        write_data=exported_data.copy()
+        json.dump(write_data,f2,indent=2)
         # print(exported_data)
 
 entityCount=dict(sorted(entityCount.items(), key=lambda item: item[0]))
 triggerCount=dict(sorted(triggerCount.items(), key=lambda item: item[0]))
+
 with open(os.path.join(EXPORT_FOLDER,"all_maps.json"),"w") as f3:
-    json.dump({"entities":entityCount,"triggers":triggerCount},f3,indent=2)
+    allData={}
+    allData["entities"]=entityCount
+    # allData["triggers"]=triggerCount
+    json.dump(allData,f3,indent=2)

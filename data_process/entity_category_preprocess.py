@@ -1,0 +1,119 @@
+
+
+import json
+import re
+from typing import Any
+
+
+ENTITY_CATEGORIES_FILE="../blueberry-bot/plugins/guess/data/entity_categories.json"
+attribute_rule_matcher=re.compile("(.+)([<>]=?|==|!=)(.+)")
+
+def getName(child:dict):
+    if not isinstance(child,dict):
+        print(child)
+    if("name" in child.keys()):
+        return str(child["name"])
+    return "null"
+
+def getAttributes(obj:dict):
+    if("attributes" in obj.keys()):
+        return obj["attributes"]
+    return {}
+
+class AttributeMatchingRule:
+    attrName:str
+    calc:str
+    value:str
+    def __init__(self) -> None:
+        pass
+    @classmethod
+    def fromStr(cls,rulestr:str):
+        matched=attribute_rule_matcher.match(rulestr)
+        if matched:
+            rule=AttributeMatchingRule()
+            rule.attrName=matched[1]
+            rule.calc=matched[2]
+            rule.value=eval(matched[3])
+            return rule
+    def matches(self,attrs:dict[str,Any])->bool:
+        return eval(f"{attrs.get(self.attrName)}{self.calc}{self.value}")
+
+class EntityCategoryPre:
+    id:str
+    name:str
+    entities:list[str]
+    entity_with_attr_rules:dict[str,str]
+    
+    def __init__(self,name:str,entities:list[str]) -> None:
+        self.name=name
+        self.entities=[]
+        self.entity_with_attr_rules={}
+        for e in entities:
+            if("#" in e):
+                spl=e.split("#",1)
+                self.entity_with_attr_rules[spl[0]]=spl[1]
+            else:
+                self.entities.append(e)
+        
+    @classmethod
+    def from_json(cls,json_data:dict):
+        inst=EntityCategoryPre(json_data["name"],json_data["entities"])
+        return inst
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}: {self.id} {self.name}"
+    def info(self) -> str:
+        return f"{self.__class__.__name__}, entities=[{', '.join(self.entities)}]"
+    def countEntities(self,entities:list[dict]):
+        count=0
+        for entity in entities:
+            if(self.doesEntityMatch(entity)):
+                count=count+1
+    def doesEntityMatch(self,entity:dict):
+        name=getName(entity)
+        if(name in self.entities):
+            return True
+        if(name in self.entity_with_attr_rules):
+            rules=self.entity_with_attr_rules[name]
+            attrs=getAttributes(entity)
+            for attrRule in rules.split(","):
+                rule=AttributeMatchingRule.fromStr(attrRule)
+                if not rule:
+                    continue
+                if not rule.matches(attrs):
+                    return False
+            return True
+        return False    
+        # process entity with attributes
+        
+
+class EntityDataManagerPre:
+    category_data:dict[str,EntityCategoryPre]
+    entity_to_categories:dict[str,list[EntityCategoryPre]]
+    def load(self):
+        self.category_data={}
+        self.entity_to_categories={}
+        with open(ENTITY_CATEGORIES_FILE) as f:
+            data:dict[str,dict]=json.load(f)
+        for k,v in data.items():
+            # load category from json
+            try:
+                self.category_data[k]=EntityCategoryPre.from_json(v)
+                self.category_data[k].id=k
+            except Exception as e:
+                print("Error when reading: ",k,v)
+                raise e
+            
+    def process(self):
+        for id,cat in self.category_data.items():
+            # add to entity_to_categories
+            for e in cat.entities:
+                # if the list isn't there, create it
+                if e not in self.entity_to_categories.keys():
+                    self.entity_to_categories[e]=[]
+                self.entity_to_categories[e].append(cat)
+                
+    def get_categories(self,entity:str)->list[EntityCategoryPre]:
+        if(entity in self.entity_to_categories.keys()):
+            return self.entity_to_categories[entity].copy()
+        return []
+    
