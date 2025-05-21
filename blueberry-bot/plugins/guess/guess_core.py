@@ -2,9 +2,7 @@ import json
 import random
 import os,sys
 from . import utils,guess_data
-from .guess_data import EntityCategory,MapData
-
-MAP_DATA_DIR="blueberry-bot/plugins/guess/map_export_data"
+from .guess_data import EntityCategory,MapData,MAP_DATA_DIR,DATA_DIR
 
 class GuessSession:
     

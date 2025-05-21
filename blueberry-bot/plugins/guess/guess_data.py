@@ -131,8 +131,6 @@ class MapDataManager:
             for e in mapData.aliases:
                 self.alias_to_mapdata[e]=mapData
             self.file_to_mapdata[mapData.filePath]=mapData
-        print(self.alias_to_mapdata)
-        print(self.file_to_mapdata)
         
     def get_map_from_alias(self,map:str):
         return self.alias_to_mapdata[map] if map in self.alias_to_mapdata.keys() else None
