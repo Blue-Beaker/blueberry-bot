@@ -2,7 +2,7 @@ import json
 import random
 import os,sys
 from . import utils,guess_data
-from .guess_data import EntityCategory,MapData,MAP_DATA_DIR,DATA_DIR
+from .guess_data import EntityCategory,MapData,MAP_DATA_DIR,DATA_DIR,ENTITY_MANAGER,MAP_MANAGER
 
 class GuessSession:
     
@@ -31,14 +31,22 @@ class GuessSession:
         self.count_categories()
         print(f"{self.map_name}:\n{self.categorized_entities}\n{self.entities}")
     
+    
+    def entityCount(self,entity:str)->int:
+        return self.entities[entity] if entity in self.entities else 0
     def count_categories(self):
         self.categorized_entities:dict[EntityCategory,int]={}
+        # 根据实体增加对应类别计数
         for entity in self.entities:
-            for category in guess_data.ENTITY_MANAGER.get_categories(entity):
+            for category in ENTITY_MANAGER.get_categories(entity):
                 if(category not in self.categorized_entities.keys()):
-                    self.categorized_entities[category]=self.entities[entity]
+                    self.categorized_entities[category]=self.entityCount(entity)
                 else:
-                    self.categorized_entities[category]=self.categorized_entities[category]+self.entities[entity]
+                    self.categorized_entities[category]=self.categorized_entities[category]+self.entityCount(entity)
+        # 增加不存在的实体
+        for cat in ENTITY_MANAGER.get_categories_not_present():
+            if cat not in self.categorized_entities:
+                self.categorized_entities[cat]=0
     
     def get_unrevealed_entity(self):
         choices:list[tuple[EntityCategory,int]]=[]
@@ -48,7 +56,10 @@ class GuessSession:
         return choices
     
     def get_info(self)->tuple[EntityCategory,int]:
-        choice=random.choice(self.get_unrevealed_entity())
+        unrevealed=self.get_unrevealed_entity()
+        if(unrevealed.__len__()==0):
+            self.finished=True
+        choice=random.choice(unrevealed)
         return (choice[0],choice[1])
     
     def reveal_info(self):
@@ -67,17 +78,21 @@ class GuessSession:
     def do_guess(self,msg:str)->str:
         msg=msg.strip()
         print(msg)
-        map=guess_data.MAP_MANAGER.get_map_from_alias(msg)
+        map=MAP_MANAGER.get_map_from_alias(msg)
+        feedback=[]
+        
         if(not map):
-            return "没有找到你输入的地图! 请输入正确的地图名或别称"
+            feedback.append("没有找到你输入的地图! 请输入正确的地图名或别称")
+            
         if(map==self.map_name or msg in self.aliases):
             self.finished=True
-            return f"你猜对了! 正确答案是: {self.map_name}"
+            feedback.append(f"你猜对了! 正确答案是: {self.map_name}")
         else:
             if(self.get_unrevealed_entity().__len__()>0):
                 self.reveal_info()
-            return self.get_final_message()
-        return ""
+            feedback.append("回答错误! 题目是: ")
+            feedback.append(self.get_final_message())
+        return "\n".join(feedback)
 
 class GuessManager:
     session:GuessSession|None=None
@@ -94,7 +109,7 @@ class GuessManager:
         # files = utils.listRecursive(MAP_DATA_DIR,".json")
         # random_map=random.choice(files)
         
-        map=guess_data.MAP_MANAGER.pickMap()
+        map=MAP_MANAGER.pickMap()
         random_map=os.path.join(MAP_DATA_DIR,map.filePath)
         
         with open(random_map) as f:
@@ -108,7 +123,7 @@ class GuessManager:
             return "当前有正在进行的guess 请先猜出来"
         self.session=self._start_guess()
         self.session.reveal_info()
-        return self.session.get_final_message()
+        return "你能根据以下信息猜出这是哪张图吗?\n"+self.session.get_final_message()
     
     def cancel(self)->str:
         if(not self.session):

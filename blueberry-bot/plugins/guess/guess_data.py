@@ -51,9 +51,11 @@ class EntityCategory:
 class EntityDataManager:
     category_data:dict[str,EntityCategory]
     entity_to_categories:dict[str,list[EntityCategory]]
+    entity_to_categories_not_present:list[EntityCategory]
     def load(self):
         self.category_data={}
         self.entity_to_categories={}
+        self.entity_to_categories_not_present=[]
         with open(os.path.join(DATA_DIR,"entity_categories.json")) as f:
             data:dict[str,dict]=json.load(f)
         for k,v in data.items():
@@ -73,6 +75,12 @@ class EntityDataManager:
                 if e not in self.entity_to_categories.keys():
                     self.entity_to_categories[e]=[]
                 self.entity_to_categories[e].append(cat)
+            # add categories that doesn't need to be present to show:
+            if cat.mention_when!=MentionMode.PRESENT:
+                self.entity_to_categories_not_present.append(cat)
+    def get_categories_not_present(self)->list[EntityCategory]:
+        return self.entity_to_categories_not_present
+                
     def get_categories(self,entity:str)->list[EntityCategory]:
         if(entity in self.entity_to_categories.keys()):
             return self.entity_to_categories[entity].copy()
