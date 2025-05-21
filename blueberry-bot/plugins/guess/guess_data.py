@@ -5,7 +5,8 @@ import traceback
 
 MAP_DATA_DIR="blueberry-bot/plugins/guess/map_export_data"
 DATA_DIR="blueberry-bot/plugins/guess/data"
-
+MAP_NAMES_FILE="blueberry-bot/plugins/guess/data/map_names.json"
+ENTITY_CATEGORIES_FILE="blueberry-bot/plugins/guess/data/entity_categories.json"
 class CountMode(Enum):
     BOOLEAN=0
     RANGE=1
@@ -56,7 +57,7 @@ class EntityDataManager:
         self.category_data={}
         self.entity_to_categories={}
         self.entity_to_categories_not_present=[]
-        with open(os.path.join(DATA_DIR,"entity_categories.json")) as f:
+        with open(ENTITY_CATEGORIES_FILE) as f:
             data:dict[str,dict]=json.load(f)
         for k,v in data.items():
             # load category from json
@@ -119,7 +120,7 @@ class MapDataManager:
         self.map_data={}
         self.file_to_mapdata={}
         self.alias_to_mapdata={}
-        with open(os.path.join(DATA_DIR,"map_data.json")) as f:
+        with open(MAP_NAMES_FILE) as f:
             data:dict[str,dict]=json.load(f)
         for k,v in data.items():
             # load category from json
