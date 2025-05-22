@@ -49,10 +49,10 @@ class GuessSession:
         #             self.categorized_entities[category]=self.entityCount(entity)
         #         else:
         #             self.categorized_entities[category]=self.categorized_entities[category]+self.entityCount(entity)
-        # # 增加不存在的实体
-        # for cat in ENTITY_MANAGER.get_categories_not_present():
-        #     if cat not in self.categorized_entities:
-        #         self.categorized_entities[cat]=0
+        # 增加不存在的实体
+        for cat in ENTITY_MANAGER.get_categories_not_present():
+            if cat not in self.categorized_entities:
+                self.categorized_entities[cat]=0
     
     def get_unrevealed_entity(self):
         choices:list[tuple[EntityCategory,int]]=[]
