@@ -73,7 +73,9 @@ class GuessSession:
         self.revealed_info[k]=v
     
     def get_message_from_revealed_info(self,k:EntityCategory,v:int)->str:
-        return f"{k.name}的数量为{v}"
+        if v==0:
+            return f"没有{k.name}"
+        return f"有{v}个{k.name}"
     
     def get_final_message(self):
         messageLines=[]
