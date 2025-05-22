@@ -2,6 +2,7 @@
 
 import json
 import re
+import traceback
 from typing import Any
 
 
@@ -24,19 +25,29 @@ class AttributeMatchingRule:
     attrName:str
     calc:str
     value:str
-    def __init__(self) -> None:
-        pass
+    rulestr:str
+    def __init__(self,rulestr:str) -> None:
+        self.rulestr=rulestr
     @classmethod
     def fromStr(cls,rulestr:str):
         matched=attribute_rule_matcher.match(rulestr)
         if matched:
-            rule=AttributeMatchingRule()
+            rule=AttributeMatchingRule(rulestr)
             rule.attrName=matched[1]
             rule.calc=matched[2]
-            rule.value=eval(matched[3])
+            rule.value=matched[3]
             return rule
     def matches(self,attrs:dict[str,Any])->bool:
-        return eval(f"{attrs.get(self.attrName)}{self.calc}{self.value}")
+        for k,v in attrs.items():
+            locals()[k]=v
+        try:
+            return eval(self.rulestr)
+        except Exception as e:
+            print(f"Trying to eval {self.rulestr} with {attrs}:")
+            print(locals())
+            traceback.print_exc()
+            raise e
+            return False
 
 class EntityCategoryPre:
     id:str
@@ -107,6 +118,13 @@ class EntityDataManagerPre:
         for id,cat in self.category_data.items():
             # add to entity_to_categories
             for e in cat.entities:
+                # if the list isn't there, create it
+                if e not in self.entity_to_categories.keys():
+                    self.entity_to_categories[e]=[]
+                self.entity_to_categories[e].append(cat)
+                
+            for e in cat.entity_with_attr_rules:
+                e=e.split("#",1)[0]
                 # if the list isn't there, create it
                 if e not in self.entity_to_categories.keys():
                     self.entity_to_categories[e]=[]

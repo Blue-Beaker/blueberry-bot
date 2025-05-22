@@ -102,7 +102,7 @@
             "LunaticHelper/CustomRefill",
             "MaxHelpingHand/CustomizableRefill",
             "SJ2021/ExpiringDashRefill",
-            "SJ2021/ResettingRefill#Dashes>=1",
+            "SJ2021/ResettingRefill#dashes>=1",
             "TwigHelper/LargeRefill",
             "VivHelper/CustomRefill",
             "VivHelper/RefillWall",

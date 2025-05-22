@@ -7,6 +7,7 @@ import json
 
 os.chdir(sys.path[0])
 import entity_category_preprocess
+from entity_category_preprocess import EntityCategoryPre,EntityDataManagerPre
 
 MAP_FOLDER="map_json"
 EXPORT_FOLDER="map_export_data"
@@ -59,9 +60,15 @@ def getName(child:dict):
         return str(child["name"])
     return "null"
 
+managerPre=EntityDataManagerPre()
+managerPre.load()
+managerPre.process()
+print(managerPre.entity_to_categories)
+
 def processLevel(leveldata:dict) -> dict:
     entityCount:dict[str,int]={}
     triggerCount:dict[str,int]={}
+    entityTagCount:dict[str,int]={}
     
     if("children" in leveldata.keys()):
         for child in leveldata.get("children"): # type: ignore
@@ -70,15 +77,21 @@ def processLevel(leveldata:dict) -> dict:
                 for entity in entities:
                     increment(entityCount,getName(entity))
                     
+                    for entityTag in managerPre.get_categories(getName(entity)):
+                        if(entityTag.doesEntityMatch(entity)):
+                            increment(entityTagCount,entityTag.id)
+                    
+                    
             if(getName(child)=="triggers"):
                 triggers=child.get("children")
                 for trigger in triggers:
                     increment(triggerCount,getName(trigger))
-    return {"entities":entityCount,"triggers":triggerCount}
+    return {"entities":entityCount,"entityTagCount":entityTagCount,"triggers":triggerCount}
                     
 def processMapData(mapdata:dict):
     entityCount:dict[str,int]={}
     triggerCount:dict[str,int]={}
+    entityTagCount:dict[str,int]={}
     levelNames:list[str]=[]
     fillers:list[str]=[]
     levelCount=0
@@ -98,6 +111,7 @@ def processMapData(mapdata:dict):
                     levelInfo=processLevel(level)
                     sumCounts(entityCount,levelInfo["entities"])
                     sumCounts(triggerCount,levelInfo["triggers"])
+                    sumCounts(entityTagCount,levelInfo["entityTagCount"])
                     
     entityCount=dict(sorted(entityCount.items(), key=lambda item: item[0]))
     triggerCount=dict(sorted(triggerCount.items(), key=lambda item: item[0]))
@@ -108,33 +122,37 @@ def processMapData(mapdata:dict):
     exportData["levels"]=levelNames
     exportData["fillers"]=fillers
     exportData["entities"]=entityCount
+    exportData["entityTagCount"]=entityTagCount
     exportData["triggers"]=triggerCount
     return exportData
 
-entityCount:dict[str,int]={}
-triggerCount:dict[str,int]={}
+def main():
+    entityCount:dict[str,int]={}
+    triggerCount:dict[str,int]={}
 
-for inputFile,outputFile in mapsToExport.items():
-    
-    print(inputFile)
-    with open(inputFile,"r",encoding="utf-8",errors="ignore") as f:
-        mapdata=json.load(f,strict=False)
-    exported_data=processMapData(mapdata)
-    
-    sumCounts(entityCount,exported_data["entities"])
-    sumCounts(triggerCount,exported_data["triggers"])
-    
-    os.makedirs(os.path.dirname(outputFile),exist_ok=True)
-    with open(outputFile,"w") as f2:
-        write_data=exported_data.copy()
-        json.dump(write_data,f2,indent=2)
-        # print(exported_data)
+    for inputFile,outputFile in mapsToExport.items():
+        
+        print(inputFile)
+        with open(inputFile,"r",encoding="utf-8",errors="ignore") as f:
+            mapdata=json.load(f,strict=False)
+        exported_data=processMapData(mapdata)
+        
+        sumCounts(entityCount,exported_data["entities"])
+        sumCounts(triggerCount,exported_data["triggers"])
+        
+        os.makedirs(os.path.dirname(outputFile),exist_ok=True)
+        with open(outputFile,"w") as f2:
+            write_data=exported_data.copy()
+            json.dump(write_data,f2,indent=2)
+            # print(exported_data)
 
-entityCount=dict(sorted(entityCount.items(), key=lambda item: item[0]))
-triggerCount=dict(sorted(triggerCount.items(), key=lambda item: item[0]))
+    entityCount=dict(sorted(entityCount.items(), key=lambda item: item[0]))
+    triggerCount=dict(sorted(triggerCount.items(), key=lambda item: item[0]))
 
-with open(os.path.join(EXPORT_FOLDER,"all_maps.json"),"w") as f3:
-    allData={}
-    allData["entities"]=entityCount
-    # allData["triggers"]=triggerCount
-    json.dump(allData,f3,indent=2)
+    with open(os.path.join(EXPORT_FOLDER,"all_maps.json"),"w") as f3:
+        allData={}
+        allData["entities"]=entityCount
+        # allData["triggers"]=triggerCount
+        json.dump(allData,f3,indent=2)
+        
+main()
