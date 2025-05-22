@@ -94,7 +94,7 @@
             "CommunalHelper/DreamRefill"
         ]
     },
-    "refill":{
+    "refill_dash":{
         "name":"冲刺水晶",
         "entities":[
             "DJMapHelper/colorfulRefill",

@@ -4,6 +4,7 @@ import random
 import shutil
 import time,os,sys
 import json
+original_workdir=os.getcwd()
 
 os.chdir(sys.path[0])
 import entity_category_preprocess
@@ -59,12 +60,8 @@ def getName(child:dict):
         return str(child["name"])
     return "null"
 
-managerPre=EntityDataManagerPre()
-managerPre.load()
-managerPre.process()
-print(managerPre.entity_to_categories)
 #处理一面的数据
-def processLevel(leveldata:dict) -> dict:
+def processLevel(leveldata:dict,managerPre:EntityDataManagerPre) -> dict:
     entityCount:dict[str,int]={}
     triggerCount:dict[str,int]={}
     entityTagCount:dict[str,int]={}
@@ -88,7 +85,7 @@ def processLevel(leveldata:dict) -> dict:
     return {"entities":entityCount,"entityTagCount":entityTagCount,"triggers":triggerCount}
                     
 #处理整张地图的数据
-def processMapData(mapdata:dict):
+def processMapData(mapdata:dict,managerPre:EntityDataManagerPre):
     entityCount:dict[str,int]={}
     triggerCount:dict[str,int]={}
     entityTagCount:dict[str,int]={}
@@ -108,7 +105,7 @@ def processMapData(mapdata:dict):
                     else:
                         fillers.append(levelName)
                     
-                    levelInfo=processLevel(level)
+                    levelInfo=processLevel(level,managerPre)
                     sumCounts(entityCount,levelInfo["entities"])
                     sumCounts(triggerCount,levelInfo["triggers"])
                     sumCounts(entityTagCount,levelInfo["entityTagCount"])
@@ -129,15 +126,21 @@ def processMapData(mapdata:dict):
     return exportData
 
 def main():
+
+    managerPre=EntityDataManagerPre()
+    managerPre.load()
+    managerPre.process()
+    # print(managerPre.entity_to_categories)
     entityCount:dict[str,int]={}
     triggerCount:dict[str,int]={}
 
     for inputFile,outputFile in mapsToExport.items():
         
-        print(inputFile)
+        
         with open(inputFile,"r",encoding="utf-8",errors="ignore") as f:
             mapdata=json.load(f,strict=False)
-        exported_data=processMapData(mapdata)
+        exported_data=processMapData(mapdata,managerPre)
+        
         
         sumCounts(entityCount,exported_data["entities"])
         sumCounts(triggerCount,exported_data["triggers"])
@@ -147,6 +150,8 @@ def main():
             write_data=exported_data.copy()
             json.dump(write_data,f2,indent=2)
             # print(exported_data)
+            
+        print(os.path.relpath(outputFile,original_workdir))
 
     entityCount=dict(sorted(entityCount.items(), key=lambda item: item[0]))
     triggerCount=dict(sorted(triggerCount.items(), key=lambda item: item[0]))
@@ -156,5 +161,6 @@ def main():
         allData["entities"]=entityCount
         # allData["triggers"]=triggerCount
         json.dump(allData,f3,indent=2)
-        
-main()
+
+if __name__ == "__main__": 
+    main()
