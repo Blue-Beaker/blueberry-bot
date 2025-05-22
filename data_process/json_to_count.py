@@ -23,8 +23,7 @@ def listRecursive(folder:str,suffix:str=""):
         if(file.endswith(suffix)):
             filesList.append(filepath)
     return filesList
-
-
+#收集要导出的地图json文件列表
 def genMapsToExport(source:str,dest:str):
     mapsList=listRecursive(source,".json")
     exportedMapsList=listRecursive(dest,".json")
@@ -64,7 +63,7 @@ managerPre=EntityDataManagerPre()
 managerPre.load()
 managerPre.process()
 print(managerPre.entity_to_categories)
-
+#处理一面的数据
 def processLevel(leveldata:dict) -> dict:
     entityCount:dict[str,int]={}
     triggerCount:dict[str,int]={}
@@ -76,7 +75,7 @@ def processLevel(leveldata:dict) -> dict:
                 entities=child.get("children")
                 for entity in entities:
                     increment(entityCount,getName(entity))
-                    
+                    # 根据实体查找并匹配标签, 计数
                     for entityTag in managerPre.get_categories(getName(entity)):
                         if(entityTag.doesEntityMatch(entity)):
                             increment(entityTagCount,entityTag.id)
@@ -88,6 +87,7 @@ def processLevel(leveldata:dict) -> dict:
                     increment(triggerCount,getName(trigger))
     return {"entities":entityCount,"entityTagCount":entityTagCount,"triggers":triggerCount}
                     
+#处理整张地图的数据
 def processMapData(mapdata:dict):
     entityCount:dict[str,int]={}
     triggerCount:dict[str,int]={}
@@ -113,8 +113,10 @@ def processMapData(mapdata:dict):
                     sumCounts(triggerCount,levelInfo["triggers"])
                     sumCounts(entityTagCount,levelInfo["entityTagCount"])
                     
+    # 排序, 方便查询
     entityCount=dict(sorted(entityCount.items(), key=lambda item: item[0]))
     triggerCount=dict(sorted(triggerCount.items(), key=lambda item: item[0]))
+    entityTagCount=dict(sorted(entityTagCount.items(), key=lambda item: item[0]))
     
     exportData={}
     exportData["mapName"]=mapName

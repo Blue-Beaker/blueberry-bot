@@ -5,7 +5,7 @@ import re
 import traceback
 from typing import Any
 
-
+# 用于预处理地图数据时给实体归类
 ENTITY_CATEGORIES_FILE="../blueberry-bot/plugins/guess/data/entity_categories.json"
 attribute_rule_matcher=re.compile("(.+)([<>]=?|==|!=)(.+)")
 
@@ -21,48 +21,38 @@ def getAttributes(obj:dict):
         return obj["attributes"]
     return {}
 
+#可选规则, 筛选特定条件的实体
 class AttributeMatchingRule:
-    attrName:str
-    calc:str
-    value:str
     rulestr:str
     def __init__(self,rulestr:str) -> None:
         self.rulestr=rulestr
-    @classmethod
-    def fromStr(cls,rulestr:str):
-        matched=attribute_rule_matcher.match(rulestr)
-        if matched:
-            rule=AttributeMatchingRule(rulestr)
-            rule.attrName=matched[1]
-            rule.calc=matched[2]
-            rule.value=matched[3]
-            return rule
-    def matches(self,attrs:dict[str,Any])->bool:
-        for k,v in attrs.items():
+    def matches(self,entity_attributes:dict[str,Any])->bool:
+        for k,v in entity_attributes.items():
             locals()[k]=v
         try:
             return eval(self.rulestr)
         except Exception as e:
-            print(f"Trying to eval {self.rulestr} with {attrs}:")
+            print(f"Trying to eval {self.rulestr} with {entity_attributes}:")
             print(locals())
             traceback.print_exc()
             raise e
             return False
-
+        
+# 预处理时使用的实体标签类 经过简化
 class EntityCategoryPre:
     id:str
     name:str
     entities:list[str]
-    entity_with_attr_rules:dict[str,str]
+    entity_with_attr_rule:dict[str,str]
     
     def __init__(self,name:str,entities:list[str]) -> None:
         self.name=name
         self.entities=[]
-        self.entity_with_attr_rules={}
+        self.entity_with_attr_rule={}
         for e in entities:
             if("#" in e):
                 spl=e.split("#",1)
-                self.entity_with_attr_rules[spl[0]]=spl[1]
+                self.entity_with_attr_rule[spl[0]]=spl[1]
             else:
                 self.entities.append(e)
         
@@ -83,16 +73,13 @@ class EntityCategoryPre:
         name=getName(entity)
         if(name in self.entities):
             return True
-        if(name in self.entity_with_attr_rules):
-            rules=self.entity_with_attr_rules[name]
+        # 如果实体有额外条件, 判断它们
+        # 实体条件为一个返回bool类型的python表达式
+        if(name in self.entity_with_attr_rule):
+            attrRule=self.entity_with_attr_rule[name]
             attrs=getAttributes(entity)
-            for attrRule in rules.split(","):
-                rule=AttributeMatchingRule.fromStr(attrRule)
-                if not rule:
-                    continue
-                if not rule.matches(attrs):
-                    return False
-            return True
+            rule=AttributeMatchingRule(attrRule)
+            return rule.matches(attrs)
         return False    
         # process entity with attributes
         
@@ -100,9 +87,11 @@ class EntityCategoryPre:
 class EntityDataManagerPre:
     category_data:dict[str,EntityCategoryPre]
     entity_to_categories:dict[str,list[EntityCategoryPre]]
+    
     def load(self):
         self.category_data={}
         self.entity_to_categories={}
+        # 读取实体类别文件
         with open(ENTITY_CATEGORIES_FILE) as f:
             data:dict[str,dict]=json.load(f)
         for k,v in data.items():
@@ -123,7 +112,7 @@ class EntityDataManagerPre:
                     self.entity_to_categories[e]=[]
                 self.entity_to_categories[e].append(cat)
                 
-            for e in cat.entity_with_attr_rules:
+            for e in cat.entity_with_attr_rule:
                 e=e.split("#",1)[0]
                 # if the list isn't there, create it
                 if e not in self.entity_to_categories.keys():
