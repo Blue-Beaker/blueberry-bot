@@ -12,7 +12,7 @@
     ]
   },
   "来自星星的礼物 A Gift From the Stars": {
-    "filePath": "",
+    "filePath": "1-Beginner/HankyMueller.json",
     "answer": "来自星星的礼物 A Gift From the Stars",
     "aliases": [
       "来自星星的礼物",
@@ -27,7 +27,7 @@
     ]
   },
   "苍蓝洞穴 Azure Caverns": {
-    "filePath": "",
+    "filePath": "1-Beginner/cellularAutomaton.json",
     "answer": "苍蓝洞穴 Azure Caverns",
     "aliases": [
       "苍蓝洞穴",
@@ -36,7 +36,7 @@
     ]
   },
   "节奏山脊 Cassette Cliffs": {
-    "filePath": "",
+    "filePath": "1-Beginner/Ceph.json",
     "answer": "节奏山脊 Cassette Cliffs",
     "aliases": [
       "节奏山脊",
@@ -45,7 +45,7 @@
     ]
   },
   "崩坏天际线 Collapsing Skyline": {
-    "filePath": "",
+    "filePath": "1-Beginner/hyperlife.json",
     "answer": "崩坏天际线 Collapsing Skyline",
     "aliases": [
       "崩坏天际线",
@@ -55,7 +55,7 @@
     ]
   },
   "被核心的城市 Coresaken City": {
-    "filePath": "",
+    "filePath": "1-Beginner/voliver9.json",
     "answer": "被核心的城市 Coresaken City",
     "aliases": [
       "被核心的城市",
@@ -65,7 +65,7 @@
     ]
   },
   "坠落谜题 Dropzle": {
-    "filePath": "",
+    "filePath": "1-Beginner/Owen-Shirrell.json",
     "answer": "坠落谜题 Dropzle",
     "aliases": [
       "坠落谜题",
@@ -76,7 +76,7 @@
     ]
   },
   "林间小径 Forest Path": {
-    "filePath": "",
+    "filePath": "1-Beginner/asteriskblue.json",
     "answer": "林间小径 Forest Path",
     "aliases": [
       "林间小径",
@@ -86,7 +86,7 @@
     ]
   },
   "圈圈环礁湖 Loopy Lagoon": {
-    "filePath": "",
+    "filePath": "1-Beginner/coffe.json",
     "answer": "圈圈环礁湖 Loopy Lagoon",
     "aliases": [
       "圈圈环礁湖",
@@ -97,7 +97,7 @@
     ]
   },
   "午夜之巅 Midnight Spire": {
-    "filePath": "",
+    "filePath": "1-Beginner/joltik.json",
     "answer": "午夜之巅 Midnight Spire",
     "aliases": [
       "午夜之巅",
@@ -105,7 +105,7 @@
     ]
   },
   "城市之上 Over the City": {
-    "filePath": "",
+    "filePath": "1-Beginner/CoupCritik.json",
     "answer": "城市之上 Over the City",
     "aliases": [
       "城市之上",
@@ -114,7 +114,7 @@
     ]
   },
   "潜在的一切 Potential for Anything": {
-    "filePath": "",
+    "filePath": "1-Beginner/frozenflygone.json",
     "answer": "潜在的一切 Potential for Anything",
     "aliases": [
       "潜在的一切",
@@ -125,7 +125,7 @@
     ]
   },
   "玫瑰花园 Rose Garden": {
-    "filePath": "",
+    "filePath": "1-Beginner/Quinnigan.json",
     "answer": "玫瑰花园 Rose Garden",
     "aliases": [
       "玫瑰花园",
@@ -133,7 +133,7 @@
     ]
   },
   "眼见为实 Seeing is Believing": {
-    "filePath": "",
+    "filePath": "1-Beginner/NotYourBadeline.json",
     "answer": "眼见为实 Seeing is Believing",
     "aliases": [
       "眼见为实",
@@ -142,7 +142,7 @@
     ]
   },
   "香皂 Soap": {
-    "filePath": "",
+    "filePath": "1-Beginner/Circumplex.json",
     "answer": "香皂 Soap",
     "aliases": [
       "香皂",
@@ -151,7 +151,7 @@
     ]
   },
   "草莓果园 Strawberry Orchard": {
-    "filePath": "",
+    "filePath": "1-Beginner/Jadeturtle.json",
     "answer": "草莓果园 Strawberry Orchard",
     "aliases": [
       "草莓果园",
@@ -161,7 +161,7 @@
     ]
   },
   "管道与开关 Switchtube Vista": {
-    "filePath": "",
+    "filePath": "1-Beginner/Flagpole1up.json",
     "answer": "管道与开关 Switchtube Vista",
     "aliases": [
       "管道与开关",
@@ -172,7 +172,7 @@
     ]
   },
   "挤压 The Squeeze": {
-    "filePath": "",
+    "filePath": "1-Beginner/snas.json",
     "answer": "挤压 The Squeeze",
     "aliases": [
       "挤压",
@@ -180,7 +180,7 @@
     ]
   },
   "树巢 Treehive": {
-    "filePath": "",
+    "filePath": "1-Beginner/skeleton.json",
     "answer": "树巢 Treehive",
     "aliases": [
       "树巢",
@@ -188,7 +188,7 @@
     ]
   },
   "对流层 Troposphere": {
-    "filePath": "",
+    "filePath": "1-Beginner/Eclipse.json",
     "answer": "对流层 Troposphere",
     "aliases": [
       "对流层",
@@ -215,7 +215,7 @@
     ]
   },
   "如果我的“私人车道”让你差点死掉… If my 'driveway' almost did you in...": {
-    "filePath": "",
+    "filePath": "1-Beginner/Bing_Over_Google.json",
     "answer": "如果我的“私人车道”让你差点死掉… If my 'driveway' almost did you in...",
     "aliases": [
       "如果我的私人车道让你差点死掉",
@@ -227,7 +227,7 @@
     ]
   },
   "画境 paint": {
-    "filePath": "",
+    "filePath": "1-Beginner/mosscairn.json",
     "answer": "画境 paint",
     "aliases": [
       "画境",
