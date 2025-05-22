@@ -19,15 +19,15 @@ class GuessSession:
     revealed_info:dict
     entities:dict[str,int]
     
-    def __init__(self,mapData:MapData,map_data:dict) -> None:
+    def __init__(self,mapData:MapData,map_exported_data:dict) -> None:
         self.mapData=mapData
         
         self.guesses=0
         self.revealed_info={}
         self.finished=False
         
-        self.map_jsondata=map_data
-        self.entities=map_data['entities']
+        self.map_jsondata=map_exported_data
+        self.entities=map_exported_data['entities']
         self.count_categories()
         print(f"{self.map_name}:\n{self.categorized_entities}\n{self.entities}")
     
@@ -36,17 +36,23 @@ class GuessSession:
         return self.entities[entity] if entity in self.entities else 0
     def count_categories(self):
         self.categorized_entities:dict[EntityCategory,int]={}
-        # 根据实体增加对应类别计数
-        for entity in self.entities:
-            for category in ENTITY_MANAGER.get_categories(entity):
-                if(category not in self.categorized_entities.keys()):
-                    self.categorized_entities[category]=self.entityCount(entity)
-                else:
-                    self.categorized_entities[category]=self.categorized_entities[category]+self.entityCount(entity)
-        # 增加不存在的实体
-        for cat in ENTITY_MANAGER.get_categories_not_present():
-            if cat not in self.categorized_entities:
-                self.categorized_entities[cat]=0
+        taggedEntities:dict[str,int]=self.map_jsondata['entityTagCount']
+        for tagID,count in taggedEntities.items():
+            category = ENTITY_MANAGER.category_data.get(tagID)
+            if(category):
+                self.categorized_entities[category]=count
+                
+        # # 根据实体增加对应类别计数
+        # for entity in self.entities:
+        #     for category in ENTITY_MANAGER.get_categories(entity):
+        #         if(category not in self.categorized_entities.keys()):
+        #             self.categorized_entities[category]=self.entityCount(entity)
+        #         else:
+        #             self.categorized_entities[category]=self.categorized_entities[category]+self.entityCount(entity)
+        # # 增加不存在的实体
+        # for cat in ENTITY_MANAGER.get_categories_not_present():
+        #     if cat not in self.categorized_entities:
+        #         self.categorized_entities[cat]=0
     
     def get_unrevealed_entity(self):
         choices:list[tuple[EntityCategory,int]]=[]
