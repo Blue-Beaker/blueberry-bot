@@ -1,0 +1,11 @@
+version: "3"
+
+
+services:
+  nonebot:
+    build: .
+    env_file:
+      - .env.prod
+    environment:
+      ENVIRONMENT: prod
+    restart: always
