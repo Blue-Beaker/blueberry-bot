@@ -1,6 +1,7 @@
 import json
 import random
 import os,sys
+from nonebot import logger
 
 sys.path.append(".")
 
@@ -95,7 +96,7 @@ class GuessSession:
     
     def do_guess(self,msg:str)->str:
         msg=msg.strip()
-        print(msg)
+        logger.info(msg)
         map=MAP_MANAGER.get_map_from_alias(msg)
         feedback=[]
         
@@ -196,10 +197,3 @@ class GuessManager:
                 session.guesses=guesses
                 
         return inst
-            
-        
-    
-if __name__ == '__main__':
-    manager=GuessManager()
-    session=manager._start_guess()
-    print(session.map_name, session.categorized_entities)

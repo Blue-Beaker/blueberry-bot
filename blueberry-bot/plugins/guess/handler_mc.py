@@ -1,4 +1,4 @@
-from nonebot import on_startswith
+from nonebot import on_startswith,logger
 from nonebot.rule import is_type
 from nonebot.internal.adapter.bot import Bot
 from nonebot.adapters.minecraft import BaseChatEvent
@@ -12,7 +12,7 @@ def main():
     async def _(bot:Bot,event:BaseChatEvent):
         manager=INSTANCES.getOrCreateGuessManager("mc_"+event.server_name)
         message=event.get_message().extract_plain_text()
-        print(event)
+        # logger.debug(event)
         feedBackMessage = await run_command(str(message).removeprefix("&").strip(),manager)
         if(feedBackMessage):
             await handler_msg.send(feedBackMessage)

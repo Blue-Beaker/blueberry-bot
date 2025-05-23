@@ -1,4 +1,4 @@
-from nonebot import on_startswith,on_command
+from nonebot import on_startswith,on_command,logger
 from nonebot.rule import is_type
 from nonebot.internal.adapter.bot import Bot
 
@@ -13,7 +13,7 @@ def main():
     async def _(bot:Bot,event:MessageEvent):
         manager=INSTANCES.getOrCreateGuessManager(f"dc_{event.channel_id}")
         message=event.get_message().extract_plain_text()
-        print(event)
+        # logger.debug(event)
         feedBackMessage = await run_command(message.removeprefix("&").strip(),manager)
         if(feedBackMessage):
             await handler_msg.send(feedBackMessage)
@@ -25,7 +25,7 @@ def main():
     async def _(bot:Bot,event:MessageEvent):
         manager=INSTANCES.getOrCreateGuessManager(f"dc_{event.channel_id}")
         message=event.get_message().extract_plain_text()
-        print(event)
+        # logger.debug(event)
         feedBackMessage = await run_command(message.removeprefix("/").strip(),manager)
         if(feedBackMessage):
             await handler_cmd.send(feedBackMessage)

@@ -3,6 +3,7 @@ import os,json
 import random
 import sys
 import traceback
+from nonebot import logger
 
 sys.path.append(".")
 
@@ -66,7 +67,7 @@ class EntityDataManager:
                 self.category_data[tagID]=EntityCategory.from_json(tagJson)
                 self.category_data[tagID].id=tagID
             except Exception as e:
-                print("Error when reading: ",tagID,tagJson)
+                logger.error("Error when reading: ",tagID,tagJson)
                 raise e
             
     def process(self):
@@ -132,7 +133,7 @@ class MapDataManager:
                 self.map_data[mapID]=mapData
                 self.map_data[mapID].id=mapID
             except Exception as e:
-                print("Error when reading: ",mapID,mapJson)
+                logger.error("Error when reading: ",mapID,mapJson)
                 raise e
             
     def process(self):
