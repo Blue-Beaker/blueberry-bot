@@ -4,6 +4,11 @@ import os,sys
 from . import utils,guess_data
 from .guess_data import EntityCategory,MapData,MAP_DATA_DIR,DATA_DIR,ENTITY_MANAGER,MAP_MANAGER
 
+def getMapJsonFromPath(path:str):
+    mapPath=os.path.join(MAP_DATA_DIR,path)
+    with open(mapPath) as f:
+        return json.load(f)
+
 class GuessSession:
     
     @property
@@ -29,7 +34,7 @@ class GuessSession:
         self.map_jsondata=map_exported_data
         self.entities=map_exported_data['entities']
         self.count_categories()
-        print(f"{self.map_name}:\n{self.categorized_entities}\n{self.entities}")
+        # print(f"{self.map_name}:\n{self.categorized_entities}\n{self.entities}")
     
     
     def entityCount(self,entity:str)->int:
@@ -118,12 +123,9 @@ class GuessManager:
         # random_map=random.choice(files)
         
         map=MAP_MANAGER.pickMap()
-        random_map=os.path.join(MAP_DATA_DIR,map.filePath)
         
-        with open(random_map) as f:
-            map_data=json.load(f)
             
-        self.session=GuessSession(map,map_data)
+        self.session=GuessSession(map,getMapJsonFromPath(map.filePath))
         return self.session
     
     def start(self)->str:
@@ -146,7 +148,6 @@ class GuessManager:
         result=self.session.do_guess(msg)
         if(self.session.finished):
             self.session=None
-        print(self.dump())
         return result
     
     def dump(self):
@@ -172,8 +173,8 @@ class GuessManager:
             return inst
         mapData=MAP_MANAGER.get_map_from_id(map)
         if mapData:
-            with open(mapData.filePath,"r") as f:
-                jsondata=json.load(f)
+            
+            jsondata=getMapJsonFromPath(mapData.filePath)
             session=GuessSession(mapData,jsondata)
             inst.session=session
             

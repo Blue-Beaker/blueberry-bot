@@ -5,13 +5,18 @@ async def run_command(cmd:str,guessManager:GuessManager)->str|None:
     if cmd.startswith("guess"):
         return guess_command(cmd.removeprefix("guess").strip(),guessManager)
 
+def after_command():
+    pass
+
 def guess_command(cmd:str,manager:GuessManager)->str|None:
     if cmd.startswith("start"):
-        return manager.start()
+        result= manager.start()
     elif cmd.startswith("giveup"):
-        return manager.cancel()
+        result= manager.cancel()
     else:
-        return manager.do_guess(cmd)
+        result= manager.do_guess(cmd)
+    after_command()
+    return result
     
 class GuessManagerInstances:
     guessManagers:dict[str,GuessManager]={}
@@ -25,7 +30,9 @@ class GuessManagerInstances:
     def dump(self):
         dumpData={}
         for id,manager in self.guessManagers.items():
-            dumpData[id]=manager.dump()
+            # 不存储空的管理器
+            if manager.has_session():
+                dumpData[id]=manager.dump()
         return dumpData
     
     def load(self,dumpData:dict[str,dict]):
