@@ -40,7 +40,7 @@ class GuessSession:
         self.map_jsondata=map_exported_data
         self.entities=map_exported_data['entities']
         self.count_categories()
-        # print(f"{self.map_name}:\n{self.categorized_entities}\n{self.entities}")
+        logger.debug(f"{self.map_name}:\n{self.categorized_entities}\n{self.entities}")
     
     
     def entityCount(self,entity:str)->int:
