@@ -1,0 +1,5 @@
+MAP_RAW_DATA_DIR="bot_data/map_json"
+MAP_DATA_DIR="bot_data/map_export_data"
+MAP_NAMES_FILE="bot_data/map_names.json"
+MAP_PATHS_FILE="bot_data/map_paths.json"
+ENTITY_CATEGORIES_FILE="bot_data/entity_categories.json"

@@ -1,13 +1,19 @@
 import os,sys,json
+from globals import *
+
+pwd=os.getcwd()
 os.chdir(sys.path[0])
 import data
+os.chdir(pwd)
+
+
 mapPaths={}
 
-with open("mapPaths.json","r") as f:
+with open(MAP_PATHS_FILE,"r") as f:
     mapPaths:dict=json.load(f)    
 print(mapPaths)
 
-with open("data.json","r") as f:
+with open(MAP_NAMES_FILE,"r") as f:
     mapDataList:dict=json.load(f)    
 print(mapDataList)
 
@@ -40,5 +46,5 @@ for name,path in mapPaths.items():
 # with open("mapPaths.json","w") as f:
 #     json.dump(mapPaths,f,indent=2,ensure_ascii=False)   
     
-with open("data.json","w") as f:
+with open(MAP_NAMES_FILE,"w") as f:
     json.dump(mapDataList,f,indent=2,ensure_ascii=False)

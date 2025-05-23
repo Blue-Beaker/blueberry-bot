@@ -1,12 +1,14 @@
 
 
 import json
+import os
 import re
+import sys
 import traceback
 from typing import Any
+from globals import *
 
 # 用于预处理地图数据时给实体归类
-ENTITY_CATEGORIES_FILE="../blueberry-bot/plugins/guess/data/entity_categories.json"
 attribute_rule_matcher=re.compile("(.+)([<>]=?|==|!=)(.+)")
 
 def getName(child:dict):

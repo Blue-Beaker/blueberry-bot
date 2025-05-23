@@ -3,10 +3,8 @@ import os,json
 import random
 import traceback
 
-MAP_DATA_DIR="blueberry-bot/plugins/guess/map_export_data"
-DATA_DIR="blueberry-bot/plugins/guess/data"
-MAP_NAMES_FILE="blueberry-bot/plugins/guess/data/map_names.json"
-ENTITY_CATEGORIES_FILE="blueberry-bot/plugins/guess/data/entity_categories.json"
+from globals import *
+
 class CountMode(Enum):
     BOOLEAN=0
     RANGE=1

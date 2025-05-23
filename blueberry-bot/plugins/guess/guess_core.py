@@ -2,7 +2,9 @@ import json
 import random
 import os,sys
 from . import utils,guess_data
-from .guess_data import EntityCategory,MapData,MAP_DATA_DIR,DATA_DIR,ENTITY_MANAGER,MAP_MANAGER
+from .guess_data import EntityCategory,MapData,ENTITY_MANAGER,MAP_MANAGER
+
+from globals import *
 
 def getMapJsonFromPath(path:str):
     mapPath=os.path.join(MAP_DATA_DIR,path)

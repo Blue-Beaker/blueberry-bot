@@ -1,5 +1,6 @@
 
 import os,sys
+from globals import *
 
 os.chdir(sys.path[0])
 
@@ -15,5 +16,5 @@ def listRecursive(folder:str,suffix:str=""):
             filesList.append(filepath)
     return filesList
 
-filesList = listRecursive("map_export_data",".json")
+filesList = listRecursive(MAP_DATA_DIR,".json")
 print(filesList)
