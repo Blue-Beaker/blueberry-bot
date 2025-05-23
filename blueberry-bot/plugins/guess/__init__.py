@@ -16,8 +16,8 @@ loadEntityCats=[]
 for value in guess_data.ENTITY_MANAGER.category_data.values():
     loadEntityCats.append(f"{value.id}={value.name}")
     
-print(f"已加载实体类别: {", ".join(loadEntityCats)}")
-print(f"已加载地图: {", ".join(guess_data.MAP_MANAGER.map_data.keys())}")
+print(f"已加载实体类别: {', '.join(loadEntityCats)}")
+print(f"已加载地图: {', '.join(guess_data.MAP_MANAGER.map_data.keys())}")
 
 if os.path.exists(SESSIONS_FILE):
     with open(SESSIONS_FILE,"r") as f:
