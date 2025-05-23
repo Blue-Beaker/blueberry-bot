@@ -15,5 +15,5 @@ def main():
         # logger.debug(event)
         feedBackMessage = await run_command(str(message).removeprefix("&").strip(),manager)
         if(feedBackMessage):
-            await handler_msg.send(feedBackMessage)
+            await handler_msg.send("[§bBlueBerry_Bot§r]"+feedBackMessage)
         pass

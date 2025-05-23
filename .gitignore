@@ -2,3 +2,4 @@
 **/__pycache__
 /blueberry-bot/plugins/test
 guess_sessions.json
+.env.test
