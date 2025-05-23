@@ -4,14 +4,15 @@ import random
 import shutil
 import time,os,sys
 import json
+
+sys.path.append(".")
+
+import entity_tag_utils as entity_tag_utils
+from entity_tag_utils import EntityCategoryPre,EntityDataManagerPre
+
+from constants import *
+
 original_workdir=os.getcwd()
-
-os.chdir(sys.path[0])
-import entity_category_preprocess
-from entity_category_preprocess import EntityCategoryPre,EntityDataManagerPre
-
-MAP_FOLDER="map_json"
-EXPORT_FOLDER="map_export_data"
 
 def listRecursive(folder:str,suffix:str=""):
     filesList:list[str]=[]
@@ -32,12 +33,12 @@ def genMapsToExport(source:str,dest:str):
     # print(exportedMapsList)
     mapsToExport:dict[str,str]={}
     for map in mapsList:
-        outName=map.replace(MAP_FOLDER,EXPORT_FOLDER)
+        outName=map.replace(MAP_RAW_DATA_DIR,MAP_DATA_DIR)
         # if(outName not in exportedMapsList):
         mapsToExport[map]=outName
     return mapsToExport
             
-mapsToExport=genMapsToExport(MAP_FOLDER,EXPORT_FOLDER)
+mapsToExport=genMapsToExport(MAP_RAW_DATA_DIR,MAP_DATA_DIR)
 print(mapsToExport)
 
 def increment(d:dict,s:str,c:int=1):
@@ -156,7 +157,7 @@ def main():
     entityCount=dict(sorted(entityCount.items(), key=lambda item: item[0]))
     triggerCount=dict(sorted(triggerCount.items(), key=lambda item: item[0]))
 
-    with open(os.path.join(EXPORT_FOLDER,"all_maps.json"),"w") as f3:
+    with open(os.path.join(MAP_DATA_DIR,"all_maps.json"),"w") as f3:
         allData={}
         allData["entities"]=entityCount
         # allData["triggers"]=triggerCount

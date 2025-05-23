@@ -1,6 +1,6 @@
 
 import os,sys
-from globals import *
+from constants import *
 
 os.chdir(sys.path[0])
 

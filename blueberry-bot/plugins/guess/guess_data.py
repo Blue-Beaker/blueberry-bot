@@ -1,9 +1,12 @@
 from enum import Enum
 import os,json
 import random
+import sys
 import traceback
 
-from globals import *
+sys.path.append(".")
+
+from constants import *
 
 class CountMode(Enum):
     BOOLEAN=0

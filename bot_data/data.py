@@ -1,3 +1,4 @@
+# from github.com/yeshengxiaozu/xiaozu-bot/blob/master/xiaozu_bot/plugins/guess/data.py
 maps = [
     {
         "file_path" : "StrawberryJam/Prologue/",

@@ -1,10 +1,13 @@
 import json
 import random
 import os,sys
+
+sys.path.append(".")
+
 from . import utils,guess_data
 from .guess_data import EntityCategory,MapData,ENTITY_MANAGER,MAP_MANAGER
 
-from globals import *
+from constants import *
 
 def getMapJsonFromPath(path:str):
     mapPath=os.path.join(MAP_DATA_DIR,path)

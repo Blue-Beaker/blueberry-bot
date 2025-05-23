@@ -6,7 +6,10 @@ import re
 import sys
 import traceback
 from typing import Any
-from globals import *
+
+sys.path.append(".")
+
+from constants import *
 
 # 用于预处理地图数据时给实体归类
 attribute_rule_matcher=re.compile("(.+)([<>]=?|==|!=)(.+)")
