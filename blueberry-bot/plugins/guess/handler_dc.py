@@ -5,15 +5,13 @@ from nonebot.internal.adapter.bot import Bot
 from nonebot.adapters.discord import MessageEvent
 
 
-from .handler_base import GuessManagerInstances,run_command
-
-instances = GuessManagerInstances()
+from .handler_base import GuessManagerInstances,run_command,INSTANCES
 
 def main():
     handler_msg = on_startswith("&",is_type(MessageEvent))
     @handler_msg.handle()
     async def _(bot:Bot,event:MessageEvent):
-        manager=instances.getOrCreateGuessManager(f"dc_{event.channel_id}")
+        manager=INSTANCES.getOrCreateGuessManager(f"dc_{event.channel_id}")
         message=event.get_message().extract_plain_text()
         print(event)
         feedBackMessage = await run_command(message.removeprefix("&").strip(),manager)
@@ -25,7 +23,7 @@ def main():
     handler_cmd = on_command("guess",is_type(MessageEvent))
     @handler_cmd.handle()
     async def _(bot:Bot,event:MessageEvent):
-        manager=instances.getOrCreateGuessManager(f"dc_{event.channel_id}")
+        manager=INSTANCES.getOrCreateGuessManager(f"dc_{event.channel_id}")
         message=event.get_message().extract_plain_text()
         print(event)
         feedBackMessage = await run_command(message.removeprefix("/").strip(),manager)

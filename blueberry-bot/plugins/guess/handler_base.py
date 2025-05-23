@@ -21,3 +21,15 @@ class GuessManagerInstances:
             return manager
         self.guessManagers[key]=GuessManager()
         return self.guessManagers[key]
+    
+    def dump(self):
+        dumpData={}
+        for id,manager in self.guessManagers.items():
+            dumpData[id]=manager.dump()
+        return dumpData
+    
+    def load(self,dumpData:dict[str,dict]):
+        for id,manager in dumpData.items():
+            self.guessManagers[id]=GuessManager.load(manager)
+
+INSTANCES = GuessManagerInstances()
