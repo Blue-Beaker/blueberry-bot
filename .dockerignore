@@ -1,5 +1,11 @@
 # ----- Project -----
+blueberry-bot/plugins/test
+bot_data/map_json
+bot_data/map_paths.json
 
+data_process
+
+*.tar
 # .env.*
 .dockerignore
 Dockerfile
