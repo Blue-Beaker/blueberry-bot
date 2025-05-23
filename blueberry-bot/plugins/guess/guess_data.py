@@ -59,13 +59,13 @@ class EntityDataManager:
         self.entity_to_categories_not_present=[]
         with open(ENTITY_CATEGORIES_FILE) as f:
             data:dict[str,dict]=json.load(f)
-        for k,v in data.items():
+        for tagID,tagJson in data.items():
             # load category from json
             try:
-                self.category_data[k]=EntityCategory.from_json(v)
-                self.category_data[k].id=k
+                self.category_data[tagID]=EntityCategory.from_json(tagJson)
+                self.category_data[tagID].id=tagID
             except Exception as e:
-                print("Error when reading: ",k,v)
+                print("Error when reading: ",tagID,tagJson)
                 raise e
             
     def process(self):
@@ -122,16 +122,16 @@ class MapDataManager:
         self.alias_to_mapdata={}
         with open(MAP_NAMES_FILE) as f:
             data:dict[str,dict]=json.load(f)
-        for k,v in data.items():
+        for mapID,mapJson in data.items():
             # load category from json
             try:
-                mapData=MapData.from_json(v)
+                mapData=MapData.from_json(mapJson)
                 if(len(mapData.filePath)==0 or not os.path.isfile(os.path.join(MAP_DATA_DIR,mapData.filePath))):
                     continue
-                self.map_data[k]=mapData
-                self.map_data[k].id=k
+                self.map_data[mapID]=mapData
+                self.map_data[mapID].id=mapID
             except Exception as e:
-                print("Error when reading: ",k,v)
+                print("Error when reading: ",mapID,mapJson)
                 raise e
             
     def process(self):
@@ -141,10 +141,12 @@ class MapDataManager:
                 self.alias_to_mapdata[e]=mapData
             self.file_to_mapdata[mapData.filePath]=mapData
         
+    def get_map_from_id(self,map:str):
+        return self.map_data.get(map,None)
     def get_map_from_alias(self,map:str):
-        return self.alias_to_mapdata[map] if map in self.alias_to_mapdata.keys() else None
+        return self.alias_to_mapdata.get(map,None)
     def get_map_from_file(self,map:str):
-        return self.file_to_mapdata[map] if map in self.file_to_mapdata.keys() else None
+        return self.file_to_mapdata.get(map,None)
     
     def pickMap(self) -> MapData:
         return random.choice(list(self.map_data.values()))

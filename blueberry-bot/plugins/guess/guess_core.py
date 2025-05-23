@@ -16,7 +16,7 @@ class GuessSession:
     mapData:MapData
     map_jsondata:dict
     guesses:int
-    revealed_info:dict
+    revealed_info:dict[EntityCategory,int]
     entities:dict[str,int]
     
     def __init__(self,mapData:MapData,map_exported_data:dict) -> None:
@@ -146,8 +146,51 @@ class GuessManager:
         result=self.session.do_guess(msg)
         if(self.session.finished):
             self.session=None
+        print(self.dump())
         return result
-        
+    
+    def dump(self):
+        dumpdata={
+        }
+        revealed={}
+        if(self.session):
+            dumpdata["current_map"]=self.session.mapData.id
+            for key,value in self.session.revealed_info.items():
+                revealed[key.id]=value
+            dumpdata["revealed_info"]=revealed
+            dumpdata["guesses"]=self.session.guesses
+        else:
+            dumpdata["current_map"]=None
+            
+        return dumpdata
+
+    @classmethod
+    def load(cls,dumpdata:dict[str,str|list[str]|int]):
+        inst=cls()
+        map=dumpdata.get("current_map",None)
+        if not isinstance(map,str):
+            return inst
+        mapData=MAP_MANAGER.get_map_from_id(map)
+        if mapData:
+            with open(mapData.filePath,"r") as f:
+                jsondata=json.load(f)
+            session=GuessSession(mapData,jsondata)
+            inst.session=session
+            
+            info=dumpdata.get("revealed_info",None)
+            if isinstance(info,dict):
+                for id,value in info.items():
+                    entity=ENTITY_MANAGER.category_data.get(id,None)
+                    if not entity:
+                        continue
+                    session.revealed_info[entity]=value
+                    
+            guesses=dumpdata.get("guesses",None)
+            if(isinstance(guesses,int)):
+                session.guesses=guesses
+                
+        return inst
+            
         
     
 if __name__ == '__main__':

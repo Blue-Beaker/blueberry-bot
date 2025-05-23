@@ -59,7 +59,6 @@
     "heart":{
         "name":"水晶之心",
         "count_mode":"precise",
-        "mention_when":"always",
         "entities":[
             "CollabUtils2/MiniHeart",
             "MaxHelpingHand/ReskinnableCrystalHeart",
