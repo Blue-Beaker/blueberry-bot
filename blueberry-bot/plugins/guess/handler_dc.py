@@ -1,9 +1,9 @@
 from nonebot import on_command,logger
 from nonebot.rule import is_type
-from nonebot.internal.adapter.bot import Bot
+# from nonebot.internal.adapter.bot import Bot
 
-from nonebot.adapters.discord import MessageEvent
-from nonebot.adapters import Message
+from nonebot.adapters.discord import MessageEvent, Bot, MessageEvent, MessageSegment, Message
+# from nonebot.adapters import Message
 from nonebot.params import CommandArg
 
 
@@ -18,6 +18,12 @@ def main():
         message=args.extract_plain_text().strip()
         logger.debug(f"'{message}' from{event}")
         feedBackMessage = guess_command(message,manager)
+        
         if(feedBackMessage):
-            await handler_cmd.send(feedBackMessage.replace("{username}","@"+event.author.username))
+            split=feedBackMessage.split("{username}")
+            msgseg=split[0]
+            for segment in split[1:]:
+                msgseg=msgseg+MessageSegment.mention_user(event.user_id)+MessageSegment.text(segment)
+            
+            await handler_cmd.send(msgseg)
         pass
