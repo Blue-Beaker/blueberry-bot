@@ -1,4 +1,5 @@
 import json
+import math
 import random
 import os,sys
 from nonebot import logger
@@ -27,6 +28,7 @@ class GuessSession:
     mapData:MapData
     map_jsondata:dict
     guesses:int
+    guesses_per_info:int=5
     revealed_info:dict[EntityCategory,int]
     entities:dict[str,int]
     
@@ -94,22 +96,35 @@ class GuessSession:
             messageLines.append(self.get_message_from_revealed_info(k,v))
         return "\n".join(messageLines)
     
+    @property
+    def guesses_for_next_info(self):
+        return self.revealed_info.__len__()*self.guesses_per_info
+    
+    def on_guess_wrong(self)->str:
+        if(self.get_unrevealed_entity().__len__()>0):
+            if (self.guesses>=self.guesses_for_next_info):
+                self.reveal_info()
+            else:
+                return f"回答错误! 再猜{self.guesses_for_next_info-self.guesses}次解锁下一条线索 题目是: "
+        return "回答错误! 题目是: "
+        
     def do_guess(self,msg:str)->str:
+        
+        self.guesses=self.guesses+1
+        
         msg=msg.strip()
         logger.info(msg)
         map=MAP_MANAGER.get_map_from_alias(msg)
         feedback=[]
         
-        if(not map):
-            feedback.append("没有找到你输入的地图! 请输入正确的地图名或别称")
-            
         if(map==self.map_name or msg in self.aliases):
             self.finished=True
             feedback.append(f"你猜对了! 正确答案是: {self.map_name}")
         else:
-            if(self.get_unrevealed_entity().__len__()>0):
-                self.reveal_info()
-            feedback.append("回答错误! 题目是: ")
+            if(not map):
+                feedback.append("没有找到你输入的地图! 请输入正确的地图名或别称")
+            else:
+                feedback.append(self.on_guess_wrong())
             feedback.append(self.get_final_message())
         return "\n".join(feedback)
 
@@ -136,7 +151,7 @@ class GuessManager:
     
     def start(self)->str:
         if(self.session):
-            return "当前有正在进行的guess 请先猜出来"
+            return "当前有正在进行的guess 请先猜出来\n"+self.session.get_final_message()
         self.session=self._start_guess()
         self.session.reveal_info()
         return "你能根据以下信息猜出这是哪张图吗?\n"+self.session.get_final_message()
@@ -166,6 +181,7 @@ class GuessManager:
                 revealed[key.id]=value
             dumpdata["revealed_info"]=revealed
             dumpdata["guesses"]=self.session.guesses
+            dumpdata["guesses_per_info"]=self.session.guesses_per_info
         else:
             dumpdata["current_map"]=None
             
@@ -195,5 +211,9 @@ class GuessManager:
             guesses=dumpdata.get("guesses",None)
             if(isinstance(guesses,int)):
                 session.guesses=guesses
+                
+            guesses_per_info=dumpdata.get("guesses_per_info",None)
+            if(isinstance(guesses_per_info,int)):
+                session.guesses_per_info=guesses_per_info
                 
         return inst
