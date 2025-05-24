@@ -28,7 +28,7 @@ class GuessSession:
     mapData:MapData
     map_jsondata:dict
     guesses:int
-    guesses_per_info:int=5
+    guesses_per_info:int=3
     revealed_info:dict[EntityCategory,int]
     entities:dict[str,int]
     
