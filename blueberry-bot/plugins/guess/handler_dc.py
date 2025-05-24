@@ -19,5 +19,5 @@ def main():
         logger.debug(f"'{message}' from{event}")
         feedBackMessage = guess_command(message,manager)
         if(feedBackMessage):
-            await handler_cmd.send(feedBackMessage)
+            await handler_cmd.send(feedBackMessage.replace("{username}","@"+event.author.username))
         pass

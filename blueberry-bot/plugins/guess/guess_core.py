@@ -106,7 +106,7 @@ class GuessSession:
                 self.reveal_info()
             else:
                 return f"回答错误! 再猜{self.guesses_for_next_info-self.guesses}次解锁下一条线索 题目是: "
-        return "回答错误! 题目是: "
+        return f"回答错误! 题目是: "
         
     def do_guess(self,msg:str)->str:
         
@@ -119,7 +119,7 @@ class GuessSession:
         
         if(map==self.map_name or msg in self.aliases):
             self.finished=True
-            feedback.append(f"你猜对了! 正确答案是: {self.map_name}")
+            feedback.append(f"{{username}} 你猜对了! 正确答案是: {self.map_name}")
         else:
             if(not map):
                 feedback.append("没有找到你输入的地图! 请输入正确的地图名或别称")
@@ -151,10 +151,10 @@ class GuessManager:
     
     def start(self)->str:
         if(self.session):
-            return "当前有正在进行的guess 请先猜出来\n"+self.session.get_final_message()
+            return "当前有正在进行的guess 请先猜出来或放弃\n"+self.session.get_final_message()
         self.session=self._start_guess()
         self.session.reveal_info()
-        return "你能根据以下信息猜出这是哪张图吗?\n"+self.session.get_final_message()
+        return "你能根据以下信息猜出这是哪张图吗? 输入&guess 你的答案 以回答\n"+self.session.get_final_message()
     
     def cancel(self)->str:
         if(not self.session):
