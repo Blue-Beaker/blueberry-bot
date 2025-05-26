@@ -105,7 +105,7 @@ class GuessSession:
             if (self.guesses>=self.guesses_for_next_info):
                 self.reveal_info()
             else:
-                return f"回答错误! 再猜{self.guesses_for_next_info-self.guesses}次解锁下一条线索 题目是: "
+                return f"回答错误! 再猜{self.guesses_for_next_info-self.guesses}次加一条线索 题目是: "
         return f"回答错误! 题目是: "
         
     def do_guess(self,msg:str)->str:
