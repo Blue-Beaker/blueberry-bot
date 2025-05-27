@@ -25,7 +25,6 @@
         "entities": [
             "spinner",
             "VivHelper/CustomSpinner",
-            "bigSpinner",
             "FrostHelper/IceSpinner",
             "VivHelper/AnimatedSpinner",
             "trackSpinner",
@@ -216,6 +215,7 @@
     "bumper": {
         "name": "弹球",
         "entities": [
+            "bigspinner",
             "FrostHelper/StaticBumper",
             "JackalHelper/CardinalBumper",
             "JackalHelper/LinkedCardinalBumper",
