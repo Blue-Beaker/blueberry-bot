@@ -223,5 +223,36 @@
             "MaxHelpingHand/RotatingBumper",
             "VortexHelper/VortexCustomBumper"
         ]
+    },
+    "feather": {
+        "name": "羽毛",
+        "entities": [
+            "infiniteStar",
+            "FrostHelper/CustomFeather"
+        ]
+    },
+    "moveBlock": {
+        "name": "移动块",
+        "entities": [
+            "BounceHelper/BounceMoveBlock",
+            "CommunalHelper/CassetteMoveBlock",
+            "CommunalHelper/ConnectedMoveBlock",
+            "CommunalHelper/DreamMoveBlock",
+            "moveBlock",
+            "spirialis/timemoveblock",
+            "vitellary/vitmoveblock"
+        ]
+    },
+    "theoCrystal":{
+        "name": "Theo水晶",
+        "entities": [
+            "theoCrystal"
+        ]
+    },
+    "slope":{
+        "name": "斜坡",
+        "entities": [
+            "XaphanHelper/Slope"
+        ]
     }
 }
