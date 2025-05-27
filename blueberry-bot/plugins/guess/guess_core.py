@@ -42,7 +42,7 @@ class GuessSession:
         self.map_jsondata=map_exported_data
         self.entities=map_exported_data['entities']
         self.count_categories()
-        logger.debug(f"{self.map_name}:\n{self.categorized_entities}\n{self.entities}")
+        logger.debug(f"{self.map_name}:\n{self.entities_to_pick}\n{self.entities}")
     
     
     def entityCount(self,entity:str)->int:
@@ -50,14 +50,16 @@ class GuessSession:
     
     def count_categories(self):
         self.categorized_entities:dict[EntityCategory,int]={}
+        self.entities_to_pick:dict[EntityCategory,int]={}
         taggedEntities:dict[str,int]=self.map_jsondata['entityTagCount']
         
         for tagID,count in taggedEntities.items():
             category = ENTITY_MANAGER.category_data.get(tagID)
-            
-            if(category and category.matchesCount(count)):
+            if(category):
                 self.categorized_entities[category]=count
-                
+                if(category.matchesCount(count)):
+                    self.entities_to_pick[category]=count
+        
         # # 根据实体增加对应类别计数
         # for entity in self.entities:
         #     for category in ENTITY_MANAGER.get_categories(entity):
@@ -68,17 +70,17 @@ class GuessSession:
         # 增加不存在的实体
         for cat in ENTITY_MANAGER.get_categories_not_present():
             if cat not in self.categorized_entities:
-                self.categorized_entities[cat]=0
+                self.entities_to_pick[cat]=0
     
-    def get_unrevealed_entity(self):
+    def unrevealed_entities(self):
         choices:list[tuple[EntityCategory,int]]=[]
-        for c in self.categorized_entities.items():
+        for c in self.entities_to_pick.items():
             if c[0] not in self.revealed_info.keys():
                 choices.append(c)
         return choices
     
     def get_info(self)->tuple[EntityCategory,int]:
-        unrevealed=self.get_unrevealed_entity()
+        unrevealed=self.unrevealed_entities()
         if(unrevealed.__len__()==0):
             self.finished=True
         choice=random.choice(unrevealed)
@@ -104,7 +106,7 @@ class GuessSession:
         return self.revealed_info.__len__()*self.guesses_per_info
     
     def on_guess_wrong(self)->str:
-        if(self.get_unrevealed_entity().__len__()>0):
+        if(self.unrevealed_entities().__len__()>0):
             if (self.guesses>=self.guesses_for_next_info):
                 self.reveal_info()
             else:
