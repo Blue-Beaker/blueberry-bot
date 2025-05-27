@@ -47,12 +47,15 @@ class GuessSession:
     
     def entityCount(self,entity:str)->int:
         return self.entities[entity] if entity in self.entities else 0
+    
     def count_categories(self):
         self.categorized_entities:dict[EntityCategory,int]={}
         taggedEntities:dict[str,int]=self.map_jsondata['entityTagCount']
+        
         for tagID,count in taggedEntities.items():
             category = ENTITY_MANAGER.category_data.get(tagID)
-            if(category):
+            
+            if(category and category.matchesCount(count)):
                 self.categorized_entities[category]=count
                 
         # # 根据实体增加对应类别计数

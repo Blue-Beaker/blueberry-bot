@@ -1,6 +1,7 @@
 from enum import Enum
 import os,json
 import random
+import re
 import sys
 import traceback
 from nonebot import logger
@@ -16,19 +17,51 @@ class CountMode(Enum):
     @classmethod
     def from_name(cls,name:str):
         return cls.__dict__[name.upper()]
-class MentionMode(Enum):
+    
+class MentionRule():
+    CONSTANTS={
+        "PRESENT":">0",
+        "NOT_PRESENT":"==0",
+        "ALWAYS":"ALWAYS"
+    }
+    matchPattern=re.compile('([><]=?|!=|==|ALWAYS)([0-9]+)')
     PRESENT=0
     NOT_PRESENT=1
     ALWAYS=2
+    def __init__(self,op:str,value:int):
+        self.op=op
+        self.value=value
+    def matches(self,value:int):
+        match self.op:
+            case '>':
+                return value>self.value
+            case '>=':
+                return value>=self.value
+            case '<':
+                return value<self.value
+            case '<=':
+                return value<=self.value
+            case '==':
+                return value==self.value
+            case '!=':
+                return value!=self.value
+            case 'ALWAYS':
+                return True
+        return value>0
+
     @classmethod
     def from_name(cls,name:str):
-        return cls.__dict__[name.upper()]
+        name=cls.CONSTANTS.get(name.upper(),name)
+        matched=cls.matchPattern.match(name)
+        if matched:
+            return cls(matched[1],int(matched[2]))
+        return cls(">",0)
 
 class EntityCategory:
     id:str
     name:str
     count_mode:CountMode
-    mention_when:MentionMode
+    mentionRule:MentionRule
     entities:list[str]
     def __init__(self,name:str,entities:list[str],count_mode:str="range",mention_when:str="present") -> None:
         self.name=name
@@ -36,20 +69,23 @@ class EntityCategory:
         # Where to count the entity or simply says it's in the map.
         self.count_mode=CountMode.from_name(count_mode)
         # Whether to mention the entity even when it's not in the map.
-        self.mention_when=MentionMode.from_name(mention_when)
+        self.mentionRule=MentionRule.from_name(mention_when)
         
+    def matchesCount(self,value:int):
+        return self.mentionRule.matches(value)
+    
     @classmethod
     def from_json(cls,json_data:dict):
         inst=EntityCategory(json_data["name"],json_data["entities"])
         if("count_mode" in json_data.keys()):
             inst.count_mode=CountMode.from_name(json_data["count_mode"])
         if("mention_when" in json_data.keys()):
-            inst.mention_when=MentionMode.from_name(json_data["mention_when"])
+            inst.mentionRule=MentionRule.from_name(json_data["mention_when"])
         return inst
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}: {self.id} {self.name}"
     def info(self) -> str:
-        return f"{self.__class__.__name__}, count_mode={self.count_mode}, mention_when={self.mention_when}, entities=[{', '.join(self.entities)}]"
+        return f"{self.__class__.__name__}, count_mode={self.count_mode}, mention_when={self.mentionRule}, entities=[{', '.join(self.entities)}]"
 
 class EntityDataManager:
     category_data:dict[str,EntityCategory]
@@ -78,9 +114,11 @@ class EntityDataManager:
                 if e not in self.entity_to_categories.keys():
                     self.entity_to_categories[e]=[]
                 self.entity_to_categories[e].append(cat)
+                
             # add categories that doesn't need to be present to show:
-            if cat.mention_when!=MentionMode.PRESENT:
+            if cat.mentionRule.matches(0):
                 self.entity_to_categories_not_present.append(cat)
+                
     def get_categories_not_present(self)->list[EntityCategory]:
         return self.entity_to_categories_not_present
                 

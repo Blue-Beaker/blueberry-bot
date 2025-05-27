@@ -42,7 +42,7 @@ class AttributeMatchingRule:
             traceback.print_exc()
             raise e
             return False
-        
+
 # 预处理时使用的实体标签类 经过简化
 class EntityCategoryPre:
     id:str
