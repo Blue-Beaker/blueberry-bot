@@ -4,4 +4,4 @@
 guess_sessions.json
 .env.test
 /*.tar
-blueberry-bot/plugins/mc-whitelist-sync/server-prefixes.json
+config.json
