@@ -179,6 +179,7 @@ class MapDataManager:
             # add to entity_to_categories
             for e in mapData.aliases:
                 self.alias_to_mapdata[e]=mapData
+            self.alias_to_mapdata[mapData.name]=mapData
             self.file_to_mapdata[mapData.filePath]=mapData
         
     def get_map_from_id(self,map:str):
