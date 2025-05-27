@@ -28,10 +28,10 @@ handler_msg = on_startswith("whitelist",is_type(BasePlayerCommandEvent))
 async def _(bot:Bot,event:BasePlayerCommandEvent):
     cmd=event.message.extract_plain_text()
     logger.info(cmd,event.player.uuid.__str__())
-    if(not event.player.is_op and not str(event.player.uuid) in ops):
+    if((bot.self_id not in server_prefixes.keys())or not( event.player.is_op or str(event.player.uuid) in ops)):
         return
     for name,bot2 in bot.adapter.bots.items():
-        if(bot==bot2 or not isinstance(bot2,Bot)):
+        if(bot==bot2 or not isinstance(bot2,Bot) or bot2.self_id not in server_prefixes.keys()):
             continue
         msg,result = await bot2.send_rcon_cmd(command=convert_server_command(cmd,bot,bot2))
         if(result>=1):
