@@ -1,9 +1,9 @@
 {
-    "berry":{
-        "name":"草莓",
-        "count_mode":"precise",
-        "mention_when":"always",
-        "entities":[
+    "berry": {
+        "name": "草莓",
+        "count_mode": "precise",
+        "mention_when": "always",
+        "entities": [
             "strawberry",
             "LunaticHelper/StrawberryWithReturn",
             "MaxHelpingHand/MultiRoomStrawberry",
@@ -12,17 +12,17 @@
             "SJ2021/ExplodingStrawberry"
         ]
     },
-    "berry_seed":{
-        "name":"草莓碎片",
-        "count_mode":"precise",
-        "entities":[
+    "berry_seed": {
+        "name": "草莓碎片",
+        "count_mode": "precise",
+        "entities": [
             "MaxHelpingHand/MultiRoomStrawberrySeed"
         ]
     },
-    "spinner":{
-        "name":"圆刺, 煤球及类似物",
-        "mention_when":"always",
-        "entities":[
+    "spinner": {
+        "name": "圆刺, 煤球及类似物",
+        "mention_when": "always",
+        "entities": [
             "spinner",
             "VivHelper/CustomSpinner",
             "bigSpinner",
@@ -36,40 +36,40 @@
             "SJ2021/SineDustSpinner"
         ]
     },
-    "fireball":{
-        "name":"火球",
-        "entities":[
+    "fireball": {
+        "name": "火球",
+        "entities": [
             "fireBall"
         ]
     },
-    "key":{
-        "name":"钥匙",
-        "count_mode":"precise",
-        "entities":[
+    "key": {
+        "name": "钥匙",
+        "count_mode": "precise",
+        "entities": [
             "key"
         ]
     },
-    "lockBlock":{
-        "name":"锁",
-        "count_mode":"precise",
-        "entities":[
+    "lockBlock": {
+        "name": "锁",
+        "count_mode": "precise",
+        "entities": [
             "lockBlock"
         ]
     },
-    "heart":{
-        "name":"水晶之心",
-        "count_mode":"precise",
-        "mention_when":"always",
-        "entities":[
+    "heart": {
+        "name": "水晶之心",
+        "count_mode": "precise",
+        "mention_when": "always",
+        "entities": [
             "CollabUtils2/MiniHeart",
             "MaxHelpingHand/ReskinnableCrystalHeart",
             "CollabUtils2/FakeMiniHeart",
             "FemtoHelper/CustomFakeHeart"
         ]
     },
-    "dreamBlock":{
-        "name":"果冻块",
-        "entities":[
+    "dreamBlock": {
+        "name": "果冻块",
+        "entities": [
             "dreamBlock",
             "FrostHelper/CustomDreamBlock",
             "CommunalHelper/ConnectedDreamBlock",
@@ -82,21 +82,21 @@
             "isaBag/dreamSpinner"
         ]
     },
-    "dreamSpinner":{
-        "name":"果冻刺",
-        "entities":[
+    "dreamSpinner": {
+        "name": "果冻刺",
+        "entities": [
             "isaBag/dreamSpinner"
         ]
     },
-    "dreamRefill":{
-        "name":"果冻水晶",
-        "entities":[
+    "dreamRefill": {
+        "name": "果冻水晶",
+        "entities": [
             "CommunalHelper/DreamRefill"
         ]
     },
-    "refill_dash":{
-        "name":"冲刺水晶",
-        "entities":[
+    "refill_dash": {
+        "name": "冲刺水晶",
+        "entities": [
             "DJMapHelper/colorfulRefill",
             "FrostHelper/PlusOneRefill#dashCount>=1",
             "LunaticHelper/CustomRefill",
@@ -109,9 +109,9 @@
             "refill"
         ]
     },
-    "switchGate":{
-        "name":"硬币机关门",
-        "entities":[
+    "switchGate": {
+        "name": "硬币机关门",
+        "entities": [
             "MaxHelpingHand/FlagSwitchGate",
             "MaxHelpingHand/ShatterFlagSwitchGate",
             "switchGate",
@@ -121,9 +121,9 @@
             "CommunalHelper/DreamSwitchGate"
         ]
     },
-    "templeGate":{
-        "name":"神庙门",
-        "entities":[
+    "templeGate": {
+        "name": "神庙门",
+        "entities": [
             "DJMapHelper/templeGateReversed",
             "SJ2021/GrabTempleGate",
             "SJ2021/HorizontalTempleGate",
@@ -131,10 +131,10 @@
             "templeGate"
         ]
     },
-    "spring":{
-        "name":"弹簧",
-        "mention_when":"always",
-        "entities":[
+    "spring": {
+        "name": "弹簧",
+        "mention_when": "always",
+        "entities": [
             "wallSpringLeft",
             "spring",
             "wallSpringRight",
@@ -158,18 +158,70 @@
             "spirialis/fixedlaunchspringright"
         ]
     },
-    "NoDashRefillSpring":{
-        "name":"不回冲刺弹簧",
-        "entities":[
+    "NoDashRefillSpring": {
+        "name": "不回冲刺弹簧",
+        "entities": [
             "MaxHelpingHand/NoDashRefillSpringRight",
             "MaxHelpingHand/NoDashRefillSpringLeft",
             "MaxHelpingHand/NoDashRefillSpring"
         ]
     },
-    "cat":{
-        "name":"猫",
-        "entities":[
+    "cat": {
+        "name": "猫",
+        "entities": [
             "HonlyHelper/PettableCat"
+        ]
+    },
+    "zipMover": {
+        "name": "红绿灯",
+        "entities": [
+            "AdventureHelper/LinkedZipMover",
+            "AdventureHelper/LinkedZipMoverNoReturn",
+            "AdventureHelper/ZipMoverNoReturn",
+            "CommunalHelper/CassetteZipMover",
+            "CommunalHelper/ConnectedZipMover",
+            "CommunalHelper/DreamZipMover",
+            "FrostHelper/CustomZipMover",
+            "SJ2021/DashZipMover",
+            "VivHelper/CornerBoostZipMover",
+            "VivHelper/CurvedZipMover2",
+            "VivHelper/CustomZipMover",
+            "spirialis/timezipmover",
+            "zipMover"
+        ]
+    },
+    "triggerSpikes": {
+        "name": "触发刺",
+        "entities": [
+            "triggerSpikesLeft",
+            "triggerSpikesOriginalLeft",
+            "triggerSpikesOriginalRight",
+            "triggerSpikesOriginalUp",
+            "triggerSpikesRight",
+            "triggerSpikesUp",
+            "CommunalHelper/TimedTriggerSpikesDown",
+            "CommunalHelper/TimedTriggerSpikesLeft",
+            "CommunalHelper/TimedTriggerSpikesRight",
+            "CommunalHelper/TimedTriggerSpikesUp",
+            "MaxHelpingHand/GroupedTriggerSpikesDown",
+            "MaxHelpingHand/GroupedTriggerSpikesLeft",
+            "MaxHelpingHand/GroupedTriggerSpikesRight",
+            "MaxHelpingHand/GroupedTriggerSpikesUp",
+            "VivHelper/RainbowTriggerSpikesDown",
+            "VivHelper/RainbowTriggerSpikesLeft",
+            "VivHelper/RainbowTriggerSpikesRight",
+            "VivHelper/RainbowTriggerSpikesUp"
+        ]
+    },
+    "bumper": {
+        "name": "弹球",
+        "entities": [
+            "FrostHelper/StaticBumper",
+            "JackalHelper/CardinalBumper",
+            "JackalHelper/LinkedCardinalBumper",
+            "MaxHelpingHand/MultiNodeBumper",
+            "MaxHelpingHand/RotatingBumper",
+            "VortexHelper/VortexCustomBumper"
         ]
     }
 }
