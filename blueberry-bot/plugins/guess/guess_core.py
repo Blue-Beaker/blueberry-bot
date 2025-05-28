@@ -109,9 +109,10 @@ class GuessSession:
         if(self.unrevealed_entities().__len__()>0):
             if (self.guesses>=self.guesses_for_next_info):
                 self.reveal_info()
+                return f"回答错误, 已新增一条线索 (下个线索{self.guesses}/{self.guesses_for_next_info}) 题目是: "
             else:
-                return f"回答错误! 再猜{self.guesses_for_next_info-self.guesses}次加一条线索 题目是: "
-        return f"回答错误! 题目是: "
+                return f"回答错误! (下个线索{self.guesses}/{self.guesses_for_next_info}) 题目是: "
+        return f"回答错误({self.guesses})! 题目是: "
         
     def do_guess(self,msg:str)->str:
         
