@@ -116,20 +116,20 @@ class GuessSession:
         
     def do_guess(self,msg:str)->str:
         
-        self.guesses=self.guesses+1
-        
         msg=msg.strip()
         logger.info(msg)
         map=MAP_MANAGER.get_map_from_alias(msg)
         feedback=[]
         
         if(map==self.map_name or msg in self.aliases):
+            self.guesses=self.guesses+1
             self.finished=True
             feedback.append(f"你猜对了! 正确答案是: {self.map_name}, 本题共猜了{self.guesses}次")
         else:
             if(not map):
                 feedback.append("没有找到你输入的地图! 请输入正确的地图名或别称")
             else:
+                self.guesses=self.guesses+1
                 feedback.append(self.on_guess_wrong())
             feedback.append(self.get_final_message())
             
