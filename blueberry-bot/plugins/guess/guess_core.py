@@ -124,13 +124,14 @@ class GuessSession:
         
         if(map==self.map_name or msg in self.aliases):
             self.finished=True
-            feedback.append(f"你猜对了! 正确答案是: {self.map_name}")
+            feedback.append(f"你猜对了! 正确答案是: {self.map_name}, 本题共猜了{self.guesses}次")
         else:
             if(not map):
                 feedback.append("没有找到你输入的地图! 请输入正确的地图名或别称")
             else:
                 feedback.append(self.on_guess_wrong())
             feedback.append(self.get_final_message())
+            
         feedback[0]="{username} "+feedback[0]
         return "\n".join(feedback)
 
@@ -167,7 +168,7 @@ class GuessManager:
             return "当前没有正在进行的guess"
         session=self.session
         self.session=None
-        return f"{{username}} 你放弃了! 答案是: {session.map_name}"
+        return f"{{username}} 猜了{session.guesses}次后, 你放弃了! 答案是: {session.map_name}"
     
     def do_guess(self,msg:str) -> str:
         if(not self.session):
