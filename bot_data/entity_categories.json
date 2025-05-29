@@ -243,16 +243,57 @@
             "vitellary/vitmoveblock"
         ]
     },
-    "theoCrystal":{
+    "theoCrystal": {
         "name": "Theo水晶",
         "entities": [
             "theoCrystal"
         ]
     },
-    "slope":{
+    "slope": {
         "name": "斜坡",
         "entities": [
             "XaphanHelper/Slope"
+        ]
+    },
+    "bubble": {
+        "name": "泡泡",
+        "entities": [
+            "XaphanHelper/Slope"
+        ]
+    },
+    "badeline": {
+        "name": "Badeline",
+        "entities": [
+            "DJMapHelper/finalBossReversed",
+            "MaxHelpingHand/FlagBadelineChaser",
+            "SJ2021/CrystalBombBadelineBoss",
+            "SJ2021/CustomBadelineBoost",
+            "VivHelper/BadelineBoostNoRefill",
+            "darkChaser",
+            "badelineBoost",
+            "finalBoss"
+        ]
+    },
+    "coreBlock": {
+        "name": "岩浆块/冰块",
+        "entities": [
+            "bounceBlock"
+        ]
+    },
+    "coreModeToggle": {
+        "name": "冰火开关",
+        "entities": [
+            "coreModeToggle"
+        ]
+    },
+    "floatySpaceBlock": {
+        "name": "月亮块",
+        "entities": [
+            "CommunalHelper/DreamFloatySpaceBlock",
+            "FancyTileEntities/FancyFloatySpaceBlock",
+            "MaxHelpingHand/FloatySpaceBlockWithAttachedSidewaysJumpthruSupport",
+            "SJ2021/FlagFloatySpaceBlock",
+            "floatySpaceBlock"
         ]
     }
 }
