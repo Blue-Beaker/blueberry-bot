@@ -121,7 +121,7 @@ class GuessSession:
         map=MAP_MANAGER.get_map_from_alias(msg)
         feedback=[]
         
-        if(map==self.map_name or msg in self.aliases):
+        if(map and map.name==self.map_name or msg in self.aliases):
             self.guesses=self.guesses+1
             self.finished=True
             feedback.append(f"你猜对了! 正确答案是: {self.map_name}, 本题共猜了{self.guesses}次")
