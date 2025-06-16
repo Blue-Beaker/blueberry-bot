@@ -37,8 +37,9 @@ async def _(bot:Bot,event:BaseChatEvent,args: Message = CommandArg()):
     
     if len(argsStrs)==2 or len(argsStrs)==4:
         argsStrs.pop(0)
+    argsStrs.insert(0,playername)
     
-    commandToSend=f"execute {playername} ~ ~ ~ tp {" ".join(argsStrs)}"
+    commandToSend=f"tp {" ".join(argsStrs)}"
     try:
         logger.info("sending command: "+commandToSend)
         msg,result = await bot.send_rcon_cmd(command=commandToSend)
