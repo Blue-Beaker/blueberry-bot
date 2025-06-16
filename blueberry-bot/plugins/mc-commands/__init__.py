@@ -35,7 +35,7 @@ async def _(bot:Bot,event:BaseChatEvent,args: Message = CommandArg()):
     argsStrs=[str(arg) for arg in str(args).split(" ")]
     # print(argsStrs)
     
-    if len(argsStrs)==2 or len(argsStrs)==4:
+    if len(argsStrs)==2 or len(argsStrs)==4 or len(argsStrs)==4:
         argsStrs.pop(0)
     argsStrs.insert(0,playername)
     
