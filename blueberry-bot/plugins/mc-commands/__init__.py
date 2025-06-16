@@ -33,13 +33,14 @@ async def _(bot:Bot,event:BaseChatEvent,args: Message = CommandArg()):
     #     return
     
     argsStrs=[str(arg) for arg in str(args).split(" ")]
-    print(argsStrs)
+    # print(argsStrs)
     
     if len(argsStrs)==2 or len(argsStrs)==4:
         argsStrs.pop(0)
     
     commandToSend=f"execute {playername} ~ ~ ~ tp {" ".join(argsStrs)}"
     try:
+        logger.info("sending command: "+commandToSend)
         msg,result = await bot.send_rcon_cmd(command=commandToSend)
     except Exception as e:
         await bot.send_msg(message=e.__str__())
