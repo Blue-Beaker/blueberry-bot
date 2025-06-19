@@ -6,7 +6,8 @@ from nonebot import logger
 
 sys.path.append(".")
 
-from . import utils,guess_data
+from . import guess_data
+from utils import fileUtils
 from .guess_data import EntityCategory,MapData,ENTITY_MANAGER,MAP_MANAGER
 
 from constants import *
@@ -160,7 +161,7 @@ class GuessManager:
         return False
     
     def _start_guess(self) -> GuessSession:
-        # files = utils.listRecursive(MAP_DATA_DIR,".json")
+        # files = fileUtils.listRecursive(MAP_DATA_DIR,".json")
         # random_map=random.choice(files)
         
         map=MAP_MANAGER.pickMap()

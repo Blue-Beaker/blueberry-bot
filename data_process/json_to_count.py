@@ -9,22 +9,11 @@ sys.path.append(".")
 
 import entity_tag_utils as entity_tag_utils
 from entity_tag_utils import EntityCategoryPre,EntityDataManagerPre
-
+from utils.fileUtils import listRecursive
 from constants import *
 
 original_workdir=os.getcwd()
 
-def listRecursive(folder:str,suffix:str=""):
-    filesList:list[str]=[]
-    files=os.listdir(folder)
-    files.sort()
-    for file in files:
-        filepath=os.path.join(folder,file)
-        if(os.path.isdir(filepath)):
-            filesList.extend(listRecursive(filepath,suffix))
-        if(file.endswith(suffix)):
-            filesList.append(filepath)
-    return filesList
 #收集要导出的地图json文件列表
 def genMapsToExport(source:str,dest:str):
     mapsList=listRecursive(source,".json")
