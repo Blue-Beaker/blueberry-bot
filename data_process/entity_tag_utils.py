@@ -8,7 +8,7 @@ import traceback
 from typing import Any
 
 sys.path.append(".")
-
+from utils.entity_utils import *
 from utils.constants import *
 
 # 用于预处理地图数据时给实体归类
@@ -44,13 +44,14 @@ class AttributeMatchingRule:
             return False
 
 # 预处理时使用的实体标签类 经过简化
-class EntityCategoryPre:
+class EntityCategoryPre(EntityCategory):
     id:str
     name:str
     entities:list[str]
     entity_with_attr_rule:dict[str,str]
     
-    def __init__(self,name:str,entities:list[str]) -> None:
+    def __init__(self,name:str,entities:list[str],count_mode:str="range",mention_when:str="present") -> None:
+        EntityCategory.__init__(self,name,entities)
         self.name=name
         self.entities=[]
         self.entity_with_attr_rule={}
@@ -61,19 +62,12 @@ class EntityCategoryPre:
             else:
                 self.entities.append(e)
         
-    @classmethod
-    def from_json(cls,json_data:dict):
-        inst=EntityCategoryPre(json_data["name"],json_data["entities"])
-        return inst
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}: {self.id} {self.name}"
-    def info(self) -> str:
-        return f"{self.__class__.__name__}, entities=[{', '.join(self.entities)}]"
     def countEntities(self,entities:list[dict]):
         count=0
         for entity in entities:
             if(self.doesEntityMatch(entity)):
                 count=count+1
+                
     def doesEntityMatch(self,entity:dict):
         name=getName(entity)
         if(name in self.entities):
@@ -85,27 +79,35 @@ class EntityCategoryPre:
             attrs=getAttributes(entity)
             rule=AttributeMatchingRule(attrRule)
             return rule.matches(attrs)
-        return False    
+        return False
         # process entity with attributes
+    @classmethod
+    def from_json(cls,json_data:dict):
+        inst=cls(json_data["name"],json_data["entities"])
+        if("count_mode" in json_data.keys()):
+            inst.count_mode=CountMode.from_name(json_data["count_mode"])
+        if("mention_when" in json_data.keys()):
+            inst.mentionRule=MentionRule.from_name(json_data["mention_when"])
+        return inst
         
 
-class EntityDataManagerPre:
+class EntityDataManagerPre(EntityDataManager):
     category_data:dict[str,EntityCategoryPre]
     entity_to_categories:dict[str,list[EntityCategoryPre]]
     
     def load(self):
         self.category_data={}
         self.entity_to_categories={}
-        # 读取实体类别文件
+        self.entity_to_categories_not_present=[]
         with open(ENTITY_CATEGORIES_FILE) as f:
             data:dict[str,dict]=json.load(f)
-        for k,v in data.items():
+        for tagID,tagJson in data.items():
             # load category from json
             try:
-                self.category_data[k]=EntityCategoryPre.from_json(v)
-                self.category_data[k].id=k
+                self.category_data[tagID]=EntityCategoryPre.from_json(tagJson)
+                self.category_data[tagID].id=tagID
             except Exception as e:
-                print("Error when reading: ",k,v)
+                logger.error("Error when reading: ",tagID,tagJson)
                 raise e
             
     def process(self):
@@ -124,8 +126,13 @@ class EntityDataManagerPre:
                     self.entity_to_categories[e]=[]
                 self.entity_to_categories[e].append(cat)
                 
-    def get_categories(self,entity:str)->list[EntityCategoryPre]:
-        if(entity in self.entity_to_categories.keys()):
-            return self.entity_to_categories[entity].copy()
-        return []
+            # add categories that doesn't need to be present to show:
+            if cat.mentionRule.matches(0):
+                self.entity_to_categories_not_present.append(cat)
+                
+    # def get_categories(self,entity:str)->list[EntityCategoryPre]:
+    #     if(entity in self.entity_to_categories.keys()):
+    #         return self.entity_to_categories[entity].copy()
+    #     return []
+    
     

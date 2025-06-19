@@ -64,8 +64,14 @@ def processLevel(leveldata:dict,managerPre:EntityDataManagerPre) -> dict:
                     increment(entityCount,getName(entity))
                     # 根据实体查找并匹配标签, 计数
                     for entityTag in managerPre.get_categories(getName(entity)):
+                        
+                        assert isinstance(entityTag,EntityCategoryPre)
                         if(entityTag.doesEntityMatch(entity)):
                             increment(entityTagCount,entityTag.id)
+                            
+                for category in managerPre.entity_to_categories_not_present:
+                    if not entityCount.get(category.id):
+                        entityTagCount[category.id]=0
                     
                     
             if(getName(child)=="triggers"):

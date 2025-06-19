@@ -4,11 +4,16 @@ import random
 import re
 import sys
 import traceback
-from nonebot import logger
 
 sys.path.append(".")
 
 from utils.constants import *
+
+class DummyLogger():
+    def error(self,*args):
+        print(*args)
+        
+logger=DummyLogger()
 
 class CountMode(Enum):
     BOOLEAN=0
@@ -16,7 +21,7 @@ class CountMode(Enum):
     PRECISE=2
     @classmethod
     def from_name(cls,name:str):
-        return cls.__dict__[name.upper()]
+        return cls.__dict__.get(name.upper(),CountMode.PRECISE)
     
 class MentionRule():
     CONSTANTS={
@@ -24,7 +29,7 @@ class MentionRule():
         "NOT_PRESENT":"==0",
         "ALWAYS":"ALWAYS"
     }
-    matchPattern=re.compile('([><]=?|!=|==|ALWAYS)([0-9]+)')
+    matchPattern=re.compile('([><]=?|!=|==)([0-9]*)')
     PRESENT=0
     NOT_PRESENT=1
     ALWAYS=2
@@ -78,7 +83,7 @@ class EntityCategory:
     
     @classmethod
     def from_json(cls,json_data:dict):
-        inst=EntityCategory(json_data["name"],json_data["entities"])
+        inst=cls(json_data["name"],json_data["entities"])
         if("count_mode" in json_data.keys()):
             inst.count_mode=CountMode.from_name(json_data["count_mode"])
         if("mention_when" in json_data.keys()):
