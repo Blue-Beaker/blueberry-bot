@@ -1,0 +1,3 @@
+[submodule "bot_data/map_export_data"]
+	path = bot_data/map_export_data
+	url = ../blueberry-bot-map-data.git
