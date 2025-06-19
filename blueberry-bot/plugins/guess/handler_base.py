@@ -7,8 +7,6 @@ from .guess_core import GuessManager
 
 CONFIG_PATH="config.json"
 
-server_prefixes:dict[str,str]={}
-ops:list[str]=[]
 guesses_per_info:int=1
 starting_info:int=1
 
@@ -45,7 +43,8 @@ class GuessManagerInstances:
             manager.guesses_per_info=guesses_per_info
             manager.starting_info=starting_info
             return manager
-        self.guessManagers[key]=GuessManager()
+        self.guessManagers[key]=GuessManager(guesses_per_info,starting_info)
+        logger.info("Creating guess manager:",self.guessManagers[key])
         return self.guessManagers[key]
     
     def dump(self):

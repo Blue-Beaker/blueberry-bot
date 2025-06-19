@@ -144,13 +144,16 @@ class GuessManager:
     
     session:GuessSession|None=None
     
+    def __init__(self,guesses_per_info:int=3,starting_info:int=1) -> None:
+        self.guesses_per_info=guesses_per_info
+        self.starting_info=starting_info
     def setGuessesPerInfo(self,count:int):
         self.guesses_per_info=count
     def setStartingInfo(self,count:int):
         self.starting_info=count
         
-    guesses_per_info=3
-    starting_info=1
+    guesses_per_info:int
+    starting_info:int
     
     def get_session(self) -> GuessSession|None:
         return self.session
@@ -245,3 +248,5 @@ class GuessManager:
                 session.starting_info=starting_info
                 
         return inst
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}: {self.__dict__}"
