@@ -70,7 +70,7 @@ def processLevel(leveldata:dict,managerPre:EntityDataManagerPre) -> dict:
                             increment(entityTagCount,entityTag.id)
                             
                 for category in managerPre.entity_to_categories_not_present:
-                    if not entityCount.get(category.id):
+                    if not entityTagCount.get(category.id):
                         entityTagCount[category.id]=0
                     
                     
