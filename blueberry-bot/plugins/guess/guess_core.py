@@ -113,7 +113,10 @@ class GuessSession:
         if(self.unrevealed_entities().__len__()>0):
             if (self.guesses>=self.guesses_for_next_info):
                 self.reveal_info()
-                return f"回答错误, 已新增一条线索 (下个线索{self.guesses}/{self.guesses_for_next_info}) 题目是: "
+                if(self.unrevealed_entities().__len__()>0):
+                    return f"回答错误, 已新增一条线索 (下个线索{self.guesses}/{self.guesses_for_next_info}) 题目是: "
+                else:
+                    return f"回答错误, 已新增一条线索 ({self.guesses}) 题目是: "
             else:
                 return f"回答错误! (下个线索{self.guesses}/{self.guesses_for_next_info}) 题目是: "
         return f"回答错误({self.guesses})! 题目是: "
