@@ -10,7 +10,7 @@ sys.path.append(".")
 import entity_tag_utils as entity_tag_utils
 from entity_tag_utils import EntityCategoryPre,EntityDataManagerPre
 from utils.fileUtils import listRecursive
-from constants import *
+from utils.constants import *
 
 original_workdir=os.getcwd()
 

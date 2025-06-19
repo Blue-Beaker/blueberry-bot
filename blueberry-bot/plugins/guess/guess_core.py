@@ -10,7 +10,7 @@ from . import guess_data
 from utils import fileUtils
 from .guess_data import EntityCategory,MapData,ENTITY_MANAGER,MAP_MANAGER
 
-from constants import *
+from utils.constants import *
 
 def getMapJsonFromPath(path:str):
     mapPath=os.path.join(MAP_DATA_DIR,path)

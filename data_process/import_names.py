@@ -2,7 +2,7 @@ import os,sys,json
 
 sys.path.append(".")
 
-from constants import *
+from utils.constants import *
 import bot_data.data as data
 
 mapPaths={}

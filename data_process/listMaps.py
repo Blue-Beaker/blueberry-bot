@@ -3,7 +3,7 @@ import os,sys
 
 sys.path.append(".")
 
-from constants import *
+from utils.constants import *
 
 from utils.fileUtils import listRecursive
 

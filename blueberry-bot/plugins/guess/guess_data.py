@@ -8,7 +8,7 @@ from nonebot import logger
 
 sys.path.append(".")
 
-from constants import *
+from utils.constants import *
 
 class CountMode(Enum):
     BOOLEAN=0
