@@ -95,6 +95,7 @@
     },
     "refill_dash": {
         "name": "冲刺水晶",
+        "mention_when": "always",
         "entities": [
             "DJMapHelper/colorfulRefill",
             "FrostHelper/PlusOneRefill#dashCount>=1",
@@ -106,6 +107,13 @@
             "VivHelper/CustomRefill",
             "VivHelper/RefillWall",
             "refill"
+        ]
+    },
+    "refill_jump": {
+        "name": "多段跳水晶",
+        "entities": [
+            "ExtendedVariantMode/ExtraJumpRefill",
+            "SJ2021/ResettingRefill#extraJump if 'extraJump' in locals() else False"
         ]
     },
     "switchGate": {
