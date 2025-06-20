@@ -1,9 +1,11 @@
+import time
 from nonebot import on_command,logger
 from nonebot.rule import is_type
 # from nonebot.internal.adapter.bot import Bot
 
 from nonebot.adapters.discord import MessageEvent, Bot, MessageEvent, MessageSegment, Message
 # from nonebot.adapters import Message
+from nonebot.adapters.discord.exception import NetworkError
 from nonebot.params import CommandArg
 
 
@@ -24,6 +26,18 @@ def main():
             msgseg=split[0]
             for segment in split[1:]:
                 msgseg=msgseg+MessageSegment.mention_user(event.user_id)+MessageSegment.text(segment)
+            await try_send_message(msgseg)
             
-            await handler_cmd.send(msgseg)
         pass
+    
+    async def try_send_message(message:str|Message):
+        success=0
+        tries=0
+        while (not success) and tries<30:
+            try:
+                await handler_cmd.send(message)
+                success=1
+            except NetworkError as e:
+                logger.error(f"Network error, tried {tries} times: ",e)
+                time.sleep(5+2*tries)
+                tries=tries+1
