@@ -266,7 +266,6 @@
     "bubble": {
         "name": "泡泡",
         "entities": [
-            "XaphanHelper/Slope"
         ]
     },
     "badeline": {
