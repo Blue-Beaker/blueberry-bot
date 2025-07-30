@@ -1,27 +1,14 @@
 import json
-from nonebot import on_command,logger,on_startswith
+from nonebot import on_command,logger,on_startswith,get_plugin_config
 from nonebot.rule import is_type
 from nonebot.adapters.minecraft.bot import Bot
 from nonebot.adapters.minecraft import BaseChatEvent,MessageEvent
 from nonebot.adapters import Message
 from nonebot.params import CommandArg
 
-CONFIG_PATH="config.json"
+from config import Config
 
-# server_prefixes:dict[str,str]={}
-# ops:list[str]=[]
-
-# with open(CONFIG_PATH,"r") as f:
-#     configFile:dict=json.load(f)
-#     ops=configFile.get("ops",[])
-#     server_prefixes=configFile.get("prefixes",{})
-
-# logger.info(f"loaded config: ops={ops},server_prefixes={server_prefixes}")
-
-# def convert_server_command(cmd:str,bot1:Bot,bot2:Bot):
-#     prefix1=server_prefixes.get(bot1.self_id,"")
-#     prefix2=server_prefixes.get(bot2.self_id,"")
-#     return cmd.replace(prefix1,prefix2)
+plugin_config = get_plugin_config(Config)
 
 handler_msg = on_command("tp")
 @handler_msg.handle()
@@ -44,6 +31,6 @@ async def _(bot:Bot,event:BaseChatEvent,args: Message = CommandArg()):
         logger.info("sending command: "+commandToSend)
         msg,result = await bot.send_rcon_cmd(command=commandToSend)
     except Exception as e:
-        await bot.send_msg(message=e.__str__())
-        await bot.send_msg(message=commandToSend)
+        await bot.send_msg(message=plugin_config.mc_message_prefix+e.__str__())
+        await bot.send_msg(message=plugin_config.mc_message_prefix+commandToSend)
     # bot.send_private_msg(uuid=event.player.uuid,nickname=event.player.nickname,message=f"[§bBlueberry_Bot§r] 来自{name}服务器: \n{msg}")

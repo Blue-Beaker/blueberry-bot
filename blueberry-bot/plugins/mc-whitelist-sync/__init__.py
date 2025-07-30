@@ -1,5 +1,5 @@
 import json
-from nonebot import on_command,logger,on_startswith
+from nonebot import on_command,logger,on_startswith,get_plugin_config
 from nonebot.rule import is_type
 from nonebot.adapters.minecraft.bot import Bot
 from nonebot.adapters.minecraft import BasePlayerCommandEvent,MessageEvent
@@ -7,6 +7,10 @@ from nonebot.adapters import Message
 from nonebot.params import CommandArg
 
 CONFIG_PATH="config.json"
+
+from config import Config
+
+plugin_config = get_plugin_config(Config)
 
 server_prefixes:dict[str,str]={}
 ops:list[str]=[]
@@ -35,4 +39,4 @@ async def _(bot:Bot,event:BasePlayerCommandEvent):
             continue
         msg,result = await bot2.send_rcon_cmd(command=convert_server_command(cmd,bot,bot2))
         if(result>=1):
-            await bot.send_private_msg(uuid=event.player.uuid,nickname=event.player.nickname,message=f"[§bBlueberry_Bot§r] 来自{name}服务器: \n{msg}")
+            await bot.send_private_msg(uuid=event.player.uuid,nickname=event.player.nickname,message=f"来自{name}服务器: \n{msg}")

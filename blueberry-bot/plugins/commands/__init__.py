@@ -1,8 +1,7 @@
-from nonebot import on_command,logger
+from nonebot import on_command,logger,get_plugin_config
 from nonebot.rule import is_type
 from nonebot.internal.adapter.bot import Bot
 from nonebot.adapters.minecraft.bot import Bot as MCBot
-
 
 from nonebot.adapters.discord.commands import (
     CommandOption,
@@ -24,7 +23,7 @@ def get_system_info()->str:
 
 def get_help(is_mc:bool=False)->str:
     help_lines=[
-        f"接受指令前缀: - &{' /' if not is_mc else ''}"
+        f"接受指令前缀: - &{' /' if not is_mc else ''}",
         "help 显示本帮助",
         "guess <start|giveup> 开始/放弃猜图",
         "guess <图名> 进行猜图",
@@ -48,12 +47,15 @@ async def _():
     
 slash = on_slash_command(
     name="help",
-    description="显示运行此Bot的系统信息")
+    description="显示帮助")
 @slash.handle()
 async def _():
     await slash.send(get_help())
 
 cmd = on_command("help")
 @cmd.handle()
-async def _(bot):
-    await cmd.send(get_help(isinstance(bot,MCBot)))
+async def _(bot:Bot|MCBot):
+    if(isinstance(bot,MCBot)):
+        await cmd.send(get_help(True))
+    else:
+        await cmd.send(get_help())
