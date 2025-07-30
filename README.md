@@ -1,11 +1,2 @@
 # blueberry-bot
-
-## How to start
-
-1. generate project using `nb create` .
-2. install plugins using `nb plugin install` .
-3. run your bot using `nb run` .
-
-## Documentation
-
-See [Docs](https://nonebot.dev/)
+自用聊天bot 有蔚蓝地图实体数量猜图 mc白名单同步 免权限传送等功能
