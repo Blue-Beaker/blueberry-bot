@@ -33,4 +33,4 @@ async def _(bot:Bot,event:BaseChatEvent,args: Message = CommandArg()):
     except Exception as e:
         await bot.send_msg(message=plugin_config.mc_message_prefix+e.__str__())
         await bot.send_msg(message=plugin_config.mc_message_prefix+commandToSend)
-    # bot.send_private_msg(uuid=event.player.uuid,nickname=event.player.nickname,message=f"[§bBlueberry_Bot§r] 来自{name}服务器: \n{msg}")
+    # bot.send_private_msg(uuid=event.player.uuid,nickname=event.player.nickname,message=f"来自{name}服务器: \n{msg}")

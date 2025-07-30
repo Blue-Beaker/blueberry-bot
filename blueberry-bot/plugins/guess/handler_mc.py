@@ -18,5 +18,5 @@ def main():
         logger.debug(f"'{message}' from{event}")
         feedBackMessage = guess_command(message,manager)
         if(feedBackMessage):
-            await handler_msg.send(f"[§bBlueberry_Bot§r] {feedBackMessage}".replace("{username}",event.player.nickname))
+            await handler_msg.send(f"{feedBackMessage}".replace("{username}",event.player.nickname))
         pass
