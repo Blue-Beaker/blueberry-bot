@@ -60,6 +60,7 @@ class TpCommandBuilder:
         return inst
     def build(self):
         params=[]
+        
         if(self.target):
             params.append(self.target)
         if(self.destination):
@@ -72,7 +73,8 @@ class TpCommandBuilder:
                 params.extend((self.yaw,self.pitch))
         elif(self.dim):
             params.extend(self.dim)
-        if self.dim:
+            
+        if self.dim and plugin_config.enable_dimensional_tp:
             return f"tpx {" ".join(params)}"
         return f"tp {" ".join(params)}"
     
@@ -140,7 +142,7 @@ async def _(bot:Bot,event:BaseChatEvent):
     msg=event.message.extract_plain_text()
     waypoint=Waypoint.from_message(msg)
     if(waypoint):
-        tpCommand=f"-tpx {waypoint.x} {waypoint.y} {waypoint.z} {waypoint.dimension}"
+        tpCommand=f"-tpx {waypoint.x} {waypoint.y} {waypoint.z}"
         sendmsg=MCMessage()
         sendmsg.append(MCMessageSegment.text(
             text=f"点此传送: {waypoint.name}",

@@ -5,3 +5,4 @@ class Config(BaseModel):
     mc_ops:list[str]=[]
     mc_sync_mappings:dict[str,int]={}
     mc_sync_notice_events:bool=False
+    enable_dimensional_tp:bool=False
