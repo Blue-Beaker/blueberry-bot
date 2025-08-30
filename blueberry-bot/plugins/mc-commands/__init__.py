@@ -4,6 +4,9 @@ from nonebot import on_command,logger,on_startswith,get_plugin_config
 from nonebot.rule import is_type
 from nonebot.adapters.minecraft.bot import Bot
 from nonebot.adapters.minecraft import BaseChatEvent,MessageEvent
+from nonebot.adapters.minecraft import Message as MCMessage
+from nonebot.adapters.minecraft import MessageSegment as MCMessageSegment
+from nonebot.adapters.minecraft.model import ClickEvent,HoverEvent,ClickAction,HoverAction,BaseComponent
 from nonebot.adapters import Message
 from nonebot.params import CommandArg
 
@@ -83,3 +86,48 @@ async def _(bot:Bot,event:BaseChatEvent,args: Message = CommandArg()):
         logger.error(traceback.format_exc())
         await bot.send_msg(message=commandToSend)
     # bot.send_private_msg(uuid=event.player.uuid,nickname=event.player.nickname,message=f"来自{name}服务器: \n{msg}")
+
+class Waypoint:
+    def __init__(self):
+        self.name:str
+        self.icon:str
+        self.x:str
+        self.y:str
+        self.z:str
+        self.color:str
+        self.dimension:str
+    @classmethod
+    def from_message(cls,msg:str):
+        inst=cls()
+        spl=msg.split(":")
+        if(spl.__len__()<10):
+            return None
+        inst.name=spl[1]
+        inst.icon=spl[2]
+        inst.x=spl[3]
+        inst.y=spl[4]
+        inst.z=spl[5]
+        inst.color=spl[6]
+        inst.dimension=spl[8]
+        return inst
+        
+waypoint_msg = on_startswith("xaero-waypoint")
+@waypoint_msg.handle()
+async def _(bot:Bot,event:BaseChatEvent):
+    
+    "xaero-waypoint:new-home:H:-27:72:-438:14:false:0:Internal-overworld-waypoints"
+    msg=event.message.extract_plain_text()
+    waypoint=Waypoint.from_message(msg)
+    if(waypoint):
+        tpCommand=f"-tp {waypoint.x} {waypoint.y} {waypoint.z}"
+        sendmsg=MCMessage()
+        sendmsg.append(MCMessageSegment.text(
+            text=f"点此传送: {waypoint.name}",
+            click_event=ClickEvent(action=ClickAction.SUGGEST_COMMAND,
+                                   value=tpCommand),
+            hover_event=HoverEvent(action=HoverAction.SHOW_TEXT,
+                                   text=[BaseComponent(text=tpCommand)])))
+        
+        await bot.send_msg(message=sendmsg)
+
+
