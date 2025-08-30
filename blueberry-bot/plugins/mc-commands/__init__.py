@@ -45,10 +45,13 @@ class TpCommandBuilder:
             else:
                 inst.destination=args[-1]
         else:
+            # if first argument is target
             if(not is_command_segment_number(args[0])):
                 inst.target=args.pop(0)
                 
             inst.x,inst.y,inst.z=args[0:3]
+            
+            # if dimension is given
             if(args.__len__()==4 or args.__len__()==6):
                 inst.dim=args.pop(3)
             if(args.__len__()>=5):
