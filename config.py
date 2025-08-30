@@ -4,3 +4,4 @@ class Config(BaseModel):
     mc_message_prefix: str="[§bBlueberry_Bot§r]"
     mc_ops:list[str]=[]
     mc_sync_mappings:dict[str,int]={}
+    mc_sync_notice_events:bool=False
