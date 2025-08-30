@@ -14,6 +14,11 @@ from config import Config
 
 plugin_config = get_plugin_config(Config)
 
+def is_command_segment_number(arg:str):
+    for i in arg:
+        if i not in "0123456789.-~":
+            return False
+    return True
 class TpCommandBuilder:
     def __init__(self) -> None:
         self.target:str|None=None
@@ -23,25 +28,32 @@ class TpCommandBuilder:
         self.z:str|None=None
         self.yaw:str|None=None
         self.pitch:str|None=None
-        self.dim:int|None=None
+        self.dim:str|None=None
     @classmethod
-    def fromArgs(cls,args:list[str]):
+    def fromArgs(cls,rawargs:list[str]):
         inst=cls()
-        match len(args):
-            case 1:
-                inst.destination=args[0]
-            case 2:
-                inst.target,inst.destination=args
-            case 3:
-                inst.x,inst.y,inst.z=args
-            case 4:
-                inst.target,inst.x,inst.y,inst.z=args
-            case 5:
-                inst.x,inst.y,inst.z,inst.yaw,inst.pitch=args
-            case 6:
-                inst.target,inst.x,inst.y,inst.z,inst.yaw,inst.pitch=args
-            case _:
-                return None
+        args=rawargs.copy()
+        
+        if(len(args)<=2):
+            # first param [target]
+            if(len(args)==2):
+                inst.target=args[0]
+            # tpx [player] [dimension]
+            if(is_command_segment_number(args[-1])):
+                inst.dim=args[-1]
+            # tpx [player] [destination]
+            else:
+                inst.destination=args[-1]
+        else:
+            if(not is_command_segment_number(args[0])):
+                inst.target=args.pop(0)
+                
+            inst.x,inst.y,inst.z=args[0:3]
+            if(args.__len__()==4 or args.__len__()==6):
+                inst.dim=args.pop(3)
+            if(args.__len__()>=5):
+                inst.yaw,inst.pitch=args[3:5]
+                
         return inst
     def build(self):
         params=[]
@@ -51,8 +63,14 @@ class TpCommandBuilder:
             params.append(self.destination)
         elif(self.x):
             params.extend((self.x,self.y,self.z))
+            if(self.dim):
+                params.append(self.dim)
             if(self.yaw):
                 params.extend((self.yaw,self.pitch))
+        elif(self.dim):
+            params.extend(self.dim)
+        if self.dim:
+            return f"tpx {" ".join(params)}"
         return f"tp {" ".join(params)}"
     
 handler_msg = on_command("tp")
@@ -119,7 +137,7 @@ async def _(bot:Bot,event:BaseChatEvent):
     msg=event.message.extract_plain_text()
     waypoint=Waypoint.from_message(msg)
     if(waypoint):
-        tpCommand=f"-tp {waypoint.x} {waypoint.y} {waypoint.z}"
+        tpCommand=f"-tpx {waypoint.x} {waypoint.y} {waypoint.z} {waypoint.dimension}"
         sendmsg=MCMessage()
         sendmsg.append(MCMessageSegment.text(
             text=f"点此传送: {waypoint.name}",
