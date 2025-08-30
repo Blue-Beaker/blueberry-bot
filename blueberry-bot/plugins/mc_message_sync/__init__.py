@@ -9,6 +9,7 @@ from nonebot.adapters.discord import Adapter as DCAdapter
 from nonebot.adapters.discord.api import Snowflake
 from nonebot.adapters import Message
 from nonebot.params import CommandArg
+import nonebot.config
 
 from config import Config
 
@@ -34,6 +35,14 @@ async def _(bot:Bot,event:BaseChatEvent):
     
     sender=event.player.nickname
     messageStr=event.message
+    
+    stripped=str(messageStr).strip()
+    # 不对bot指令进行转发
+    
+    for start in get_plugin_config(nonebot.config.Config).command_start:
+        if(stripped.startswith(start)):
+            return
+    
     sendMessage=f"[{sender}]: {messageStr}"
     await sendMessageToDiscord(targetid, sendMessage)
     # logger.info(f"Message in {event.server_name} [{sender}]: {messageStr}")
