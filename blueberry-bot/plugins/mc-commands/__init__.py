@@ -1,4 +1,5 @@
 import json
+import traceback
 from nonebot import on_command,logger,on_startswith,get_plugin_config
 from nonebot.rule import is_type
 from nonebot.adapters.minecraft.bot import Bot
@@ -10,6 +11,47 @@ from config import Config
 
 plugin_config = get_plugin_config(Config)
 
+class TpCommandBuilder:
+    def __init__(self) -> None:
+        self.target:str|None=None
+        self.destination:str|None=None
+        self.x:str|None=None
+        self.y:str|None=None
+        self.z:str|None=None
+        self.yaw:str|None=None
+        self.pitch:str|None=None
+        self.dim:int|None=None
+    @classmethod
+    def fromArgs(cls,args:list[str]):
+        inst=cls()
+        match len(args):
+            case 1:
+                inst.destination=args[0]
+            case 2:
+                inst.target,inst.destination=args
+            case 3:
+                inst.x,inst.y,inst.z=args
+            case 4:
+                inst.target,inst.x,inst.y,inst.z=args
+            case 5:
+                inst.x,inst.y,inst.z,inst.yaw,inst.pitch=args
+            case 6:
+                inst.target,inst.x,inst.y,inst.z,inst.yaw,inst.pitch=args
+            case _:
+                return None
+        return inst
+    def build(self):
+        params=[]
+        if(self.target):
+            params.append(self.target)
+        if(self.destination):
+            params.append(self.destination)
+        elif(self.x):
+            params.extend((self.x,self.y,self.z))
+            if(self.yaw):
+                params.extend((self.yaw,self.pitch))
+        return f"tp {" ".join(params)}"
+    
 handler_msg = on_command("tp")
 @handler_msg.handle()
 async def _(bot:Bot,event:BaseChatEvent,args: Message = CommandArg()):
@@ -21,16 +63,23 @@ async def _(bot:Bot,event:BaseChatEvent,args: Message = CommandArg()):
     
     argsStrs=[str(arg) for arg in str(args).split(" ")]
     # print(argsStrs)
+    cmd=TpCommandBuilder.fromArgs(argsStrs)
+    if(not cmd):
+        await bot.send_private_msg(message="用法: /tp [target player] <destination player> OR /tp [target player] <x> <y> <z> [<yaw> <pitch>]")
+        return
+        
+    cmd.target=playername
+    commandToSend="execute "+playername+" ~ ~ ~ "+cmd.build()
+    # if len(argsStrs)==2 or len(argsStrs)==4 or len(argsStrs)==4:
+    #     argsStrs.pop(0)
+    # argsStrs.insert(0,playername)
     
-    if len(argsStrs)==2 or len(argsStrs)==4 or len(argsStrs)==4:
-        argsStrs.pop(0)
-    argsStrs.insert(0,playername)
-    
-    commandToSend=f"tp {" ".join(argsStrs)}"
+    # commandToSend=f"tp {" ".join(argsStrs)}"
     try:
         logger.info("sending command: "+commandToSend)
         msg,result = await bot.send_rcon_cmd(command=commandToSend)
     except Exception as e:
-        await bot.send_msg(message=plugin_config.mc_message_prefix+e.__str__())
-        await bot.send_msg(message=plugin_config.mc_message_prefix+commandToSend)
+        await bot.send_msg(message="\n".join(traceback.format_exception_only(e)))
+        logger.error(traceback.format_exc())
+        await bot.send_msg(message=commandToSend)
     # bot.send_private_msg(uuid=event.player.uuid,nickname=event.player.nickname,message=f"来自{name}服务器: \n{msg}")
