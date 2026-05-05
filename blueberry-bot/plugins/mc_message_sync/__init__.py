@@ -11,7 +11,7 @@ from nonebot.adapters import Message
 from nonebot.params import CommandArg
 import nonebot.config
 
-from config import Config
+from .config import Config
 
 plugin_config = get_plugin_config(Config)
 

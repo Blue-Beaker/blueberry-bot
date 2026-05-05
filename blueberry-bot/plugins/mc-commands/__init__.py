@@ -10,7 +10,7 @@ from nonebot.adapters.minecraft.model import ClickEvent,HoverEvent,ClickAction,H
 from nonebot.adapters import Message
 from nonebot.params import CommandArg
 
-from config import Config
+from .config import Config
 
 plugin_config = get_plugin_config(Config)
 

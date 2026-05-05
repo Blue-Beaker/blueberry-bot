@@ -8,7 +8,7 @@ from nonebot.params import CommandArg
 
 CONFIG_PATH="config.json"
 
-from config import Config
+from .config import Config
 
 plugin_config = get_plugin_config(Config)
 

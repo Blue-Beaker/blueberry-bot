@@ -2,7 +2,7 @@ from typing import Any
 from nonebot import get_plugin_config,logger
 from nonebot.adapters import Bot
 from nonebot.adapters.minecraft.bot import Bot as MCBot
-from config import Config
+from .config import Config
 
 plugin_config = get_plugin_config(Config)
 prefix=plugin_config.mc_message_prefix
