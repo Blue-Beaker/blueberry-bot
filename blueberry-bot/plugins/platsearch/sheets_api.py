@@ -19,19 +19,23 @@ plugin_config = get_plugin_config(Config)
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
     
-class Sheets:
-    @cached(cache=TTLCache(maxsize=20,ttl=600))
-    def get(self,sheetid:str,range:str):
-        try:
-            service = build("sheets", "v4", developerKey=plugin_config.sheets_api_key)
-            # Call the Sheets API
-            sheet = service.spreadsheets()
-            result = (
-                sheet.values()
-                .get(spreadsheetId=sheetid, range=range)
-                .execute()
-            )
-            values:list[list[str]] = result.get("values", [])
-            return values
-        except HttpError as err:
-            logger.error(err)
+@cached(cache=TTLCache(maxsize=20,ttl=600))
+def get(sheetid:str,range:str):
+    try:
+        service = build("sheets", "v4", developerKey=plugin_config.sheets_api_key)
+        # Call the Sheets API
+        sheet = service.spreadsheets()
+        result = (
+            sheet.values()
+            .get(spreadsheetId=sheetid, range=range)
+            .execute()
+        )
+        values:list[list[str]] = result.get("values", [])
+        
+        if not isinstance(values,list):
+            return []
+        return values
+    except HttpError as err:
+        logger.error(err)
+            
+            
