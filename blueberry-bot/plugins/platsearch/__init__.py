@@ -25,7 +25,7 @@ class SearchArgs:
         self.page=0
         if text.startswith("-"):
             try:
-                spl=text.split(" ",2)
+                spl=text.split(" ",1)
                 self.page=int(spl[0].removeprefix("-"))
                 text=spl[1] if spl.__len__()>=2 else ""
             except:
@@ -89,14 +89,12 @@ def main():
         
         count=results.__len__()
         entries_per_page = 5
-        maxpages=1+count//entries_per_page
-        page=max(1,min(page,maxpages))
         
-        if count>entries_per_page:
-            results=results[(page-1)*entries_per_page:min(page*entries_per_page,count-1)]
+        results:list[plat_sheets.LevelEntry]
+        results,maxpages,page=select_page(results,count,entries_per_page,page)
             
-        if not results:
-            msg.append(f"Not levels found with skill {search}")
+        if not count:
+            msg.append(f"No levels found with skill {search}")
         else:
             msg.append(f"{count} levels found with skills (Page {page}/{maxpages}):")
             msg.extend([f"{l.name} by {l.creator}" for l in results])
@@ -109,11 +107,8 @@ def plat_rank_results(search:str,page:int=1):
     count=results.__len__()
     
     entries_per_page = 5
-    maxpages=1+count//entries_per_page
-    page=max(1,min(page,maxpages))
     
-    if count>entries_per_page:
-        results=results[(page-1)*entries_per_page:min(page*entries_per_page,count-1)]
+    results,maxpages,page=select_page(results,count,entries_per_page,page)
     
     if count==0:
         msg.append("Not found on Plat Rank")
@@ -128,11 +123,9 @@ def sheets_results(search:str,page:int=1):
     count=results.__len__()
     
     entries_per_page = 3
-    maxpages=1+count//entries_per_page
-    page=max(1,min(page,maxpages))
     
-    if count>entries_per_page:
-        results=results[(page-1)*entries_per_page:min(page*entries_per_page,count-1)]
+    results:list[plat_sheets.LevelEntry]
+    results,maxpages,page=select_page(results,count,entries_per_page,page)
         
     if count==0:
         msg.append("Not found on the sheets")
@@ -153,6 +146,8 @@ def level_in_three_sheets(search:str):
             result.append(level)
     return result
 
+skill_groups=[["dash orbs","wavedash"]]
+
 def skill_in_three_sheets(search:str):
     result:list[plat_sheets.LevelEntry]=[]
     the_lists=plat_sheets.get_3_lists()
@@ -160,8 +155,11 @@ def skill_in_three_sheets(search:str):
     
     for level in the_lists:
         lskills=[s.lower() for s in level.skillsets]
+        for group in skill_groups:
+            intersect=list(set(group) & set(lskills))
+            if intersect:
+                lskills=list(set(group) | set(lskills))
         matched=True
-        
         for s in split:
             if s not in lskills:
                 matched=False
@@ -169,6 +167,13 @@ def skill_in_three_sheets(search:str):
         if matched:
             result.append(level)
     return result
+
+def select_page(results:list,count:int,entries_per_page:int,page:int):
+    maxpages=1+((count-1)//entries_per_page)
+    page=max(1,min(page,maxpages))
+    if count>entries_per_page:
+        results=results[(page-1)*entries_per_page:min(page*entries_per_page,count)]
+    return results,maxpages,page
             
 if plugin_config.sheets_api_key:
     main()
