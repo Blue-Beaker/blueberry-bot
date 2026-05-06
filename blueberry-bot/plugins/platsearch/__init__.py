@@ -15,55 +15,57 @@ PLAT_RANK_SPREADSHEET = "1uicngbhpej4PEmtYYeGmYlFsA28PwTzzouWb4EWQkTY"
 WEIGHT_RANGE = "Weight!A2:E"
 
 plugin_config = get_plugin_config(Config)
-driver = get_driver()
 
 sheets:Sheets = Sheets()
 
-@driver.on_startup
-async def init_api():
-    sheets.init_api()
-
-platsearch = on_command("platsearch")
-@platsearch.handle()
-async def _(args: Message = CommandArg()):
-    search = args.extract_plain_text().strip().lower()
-    msg=[]
-    results=search_plat_rank_weight(search)
-    count=results.__len__()
-    if count>5:
-        results=results[0:5]
-    
+def main():
+    platsearch = on_command("platsearch")
+    @platsearch.handle()
+    async def _(args: Message = CommandArg()):
+        search = args.extract_plain_text().strip().lower()
+        msg=[]
+        results=search_plat_rank_weight(search)
+        count=results.__len__()
+        if count>5:
+            results=results[0:5]
         
-    if not results:
-        msg.append("Not found on Plat Rank")
-    else:
-        msg.append(f"{count} levels found on Plat Rank:")
-        msg.extend(results)
+            
+        if not results:
+            msg.append("Not found on Plat Rank")
+        else:
+            msg.append(f"{count} levels found on Plat Rank:")
+            msg.extend(results)
+            
+        await platsearch.send("\n".join(msg))
         
-    await platsearch.send("\n".join(msg))
-    
-    
-def search_plat_rank_weight(search:str):
-    results=[]
-    values=sheets.get(PLAT_RANK_SPREADSHEET,WEIGHT_RANGE)
-    
-    if values:
-        current_section=""
-        for line in values:
-            level=line[0]
-            weight=line[1]
-            if not weight:
-                current_section=level.removesuffix("Placements").strip()
-                continue
-            
-            misc_place=[i.strip() for i in line[2].split(",")]
-            pemonlist_place=[i.strip() for i in line[3].split(",")]
-            
-            matched=False
-            
-            if search in level.lower():
-                matched=level
+        
+    def search_plat_rank_weight(search:str):
+        results=[]
+        values=sheets.get(PLAT_RANK_SPREADSHEET,WEIGHT_RANGE)
+        
+        if values:
+            current_section=""
+            for line in values:
+                level=line[0]
+                weight=line[1]
+                if not weight:
+                    current_section=level.removesuffix("Placements").strip()
+                    continue
                 
-            if matched:
-                results.append(f"{matched} ({current_section}) Weight:{weight}")
-    return results
+                misc_place=[i.strip() for i in line[2].split(",")]
+                pemonlist_place=[i.strip() for i in line[3].split(",")]
+                
+                matched=False
+                
+                if search in level.lower():
+                    matched=level
+                    
+                if matched:
+                    results.append(f"{matched} ({current_section}) Weight:{weight}")
+        return results
+    
+
+if plugin_config.sheets_api_key:
+    main()
+else:
+    logger.error(f"API key for sheets is not set. Not loading this module")

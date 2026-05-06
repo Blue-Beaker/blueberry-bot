@@ -38,7 +38,7 @@ def main():
       token.write(creds.to_json())
 
   try:
-    service = build("sheets", "v4", credentials=creds)
+    service = build("sheets", "v4", developerKey=os.environ.get("SHEETS_API_KEY",None))
 
     # Call the Sheets API
     sheet = service.spreadsheets()
