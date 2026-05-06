@@ -60,6 +60,44 @@ def main():
         msg.extend(sheets_results(search,page))
             
         await platsheet.send("\n".join(msg))
+    
+    
+    platsearch = on_command("platsearch")
+    @platsearch.handle()
+    async def _(args: Message = CommandArg()):
+        sa=SearchArgs(args.extract_plain_text())
+        text=sa.text
+        page=sa.page
+        
+        search = text.strip().lower()
+        
+        msg:list[str]=[]
+        results:list[plat_sheets.UPLEntry]=[]
+        levels=plat_sheets.get_upl()
+        
+        for l in levels:
+            if search in l.name.lower():
+                results.append(l)
+        
+        count=results.__len__()
+        entries_per_page = 5
+        
+        results,maxpages,page=select_page(results,count,entries_per_page,page)
+        
+        if not count:
+            msg.append(f"Not found")
+        else:
+            msg.append(f"{count} found (Page {page}/{maxpages}):")
+            for l in results:
+                line:list[str]=[l.name]
+                if l.id>=0:
+                    line.append(f"({l.id})")
+                line.append(f"\nDC Tier: {l.tier}, TPL: {l.tpl}, Pemonlist: {l.pemon}")
+                line.append(f"")
+                
+                msg.append("".join(line))
+            
+        await platsearch.send("\n".join(msg))
         
         
     platskill = on_command("platskill")
@@ -85,12 +123,11 @@ def main():
             return
             
         
-        results=skill_in_three_sheets(search)
+        results:list[plat_sheets.TheListsEntry]=skill_in_three_sheets(search)
         
         count=results.__len__()
         entries_per_page = 5
         
-        results:list[plat_sheets.LevelEntry]
         results,maxpages,page=select_page(results,count,entries_per_page,page)
             
         if not count:
@@ -103,7 +140,7 @@ def main():
 
 def plat_rank_results(search:str,page:int=1):
     msg=[]
-    results=plat_sheets.plat_rank_weight(search)
+    results=plat_rank_weight_search(search)
     count=results.__len__()
     
     entries_per_page = 5
@@ -117,6 +154,13 @@ def plat_rank_results(search:str,page:int=1):
         msg.extend(results)
     return msg
 
+def plat_rank_weight_search(search:str):
+    results:list[str]=[]
+    for level in plat_sheets.plat_rank_weights():
+        if search in level.name.lower():
+            results.append(f"{level.name} ({level.section}) Weight:{level.weight}")
+    return results
+
 def sheets_results(search:str,page:int=1):
     msg=[]
     results=level_in_three_sheets(search)
@@ -124,7 +168,7 @@ def sheets_results(search:str,page:int=1):
     
     entries_per_page = 3
     
-    results:list[plat_sheets.LevelEntry]
+    results:list[plat_sheets.TheListsEntry]
     results,maxpages,page=select_page(results,count,entries_per_page,page)
         
     if count==0:
@@ -133,13 +177,13 @@ def sheets_results(search:str,page:int=1):
         msg.append(f"{count} on sheets (Page {page}/{maxpages}):")
         
         for level in results:
-            msg.append(f"{level.name} by {level.creator} (in {level.sheet} {level.section}):")
+            msg.append(f"{level.name} by {level.creator} ({level.sheet} {level.section}):")
             msg.append(f"Checkpoints: {level.checkpoints}, Skillsets: {",".join(level.skillsets)}")
             msg.append(f"Description: {level.description}")
     return msg
 
 def level_in_three_sheets(search:str):
-    result:list[plat_sheets.LevelEntry]=[]
+    result:list[plat_sheets.TheListsEntry]=[]
     the_lists=plat_sheets.get_3_lists()
     for level in the_lists:
         if(search in level.name.lower()):
@@ -149,7 +193,7 @@ def level_in_three_sheets(search:str):
 skill_groups=[["dash orbs","wavedash"]]
 
 def skill_in_three_sheets(search:str):
-    result:list[plat_sheets.LevelEntry]=[]
+    result:list[plat_sheets.TheListsEntry]=[]
     the_lists=plat_sheets.get_3_lists()
     split:list[str]=[t.strip().lower() for t in search.split(",")]
     

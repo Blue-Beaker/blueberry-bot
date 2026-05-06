@@ -19,6 +19,13 @@ plugin_config = get_plugin_config(Config)
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
     
+class Sheet:
+    def __init__(self,id:str,range:str) -> None:
+        self.id=id
+        self.range=range
+    def get(self):
+        return get(self.id,self.range)
+    
 @cached(cache=TTLCache(maxsize=20,ttl=600))
 def get(sheetid:str,range:str):
     try:
