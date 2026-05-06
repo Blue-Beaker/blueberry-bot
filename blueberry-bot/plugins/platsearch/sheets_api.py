@@ -29,6 +29,9 @@ class Sheet:
 @cached(cache=TTLCache(maxsize=20,ttl=600))
 def get(sheetid:str,range:str):
     try:
+        if not plugin_config.sheets_api_key:
+            logger.error("API key not set, plugin won't work!")
+            return []
         service = build("sheets", "v4", developerKey=plugin_config.sheets_api_key)
         # Call the Sheets API
         sheet = service.spreadsheets()
