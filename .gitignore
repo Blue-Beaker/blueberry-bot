@@ -5,3 +5,4 @@ guess_sessions.json
 .env.test
 /*.tar
 config.json
+secrets/**
