@@ -1,12 +1,6 @@
-import json
 import traceback
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
 from nonebot.rule import is_type
-from nonebot.adapters.minecraft.bot import Bot as MCBot
-from nonebot.adapters.minecraft import BaseChatEvent,MessageEvent,NoticeEvent,BaseJoinEvent,BaseQuitEvent
-from nonebot.adapters.discord.bot import Bot as DCBot
-from nonebot.adapters.discord import Adapter as DCAdapter
-from nonebot.adapters.discord.api import Snowflake
 from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
 import nonebot.config
