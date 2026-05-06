@@ -95,10 +95,18 @@ def level_in_three_sheets(search:str):
 def skill_in_three_sheets(search:str):
     result:list[plat_sheets.LevelEntry]=[]
     the_lists=plat_sheets.get_3_lists()
+    split:list[str]=[t.strip() for t in search.split(",")]
+    
     for level in the_lists:
-        for skill in level.skillsets:
-            if search == skill.strip().lower():
-                result.append(level)
+        lskills=[s.lower() for s in level.skillsets]
+        matched=True
+        
+        for s in split:
+            if s not in lskills:
+                matched=False
+                break
+        if matched:
+            result.append(level)
     return result
             
 if plugin_config.sheets_api_key:
