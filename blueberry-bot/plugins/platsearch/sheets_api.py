@@ -1,5 +1,7 @@
 import os.path
 
+from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -9,6 +11,10 @@ from googleapiclient.errors import HttpError
 from nonebot import logger
 
 from cachetools import cached, TTLCache
+
+from .config import Config
+
+plugin_config = get_plugin_config(Config)
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
@@ -25,14 +31,14 @@ class Sheets:
         if os.path.exists("secrets/token.json"):
             creds = Credentials.from_authorized_user_file("secrets/token.json", SCOPES)
         # If there are no (valid) credentials available, let the user log in.
-        if not creds or not creds.valid:
+        if plugin_config.sheets_auth_login and (not creds or not creds.valid):
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     "secrets/credentials.json", SCOPES
                 )
-                creds = flow.run_local_server(port=0)
+                creds = flow.run_local_server(host=plugin_config.sheets_auth_host,port=plugin_config.sheets_auth_port,browser=False)
                 # Save the credentials for the next run
                 with open("secrets/token.json", "w") as token:
                     token.write(creds.to_json())
