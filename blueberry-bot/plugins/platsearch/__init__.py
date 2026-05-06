@@ -23,12 +23,22 @@ def main():
     platsearch = on_command("platsearch")
     @platsearch.handle()
     async def _(args: Message = CommandArg()):
-        search = args.extract_plain_text().strip().lower()
+        text=args.extract_plain_text()
+        page=0
+        if text.startswith("-"):
+            try:
+                spl=text.split(" ",2)
+                page=int(spl[0].removeprefix("-"))
+                text=spl[1] if spl.__len__()>=2 else ""
+            except:
+                pass
+        
+        search = text.strip().lower()
         msg=[]
         
-        msg.extend(plat_rank_results(search))
+        msg.extend(plat_rank_results(search,page))
         
-        msg.extend(sheets_results(search))
+        msg.extend(sheets_results(search,page))
             
         await platsearch.send("\n".join(msg))
         
@@ -52,35 +62,41 @@ def main():
         
         await platskill.send("\n".join(msg))
 
-def plat_rank_results(search:str):
+def plat_rank_results(search:str,page:int=0):
     msg=[]
     results=plat_sheets.plat_rank_weight(search)
     count=results.__len__()
-    if count>5:
-        results=results[0:5]
+    maxpages=1+count//5
+    page=min(page,maxpages)
     
-    if not results:
+    if count>5:
+        results=results[page*5:min((page+1)*5,count-1)]
+    
+    if count==0:
         msg.append("Not found on Plat Rank")
     else:
-        msg.append(f"{count} levels found on Plat Rank:")
+        msg.append(f"{count} on Plat Rank (Page {page}/{maxpages}):")
         msg.extend(results)
     return msg
 
-def sheets_results(search:str):
+def sheets_results(search:str,page:int=0):
     msg=[]
-    sheets_levels=level_in_three_sheets(search)
-    sheets_count=sheets_levels.__len__()
-    if sheets_count>3:
-        sheets_levels=sheets_levels[0:3]
+    results=level_in_three_sheets(search)
+    count=results.__len__()
+    maxpages=1+count//5
+    page=min(page,maxpages)
+    
+    if count>5:
+        results=results[page*5:min((page+1)*5,count-1)]
         
-    if not sheets_count:
+    if count==0:
         msg.append("Not found on the sheets")
     else:
-        msg.append(f"{sheets_count} levels found on sheets:")
+        msg.append(f"{count} on sheets (Page {page}/{maxpages}):")
         
-        for level in sheets_levels:
+        for level in results:
             msg.append(f"{level.name} by {level.creator} (in {level.sheet} {level.section}):")
-            msg.append(f"Checkpoints: {level.checkpoints}, Skillsets: {level.skillsets}")
+            msg.append(f"Checkpoints: {level.checkpoints}, Skillsets: {",".join(level.skillsets)}")
             msg.append(f"Description: {level.description}")
     return msg
 
