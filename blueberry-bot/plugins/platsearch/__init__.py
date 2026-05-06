@@ -43,7 +43,22 @@ def main():
         search = text.strip().lower()
         msg=[]
         
-        msg.extend(plat_rank_results(search,page))
+        results:list[plat_sheets.PlatRankEntry]=[]
+        for level in plat_sheets.plat_rank_weights():
+            if search in level.name.lower():
+                results.append(level)
+                
+        count=results.__len__()
+        entries_per_page = 5
+        
+        results,maxpages,page=select_page(results,count,entries_per_page,page)
+        
+        if count==0:
+            msg.append("Not found on Plat Rank")
+        else:
+            msg.append(f"{count} on Plat Rank (Page {page}/{maxpages}):")
+            for l in results:
+                msg.append(f"{l.name} ({l.section}) Weight:{l.weight}")
         
         await platweight.send("\n".join(msg))
         
@@ -57,7 +72,23 @@ def main():
         search = text.strip().lower()
         msg=[]
         
-        msg.extend(sheets_results(search,page))
+        results=level_in_three_sheets(search)
+        count=results.__len__()
+        
+        entries_per_page = 3
+        
+        results:list[plat_sheets.TheListsEntry]
+        results,maxpages,page=select_page(results,count,entries_per_page,page)
+            
+        if count==0:
+            msg.append("Not found on the sheets")
+        else:
+            msg.append(f"{count} on sheets (Page {page}/{maxpages}):")
+            
+            for level in results:
+                msg.append(f"{level.name} by {level.creator} ({level.sheet} {level.section}):")
+                msg.append(f"Checkpoints: {level.checkpoints}, Skillsets: {",".join(level.skillsets)}")
+                msg.append(f"Description: {level.description}")
             
         await platsheet.send("\n".join(msg))
     
@@ -91,7 +122,7 @@ def main():
             for l in results:
                 line:list[str]=[l.name]
                 if l.id>=0:
-                    line.append(f"({l.id})")
+                    line.append(f" ({l.id})")
                 line.append(f"\nDC Tier: {l.tier}, TPL: {l.tpl}, Pemonlist: {l.pemon}")
                 line.append(f"")
                 
@@ -137,50 +168,6 @@ def main():
             msg.extend([f"{l.name} by {l.creator}" for l in results])
         
         await platskill.send("\n".join(msg))
-
-def plat_rank_results(search:str,page:int=1):
-    msg=[]
-    results=plat_rank_weight_search(search)
-    count=results.__len__()
-    
-    entries_per_page = 5
-    
-    results,maxpages,page=select_page(results,count,entries_per_page,page)
-    
-    if count==0:
-        msg.append("Not found on Plat Rank")
-    else:
-        msg.append(f"{count} on Plat Rank (Page {page}/{maxpages}):")
-        msg.extend(results)
-    return msg
-
-def plat_rank_weight_search(search:str):
-    results:list[str]=[]
-    for level in plat_sheets.plat_rank_weights():
-        if search in level.name.lower():
-            results.append(f"{level.name} ({level.section}) Weight:{level.weight}")
-    return results
-
-def sheets_results(search:str,page:int=1):
-    msg=[]
-    results=level_in_three_sheets(search)
-    count=results.__len__()
-    
-    entries_per_page = 3
-    
-    results:list[plat_sheets.TheListsEntry]
-    results,maxpages,page=select_page(results,count,entries_per_page,page)
-        
-    if count==0:
-        msg.append("Not found on the sheets")
-    else:
-        msg.append(f"{count} on sheets (Page {page}/{maxpages}):")
-        
-        for level in results:
-            msg.append(f"{level.name} by {level.creator} ({level.sheet} {level.section}):")
-            msg.append(f"Checkpoints: {level.checkpoints}, Skillsets: {",".join(level.skillsets)}")
-            msg.append(f"Description: {level.description}")
-    return msg
 
 def level_in_three_sheets(search:str):
     result:list[plat_sheets.TheListsEntry]=[]
