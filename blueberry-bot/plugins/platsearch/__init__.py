@@ -19,58 +19,86 @@ from . import plat_sheets
 
 plugin_config = get_plugin_config(Config)
 
-def main():
-    platsearch = on_command("platsearch")
-    @platsearch.handle()
-    async def _(args: Message = CommandArg()):
-        text=args.extract_plain_text()
-        page=0
+class SearchArgs:
+    def __init__(self,text:str) -> None:
+        self.page=0
         if text.startswith("-"):
             try:
                 spl=text.split(" ",2)
-                page=int(spl[0].removeprefix("-"))
+                self.page=int(spl[0].removeprefix("-"))
                 text=spl[1] if spl.__len__()>=2 else ""
             except:
                 pass
+        self.text=text
+
+def main():
+    platweight = on_command("platweight")
+    @platweight.handle()
+    async def _(args: Message = CommandArg()):
+        sa=SearchArgs(args.extract_plain_text())
+        text=sa.text
+        page=sa.page
         
         search = text.strip().lower()
         msg=[]
         
         msg.extend(plat_rank_results(search,page))
         
+        await platweight.send("\n".join(msg))
+        
+    platsheet = on_command("platsheet")
+    @platsheet.handle()
+    async def _(args: Message = CommandArg()):
+        sa=SearchArgs(args.extract_plain_text())
+        text=sa.text
+        page=sa.page
+        
+        search = text.strip().lower()
+        msg=[]
+        
         msg.extend(sheets_results(search,page))
             
-        await platsearch.send("\n".join(msg))
+        await platsheet.send("\n".join(msg))
         
         
     platskill = on_command("platskill")
     @platskill.handle()
     async def _(args: Message = CommandArg()):
-        search = args.extract_plain_text().strip().lower()
+        sa=SearchArgs(args.extract_plain_text())
+        search=sa.text
+        page=sa.page
+        
         msg=[]
         
         results=skill_in_three_sheets(search)
+        
         count=results.__len__()
-        if count>10:
-            results=results[0:10]
+        entries_per_page = 5
+        maxpages=1+count//entries_per_page
+        page=max(1,min(page,maxpages))
+        
+        if count>entries_per_page:
+            results=results[(page-1)*entries_per_page:min(page*entries_per_page,count-1)]
             
         if not results:
             msg.append(f"Not levels found with skill {search}")
         else:
-            msg.append(f"{count} levels found with skills:")
+            msg.append(f"{count} levels found with skills (Page {page}/{maxpages}):")
             msg.extend([f"{l.name} by {l.creator}" for l in results])
         
         await platskill.send("\n".join(msg))
 
-def plat_rank_results(search:str,page:int=0):
+def plat_rank_results(search:str,page:int=1):
     msg=[]
     results=plat_sheets.plat_rank_weight(search)
     count=results.__len__()
-    maxpages=1+count//5
-    page=min(page,maxpages)
     
-    if count>5:
-        results=results[page*5:min((page+1)*5,count-1)]
+    entries_per_page = 5
+    maxpages=1+count//entries_per_page
+    page=max(1,min(page,maxpages))
+    
+    if count>entries_per_page:
+        results=results[(page-1)*entries_per_page:min(page*entries_per_page,count-1)]
     
     if count==0:
         msg.append("Not found on Plat Rank")
@@ -79,15 +107,17 @@ def plat_rank_results(search:str,page:int=0):
         msg.extend(results)
     return msg
 
-def sheets_results(search:str,page:int=0):
+def sheets_results(search:str,page:int=1):
     msg=[]
     results=level_in_three_sheets(search)
     count=results.__len__()
-    maxpages=1+count//5
-    page=min(page,maxpages)
     
-    if count>5:
-        results=results[page*5:min((page+1)*5,count-1)]
+    entries_per_page = 3
+    maxpages=1+count//entries_per_page
+    page=max(1,min(page,maxpages))
+    
+    if count>entries_per_page:
+        results=results[(page-1)*entries_per_page:min(page*entries_per_page,count-1)]
         
     if count==0:
         msg.append("Not found on the sheets")
