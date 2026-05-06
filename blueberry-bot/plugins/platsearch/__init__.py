@@ -1,3 +1,4 @@
+import random
 import traceback
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
 from nonebot.rule import is_type
@@ -69,6 +70,20 @@ def main():
         page=sa.page
         
         msg=[]
+        # If no args present, list all skillsets
+        if not sa.text:
+            the_lists=plat_sheets.get_3_lists()
+            skills=[]
+            for l in the_lists:
+                for s in l.skillsets:
+                    if s not in skills:
+                        skills.append(s)
+            msg.append(f"There are {skills.__len__()} skills.")
+            msg.append(f"Use '-platskill skill1,skill2...' to filter levels by skillsets.")
+            msg.append(f"Example: -platskill {random.choice(skills)}")
+            await platskill.send("\n".join(msg))
+            return
+            
         
         results=skill_in_three_sheets(search)
         
@@ -141,7 +156,7 @@ def level_in_three_sheets(search:str):
 def skill_in_three_sheets(search:str):
     result:list[plat_sheets.LevelEntry]=[]
     the_lists=plat_sheets.get_3_lists()
-    split:list[str]=[t.strip() for t in search.split(",")]
+    split:list[str]=[t.strip().lower() for t in search.split(",")]
     
     for level in the_lists:
         lskills=[s.lower() for s in level.skillsets]
