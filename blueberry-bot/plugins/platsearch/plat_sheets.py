@@ -156,7 +156,8 @@ def get_upl():
         no_id:list[UPLEntry]=[]
         for line in values:
             entry=UPLEntry.build(line)
-            results.append(entry)
+            if entry.name or entry.id>0:
+                results.append(entry)
     return results
 
 def safeInt(i:str):
