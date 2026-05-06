@@ -17,13 +17,16 @@ loadEntityCats=[]
 for value in guess_data.ENTITY_MANAGER.category_data.values():
     loadEntityCats.append(f"{value.id}={value.name}")
     
-logger.info(f"已加载实体类别: {', '.join(loadEntityCats)}")
-logger.info(f"已加载地图: {', '.join(guess_data.MAP_MANAGER.map_data.keys())}")
+
+logger.info(f"已加载{len(loadEntityCats)}个实体类别, {len(guess_data.MAP_MANAGER.map_data.keys())}个地图")
+logger.debug(f"实体类别: {', '.join(loadEntityCats)}")
+logger.debug(f"地图: {', '.join(guess_data.MAP_MANAGER.map_data.keys())}")
 
 if os.path.exists(SESSIONS_FILE):
     with open(SESSIONS_FILE,"r") as f:
         handler_base.INSTANCES.load(json.load(f))
-        logger.info(f'已加载会话: {handler_base.INSTANCES.dump()}')
+        logger.info(f"已加载{len(handler_base.INSTANCES.dump().keys())}个会话")
+        logger.debug(f'会话: {handler_base.INSTANCES.dump()}')
         
 def saveSessions():
     with open(SESSIONS_FILE,"w") as f:
