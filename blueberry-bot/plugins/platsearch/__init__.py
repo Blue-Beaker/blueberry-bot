@@ -102,8 +102,8 @@ async def _(args: Message = CommandArg()):
     search = text.strip().lower()
     
     msg:list[str]=[]
-    results:list[plat_sheets.UPLEntry]=[]
-    levels=plat_sheets.get_upl()
+    results:list[plat_sheets.UPIEntry]=[]
+    levels=plat_sheets.get_upi()
     
     for l in levels:
         if search in l.name.lower():

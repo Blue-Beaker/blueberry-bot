@@ -1,4 +1,5 @@
 
+import re
 from cachetools import cached, TTLCache
 
 from .sheets_api import Sheet
@@ -13,6 +14,7 @@ IDS_PLAT = Sheet("15ehtAIpCR8s04qIb8zij9sTpUdGJbmAE_LDcfVA3tcU","Tha Platformer 
 NLW_PLAT = Sheet("1YxUE2kkvhT2E6AjnkvTf-o8iu_shSLbuFkEFcZOvieA","Tha Plevles!B2:H")
 
 UPL_SHEET = Sheet("13rpmCGCC8NKvRJhVcUuxixUdEuc_I6rm9LlwgB2HAsM","Levels!A2:E")
+DIFFICULTY_CHART = Sheet("1ApwiAVAcBmfyoPW3wvDzc8JvY4Lfg5tFsPlYg3DNWhc","The Chart!A4:G")
 
 class PlatRankEntry:
     def __init__(self,section:str,name:str,weight:str|None=None) -> None:
@@ -127,7 +129,7 @@ def get_3_lists():
     results.extend(get_nlw())
     return results
 
-class UPLEntry:
+class UPIEntry:
     def __init__(self,id:int,name:str,tier:str="",tpl:str="",pemon:str="") -> None:
         self.name=name
         self.id=id
@@ -146,16 +148,17 @@ class UPLEntry:
         tier=line[2]
         tpl=line[3]
         pemon=line[4]
-        return UPLEntry(id,name,tier,tpl,pemon)
+        return UPIEntry(id,name,tier,tpl,pemon)
     
+SPECIAL_LEVELID_PATTERN=re.compile('See "(.*)"')
 @cached(cache=TTLCache(maxsize=20,ttl=30))
-def get_upl():
-    results:list[UPLEntry]=[]
+def get_upi():
+    
+    results:list[UPIEntry]=[]
     values=UPL_SHEET.get()
     if values:
-        no_id:list[UPLEntry]=[]
         for line in values:
-            entry=UPLEntry.build(line)
+            entry=UPIEntry.build(line)
             if entry.name or entry.id>0:
                 results.append(entry)
     return results
