@@ -121,11 +121,12 @@ async def _(args: Message = CommandArg()):
         for l in results:
             line:list[str]=[l.name]
             if l.id>=0:
-                line.append(f" ({l.id}) (T{l.tier})\n")
+                line.append(f" ({l.id})")
+            line.append(f"(T{l.tier})")
             if l.tags:
-                line.append(f"Tags: {','.join(l.tags)}")
+                line.append(f"\nTags: {','.join(l.tags)}")
             if l.tpl or l.pemon:
-                line.append(f"TPL: {l.tpl}, Pemonlist: {l.pemon}")
+                line.append(f"\nTPL: {l.tpl}, Pemonlist: {l.pemon}")
             line.append(f"")
             
             msg.append("".join(line))
