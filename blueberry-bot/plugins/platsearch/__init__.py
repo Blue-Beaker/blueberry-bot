@@ -102,8 +102,8 @@ async def _(args: Message = CommandArg()):
     search = text.strip().lower()
     
     msg:list[str]=[]
-    results:list[plat_sheets.UPIEntry]=[]
-    levels=plat_sheets.get_upi()
+    results:list[plat_sheets.PlatChartEntry]=[]
+    levels=plat_sheets.get_plat_chart()
     
     for l in levels:
         if search in l.name.lower():
@@ -121,8 +121,11 @@ async def _(args: Message = CommandArg()):
         for l in results:
             line:list[str]=[l.name]
             if l.id>=0:
-                line.append(f" ({l.id})")
-            line.append(f"\nDC Tier: {l.tier}, TPL: {l.tpl}, Pemonlist: {l.pemon}")
+                line.append(f" ({l.id}) (T{l.tier})\n")
+            if l.tags:
+                line.append(f"Tags: {','.join(l.tags)}")
+            if l.tpl or l.pemon:
+                line.append(f"TPL: {l.tpl}, Pemonlist: {l.pemon}")
             line.append(f"")
             
             msg.append("".join(line))

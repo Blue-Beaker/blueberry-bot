@@ -13,7 +13,7 @@ HDS_PLAT = Sheet("1M7C58CG_5cLGsJEXTLQBtO6nzbpA-1zxCb8ZV8ux3zg","THE Plat List!A
 IDS_PLAT = Sheet("15ehtAIpCR8s04qIb8zij9sTpUdGJbmAE_LDcfVA3tcU","Tha Platformer Levels!A2:G")
 NLW_PLAT = Sheet("1YxUE2kkvhT2E6AjnkvTf-o8iu_shSLbuFkEFcZOvieA","Tha Plevles!B2:H")
 
-UPL_SHEET = Sheet("13rpmCGCC8NKvRJhVcUuxixUdEuc_I6rm9LlwgB2HAsM","Levels!A2:E")
+UPI_SHEET = Sheet("13rpmCGCC8NKvRJhVcUuxixUdEuc_I6rm9LlwgB2HAsM","Levels!A2:E")
 DIFFICULTY_CHART = Sheet("1ApwiAVAcBmfyoPW3wvDzc8JvY4Lfg5tFsPlYg3DNWhc","The Chart!A4:G")
 
 class PlatRankEntry:
@@ -129,38 +129,67 @@ def get_3_lists():
     results.extend(get_nlw())
     return results
 
-class UPIEntry:
-    def __init__(self,id:int,name:str,tier:str="",tpl:str="",pemon:str="") -> None:
+class PlatChartEntry:
+    def __init__(self,id:int,name:str,tier:str="",creator:str="",tags:list[str]=[],enj:str="") -> None:
         self.name=name
         self.id=id
         self.tier=tier
-        self.tpl=tpl
-        self.pemon=pemon
+        self.creator=creator
+        self.tags=tags
+        self.enj=enj
+        self.tpl:str|None=None
+        self.pemon:str|None=None
     def __repr__(self) -> str:
         return "Level:"+", ".join([f"{k}:{v}"for k,v in self.__dict__.items()])
     def __str__(self):
         return f"{self.name} {self.id}"
     
     @classmethod
-    def build(cls,line:list[str]):
-        id=safeInt(line[0])
-        name=line[1]
-        tier=line[2]
-        tpl=line[3]
-        pemon=line[4]
-        return UPIEntry(id,name,tier,tpl,pemon)
+    def build(cls,tier:str,line:list[str]):
+        name=line[0]
+        id=safeInt(line[2])
+        creator=line[3]
+        tags=[i.strip() for i in line[4].split(",") if i != "---"]
+        enj=line[5]
+        return PlatChartEntry(id,name,tier,creator,tags,enj)
     
 SPECIAL_LEVELID_PATTERN=re.compile('See "(.*)"')
 @cached(cache=TTLCache(maxsize=20,ttl=30))
-def get_upi():
+def get_plat_chart():
     
-    results:list[UPIEntry]=[]
-    values=UPL_SHEET.get()
+    results:list[PlatChartEntry]=[]
+    id_to_levels:dict[int,PlatChartEntry]={}
+    values=DIFFICULTY_CHART.get()
     if values:
+        tier=""
         for line in values:
-            entry=UPIEntry.build(line)
-            if entry.name or entry.id>0:
-                results.append(entry)
+            if line.__len__()==1:
+                tier=line[0].removeprefix("TIER").split("-")[0].strip()
+                continue
+            while line.__len__()<6:
+                line.append("")
+            entry=PlatChartEntry.build(tier,line)
+            # if entry.name or entry.id>0:
+            results.append(entry)
+            if entry.id>0:
+                id_to_levels[entry.id]=entry
+    
+    upi=UPI_SHEET.get()
+    if upi:
+        for line in upi:
+            try:
+                id = int(line[0])
+                tpl=line[3]
+                pemon=line[4]
+                entry=id_to_levels.get(id)
+                if not entry:
+                    entry=PlatChartEntry(id,line[1],line[2])
+                    results.append(entry)
+                entry.tpl=tpl if tpl!="-" else None
+                entry.pemon=pemon if pemon!="-" else None
+            except:
+                pass
+                
     return results
 
 def safeInt(i:str):
