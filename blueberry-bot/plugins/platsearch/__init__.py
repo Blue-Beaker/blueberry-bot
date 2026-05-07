@@ -1,5 +1,6 @@
 import random
 import traceback
+from typing import Any, TypeVar
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
 from nonebot.rule import is_type
 from nonebot.adapters import Message,Event,Bot
@@ -202,7 +203,8 @@ def skill_in_three_sheets(search:str):
             result.append(level)
     return result
 
-def select_page(results:list,count:int,entries_per_page:int,page:int):
+T = TypeVar("T", bound=Any)
+def select_page(results:list[T],count:int,entries_per_page:int,page:int):
     maxpages=1+((count-1)//entries_per_page)
     page=max(1,min(page,maxpages))
     if count>entries_per_page:
