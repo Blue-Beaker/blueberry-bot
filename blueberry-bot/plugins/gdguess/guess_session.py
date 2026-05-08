@@ -13,6 +13,8 @@ class GuessSession:
     
     level_pool:list[int]
     
+    completed:bool=False
+    
     def __init__(self) -> None:
         self.level_pool=[]
         
@@ -39,3 +41,18 @@ class GuessSession:
         inst=cls()
         inst.__dict__.update(data)
         return inst
+    
+class SessionManager:
+    sessions:dict[str,GuessSession]={}
+    
+    def save(self,path:str):
+        with open(path,"w") as f:
+            json.dump({k:v.to_dict() for k,v in self.sessions.items()},f)
+    
+    def load(self,path:str):
+        try:
+            with open(path,"r") as f:
+                data=json.load(f)
+                self.sessions={k:GuessSession.from_dict(v) for k,v in data.items()}
+        except FileNotFoundError:
+            self.sessions={}
