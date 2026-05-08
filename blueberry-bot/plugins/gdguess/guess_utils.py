@@ -1,3 +1,4 @@
+from pathlib import Path
 import random
 import cv2
 from numpy import ndarray
@@ -40,3 +41,11 @@ def random_crop(crop_width, crop_height, image:ndarray):
     bottom = top + crop_height
     cropped_image = image[top:bottom,left:right]
     return left,top,right,bottom,cropped_image
+
+def draw_rectangle_on_image(image_path:Path, pos:tuple[int,int,int,int]):
+    image = cv2.imread(image_path)
+    
+    assert image is not None
+    
+    image = cv2.rectangle(image,(pos[0],pos[1]),(pos[2],pos[3]),(0,0,255),4)
+    return cv2.imencode(".png",image)[1].tobytes()

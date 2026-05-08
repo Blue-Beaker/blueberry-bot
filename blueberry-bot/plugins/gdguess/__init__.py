@@ -82,10 +82,12 @@ async def guess_start(matcher:type[Matcher],event:Event,args: Message = CommandA
     msg=[]
     levels:list[int]=[]
     
-    if not args_text and session and session.completed:
+    empty_search=not args_text or args_text==[""]
+    
+    if empty_search and session and session.completed:
         levels.extend(session.level_pool)
         msg.append("继续使用上次的关卡池进行游戏!")
-    elif not args_text:
+    elif empty_search:
         await matcher.send("请输入至少一个List ID! 多个ID请用,分隔")
         return
     else:
@@ -148,11 +150,25 @@ async def _(event:Event,args: Message = CommandArg()):
     guess=args.extract_plain_text().strip()
     if session.guess(guess):
         session.completed=True
-        await gdguess.send(f"恭喜你猜对了! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!")
+        msg=f"恭喜你猜对了! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
+        await gdguess.send(DCMessage().append(msg).append(MessageSegment.attachment("answer.png",content=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop))))
     else:
         await gdguess.send(f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!")
     await gdguess.finish()
     
+gdguess_giveup = on_command("gdguess_giveup")
+@gdguess_giveup.handle()
+async def _(event:Event):
+    id=getid(event)
+    session=session_manager.sessions.get(id)
+    if not session or session.completed:
+        await gdguess_giveup.send("你还没有正在进行的猜图游戏! 输入 -gdguess_start [List ID] 来开始一个新的游戏.")
+        return
+    session.completed=True
+    
+    msg=f"游戏结束! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
+    await gdguess.send(DCMessage().append(msg).append(MessageSegment.attachment("answer.png",content=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop))))
+    await gdguess_giveup.finish()
 
 def roll_until_level(levels:list[int]):
     levels2=levels.copy()
