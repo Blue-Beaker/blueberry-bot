@@ -16,7 +16,20 @@ NLW_PLAT = Sheet("1YxUE2kkvhT2E6AjnkvTf-o8iu_shSLbuFkEFcZOvieA","Tha Plevles!B2:
 UPI_SHEET = Sheet("13rpmCGCC8NKvRJhVcUuxixUdEuc_I6rm9LlwgB2HAsM","Levels!A2:E")
 DIFFICULTY_CHART = Sheet("1ApwiAVAcBmfyoPW3wvDzc8JvY4Lfg5tFsPlYg3DNWhc","The Chart!A4:G")
 
-class PlatRankEntry:
+class LevelEntry:
+    name:str
+    def matchesName(self,search:str,fuzzy_match:bool=False):
+        if fuzzy_match:
+            return search.lower() in self.name.lower()
+        else:
+            patt = re.compile(r"(.*)\(.*\)")
+            matched=patt.match(self.name)
+            name=self.name
+            if matched:
+                name=matched.group(1)
+            return search.lower().strip() == name.lower().strip()
+
+class PlatRankEntry(LevelEntry):
     def __init__(self,section:str,name:str,weight:str|None=None) -> None:
         self.section=section
         self.name=name
@@ -46,7 +59,7 @@ def plat_rank_weights():
             
     return results
 
-class TheListsEntry:
+class TheListsEntry(LevelEntry):
     def __init__(self,sheet:str,section:str,name:str,creator:str|None=None,checkpoints:str|None=None,skillsets:list[str]=[],description:str|None=None) -> None:
         self.sheet=sheet
         self.section=section
@@ -129,7 +142,7 @@ def get_3_lists():
     results.extend(get_nlw())
     return results
 
-class PlatChartEntry:
+class PlatChartEntry(LevelEntry):
     def __init__(self,id:int,name:str,tier:str="",creator:str="",tags:list[str]=[],enj:str="") -> None:
         self.name=name
         self.id=id

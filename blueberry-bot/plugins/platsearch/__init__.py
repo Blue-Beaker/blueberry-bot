@@ -1,4 +1,5 @@
 import random
+import re
 import traceback
 from typing import Any, TypeVar
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
@@ -24,14 +25,20 @@ plugin_config = get_plugin_config(Config)
 class SearchArgs:
     def __init__(self,text:str) -> None:
         self.page=0
-        if text.startswith("-"):
-            try:
-                spl=text.split(" ",1)
-                self.page=int(spl[0].removeprefix("-"))
-                text=spl[1] if spl.__len__()>=2 else ""
-            except:
-                pass
-        self.text=text
+        self.fuzzy=False
+        
+        args=text.split(" ")
+        
+        while args[0].startswith("-"):
+            arg=args[0]
+            args.pop(0)
+            if arg.startswith("-f"):
+                self.fuzzy=True
+            elif re.match(r"-[0-9]+",arg):
+                self.page=int(arg.removeprefix("-"))
+            
+        self.text=" ".join(args)
+        # logger.info(f"Search: Page={self.page}, Fuzzy={self.fuzzy}, Text={self.text}")
 
 platweight = on_command("platweight")
 @platweight.handle()
@@ -43,11 +50,15 @@ async def _(args: Message = CommandArg()):
     search = text.strip().lower()
     msg=[]
     
-    results:list[plat_sheets.PlatRankEntry]=[]
-    for level in plat_sheets.plat_rank_weights():
-        if search in level.name.lower():
-            results.append(level)
-            
+    if not sa.fuzzy:
+        msg.append(f"Exact match, use -f [levelname] for fuzzy search")
+    # results:list[plat_sheets.PlatRankEntry]=[]
+    # for level in plat_sheets.plat_rank_weights():
+    #     if search in level.name.lower():
+    #         results.append(level)
+    
+    results=search_in_levels(plat_sheets.plat_rank_weights(),search,sa.fuzzy)
+    
     count=results.__len__()
     entries_per_page = 5
     
@@ -59,7 +70,6 @@ async def _(args: Message = CommandArg()):
         msg.append(f"{count} on Plat Rank (Page {page}/{maxpages}):")
         for l in results:
             msg.append(f"{l.name} ({l.section}) Weight:{l.weight}")
-    
     await platweight.send("\n".join(msg))
     
 platsheet = on_command("platsheet")
@@ -72,7 +82,13 @@ async def _(args: Message = CommandArg()):
     search = text.strip().lower()
     msg=[]
     
-    results=level_in_three_sheets(search)
+    if not sa.fuzzy:
+        msg.append(f"Exact match, use -f [levelname] for fuzzy search")
+    # results=level_in_three_sheets(search)
+    
+    results=search_in_levels(plat_sheets.get_3_lists(),search,sa.fuzzy)
+    
+    
     count=results.__len__()
     
     entries_per_page = 3
@@ -103,12 +119,16 @@ async def _(args: Message = CommandArg()):
     search = text.strip().lower()
     
     msg:list[str]=[]
-    results:list[plat_sheets.PlatChartEntry]=[]
-    levels=plat_sheets.get_plat_chart()
     
-    for l in levels:
-        if search in l.name.lower():
-            results.append(l)
+    if not sa.fuzzy:
+        msg.append(f"Exact match, use -f [levelname] for fuzzy search")
+    # results:list[plat_sheets.PlatChartEntry]=[]
+    # levels=plat_sheets.get_plat_chart()
+    
+    # for l in levels:
+    #     if search in l.name.lower():
+    #         results.append(l)
+    results=search_in_levels(plat_sheets.get_plat_chart(),search,sa.fuzzy)
     
     count=results.__len__()
     entries_per_page = 5
@@ -210,3 +230,12 @@ def select_page(results:list[T],count:int,entries_per_page:int,page:int):
     if count>entries_per_page:
         results=results[(page-1)*entries_per_page:min(page*entries_per_page,count)]
     return results,maxpages,page
+
+
+L = TypeVar("L", bound=plat_sheets.LevelEntry)
+def search_in_levels(levels:list[L],search:str,fuzzy:bool=False):
+    result:list[L]=[]
+    for level in levels:
+        if level.matchesName(search,fuzzy):
+            result.append(level)
+    return result
