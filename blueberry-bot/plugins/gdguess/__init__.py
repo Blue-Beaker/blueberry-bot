@@ -134,7 +134,7 @@ async def guess_start(matcher:type[Matcher],event:Event,args: Message = CommandA
         
         session_manager.sessions[id]=GuessSession.start(id,level,crop=(left, top, right, bottom),level_pool=levels)
         
-        msg.append("以下截图是来自哪个关卡呢? 输入 -guess 你的答案 以回答")
+        msg.append("以下截图是来自哪个关卡呢? 输入 -gdguess 你的答案 以回答")
         await matcher.send(DCMessage().append("\n".join(msg)).append(MessageSegment.attachment("guess.png",content=loadFile(cropped_path))))
     
     
