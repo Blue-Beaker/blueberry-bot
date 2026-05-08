@@ -146,9 +146,20 @@ async def _(args: Message = CommandArg()):
             line.append(f"(T{l.tier})")
             if l.tags:
                 line.append(f"\nTags: {','.join(l.tags)}")
-            if l.tpl or l.pemon:
-                line.append(f"\nTPL: {l.tpl}, Pemonlist: {l.pemon}")
-            line.append(f"")
+            rankline=[]
+            
+            if l.tpl and l.weight and l.tpl==l.weight:
+                rankline.append(f"TPL/Weight: {l.tpl}")
+            else:
+                if l.tpl:
+                    rankline.append(f"TPL: {l.tpl}")
+                if l.weight:
+                    rankline.append(f"Weight: {l.weight}")
+            if l.pemon:
+                rankline.append(f"Pemonlist: {l.pemon}")
+                
+            if rankline:
+                line.append("\n"+",".join(rankline))
             
             msg.append("".join(line))
         

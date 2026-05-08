@@ -28,6 +28,8 @@ class LevelEntry:
             if matched:
                 name=matched.group(1)
             return search.lower().strip() == name.lower().strip()
+    def nameKey(self):
+        return self.name.lower().strip()
 
 class PlatRankEntry(LevelEntry):
     def __init__(self,section:str,name:str,weight:str|None=None) -> None:
@@ -151,6 +153,7 @@ class PlatChartEntry(LevelEntry):
         self.tags=tags
         self.enj=enj
         self.tpl:str|None=None
+        self.weight:str|None=None
         self.pemon:str|None=None
     def __repr__(self) -> str:
         return "Level:"+", ".join([f"{k}:{v}"for k,v in self.__dict__.items()])
@@ -172,6 +175,9 @@ def get_plat_chart():
     
     results:list[PlatChartEntry]=[]
     id_to_levels:dict[int,PlatChartEntry]={}
+    name_to_levels:dict[str,PlatChartEntry]={}
+    duplicated_names:set[str]=set()
+    
     values=DIFFICULTY_CHART.get()
     if values:
         tier=""
@@ -186,6 +192,15 @@ def get_plat_chart():
             results.append(entry)
             if entry.id>0:
                 id_to_levels[entry.id]=entry
+                
+            key=entry.nameKey()
+            
+            if key not in duplicated_names:
+                if key not in name_to_levels.keys():
+                    name_to_levels[key]=entry
+                else:
+                    duplicated_names.add(key)
+                    name_to_levels.pop(key,None)
     
     upi=UPI_SHEET.get()
     if upi:
@@ -202,7 +217,14 @@ def get_plat_chart():
                 entry.pemon=pemon if pemon!="-" else None
             except:
                 pass
-                
+            
+    weights=plat_rank_weights()
+    for level in weights:
+        entry = name_to_levels.get(level.nameKey(),None)
+        if not entry:
+            entry=PlatChartEntry(-1,level.name,"")
+        entry.weight=level.weight
+
     return results
 
 def safeInt(i:str):
