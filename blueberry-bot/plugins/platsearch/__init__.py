@@ -147,7 +147,8 @@ async def _(args: Message = CommandArg()):
             if l.tags:
                 line.append(f"\nTags: {','.join(l.tags)}")
             rankline=[]
-            
+            if l.enj and l.enj!="/":
+                rankline.append(f"Enj: {l.enj}")
             if l.tpl and l.weight and l.tpl==l.weight:
                 rankline.append(f"TPL/Weight: {l.tpl}")
             else:
