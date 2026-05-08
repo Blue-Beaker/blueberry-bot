@@ -6,3 +6,4 @@ guess_sessions.json
 /*.tar
 config.json
 secrets/**
+gdguess_data/**

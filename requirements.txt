@@ -9,3 +9,8 @@ cachetools==7.1.1
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
+
+numpy==2.4.2
+# opencv-python==4.13.0.92
+opencv-python-headless==4.13.0.92
+requests==2.32.5

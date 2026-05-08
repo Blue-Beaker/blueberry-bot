@@ -11,4 +11,4 @@ prefix=plugin_config.mc_message_prefix
 async def handle_api_call(bot: Bot, api: str, data: dict[str, Any]):
     if(api in ["send_msg","send_private_msg"]):
         data["message"]=prefix+data["message"]
-    logger.info(f"{api},{data}")
+    # logger.info(f"{api},{data}")
