@@ -32,6 +32,24 @@ async def _(event:Event,args: Message = CommandArg()):
     await guess_start(gdguess_start,event,args,test=False)
     await gdguess_start.finish()
     
+gdguess_hard = on_command("gdguess_hard")
+@gdguess_hard.handle()
+async def _(event:Event,args: Message = CommandArg()):
+    await guess_start(gdguess_hard,event,args,crop_size=(128,128),test=False)
+    await gdguess_hard.finish()
+    
+gdguess_insane = on_command("gdguess_insane")
+@gdguess_insane.handle()
+async def _(event:Event,args: Message = CommandArg()):
+    await guess_start(gdguess_insane,event,args,crop_size=(64,64),test=False)
+    await gdguess_insane.finish()
+    
+gdguess_extreme = on_command("gdguess_extreme")
+@gdguess_extreme.handle()
+async def _(event:Event,args: Message = CommandArg()):
+    await guess_start(gdguess_extreme,event,args,crop_size=(32,32),test=False)
+    await gdguess_extreme.finish()
+    
 gdguess_test = on_command("gdguess_test",permission=SUPERUSER)
 @gdguess_test.handle()
 async def _(event:Event,args: Message = CommandArg()):
