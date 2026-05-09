@@ -1,10 +1,9 @@
-.env.prod
 **/__pycache__
 /blueberry-bot/plugins/test
 guess_sessions.json
-.env.test
 /*.tar
 config.json
 secrets/**
 gdguess_data/**
 platsearch_cache/**
+.env.*
