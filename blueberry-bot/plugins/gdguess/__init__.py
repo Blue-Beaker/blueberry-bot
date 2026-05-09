@@ -19,6 +19,7 @@ from .guess_utils import random_crop,isnonsense_cv2
 from .config import Config
 from . import gd_api,thumbnail_api
 from .guess_session import GuessSession,SessionManager
+from .pemonlist import getPemonlistLevels
 
 plugin_config = get_plugin_config(Config)
 
@@ -57,7 +58,7 @@ SAVE_MANAGER=SaveManager()
 gdguess_test = on_command("gdguess_test",permission=SUPERUSER)
 @gdguess_test.handle()
 async def _(bot:Bot,event:Event,args: Message = CommandArg()):
-    await guess_start(bot,gdguess_test,event,args.extract_plain_text(),test=True)
+    await guess_start(bot,gdguess_test,event,GuessArgs(args.extract_plain_text()),test=True)
     await gdguess_test.finish()
 
 class GuessAction(Enum):
@@ -66,28 +67,77 @@ class GuessAction(Enum):
     START_HARD="hard"
     START_INSANE="insane"
     START_EXTREME="extreme"
+class GuessSource(Enum):
+    LAST="last"
+    LIST="list"
+    PEMONLIST="pemonlist"
     
 class GuessArgs:
     action:GuessAction
+    source:GuessSource
     def __init__(self,text:str) -> None:
         self.action=GuessAction.GUESS
-        
+        self.source=GuessSource.LIST
         args=text.split(" ")
         while args and args[0].startswith("-"):
             arg=args[0]
             args.pop(0)
+            
             for i in GuessAction:
                 if arg.startswith("-"+i.value):
                     self.action=i
                     break
+                
+            for i in GuessSource:
+                if arg.startswith("-"+i.value):
+                    self.source=i
+                    break
             
         self.text=" ".join(args)
+        
+        if self.source==GuessSource.LIST and self.text.strip()=="":
+            self.source=GuessSource.LAST
+        
+def get_levels_from_args(args:GuessArgs,session:Optional[GuessSession]):
+    levels:list[int]=[]
+    if args.source==GuessSource.PEMONLIST:
+        pemonlist_levels=getPemonlistLevels()
+        if not pemonlist_levels:
+            return None,"无法获取Pemonlist的关卡数据."
+        levels.extend([l.level_id for l in pemonlist_levels])
+        return levels,"关卡池已设置为Pemonlist的关卡!"
+    elif args.source==GuessSource.LAST and session:
+        levels.extend(session.level_pool)
+        return levels,"继续使用上次的关卡池进行游戏!"
+    else:
+        args_text=[i.strip() for i in args.text.split(",")]
+        if not args_text or args_text==[""]:
+            return None,"请输入至少一个List ID! 多个ID请用,分隔"
+        # Get levels from the provided lists
+        for i in args_text:
+            if not i:
+                continue
+            lists=gd_api.getList(i)
+            if lists.__len__()==0:
+                return None,f"关键词 {i} 没有查找到任何List."
+            if lists.__len__()>1:
+                lines=[f"关键词 {i} 查找到多个List. 请输入List ID选择具体的List."]
+                for l in lists:
+                    lines.append(f"{l.id} = {l.name} by {l.creator}")
+                return None,"\n".join(lines)
+            
+            levels.extend(lists[0].levels)
+        if levels.__len__()==0:
+            return None,"在你提供的List中没有找到任何关卡."
+        return levels,"关卡池已设置为你提供的List中的关卡!"
+    return levels,None
 
-async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,text:str,crop_size:tuple[int,int]=(256,256),test:bool=False):
+async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,crop_size:tuple[int,int]=(256,256),test:bool=False):
     # Only allow in Certain Adapters
     if not isSupportedAdapter(bot):
         return
-    args_text=[i.strip() for i in text.split(",")]
+    # text=args.text
+    # args_text=[i.strip() for i in text.split(",")]
     
     id=getid(event)
     session=session_manager.sessions.get(id)
@@ -96,32 +146,14 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,text:str,crop_si
         
         
     lines=[]
-    levels:list[int]=[]
     
-    empty_search=not args_text or args_text==[""]
+    levels,msg=get_levels_from_args(args,session)
     
-    if empty_search and session and session.completed:
-        levels.extend(session.level_pool)
-        lines.append("继续使用上次的关卡池进行游戏!")
-    elif empty_search:
-        await matcher.send("请输入至少一个List ID! 多个ID请用,分隔")
+    if msg:
+        lines.append(msg)
+    if not levels:
+        await matcher.send("\n".join(lines))
         return
-    else:
-        # Get levels from the provided lists
-        for i in args_text:
-            lists=gd_api.getList(i)
-            if lists.__len__()==0:
-                lines.append(f"关键词 {i} 没有查找到任何List.")
-                await matcher.send("\n".join(lines))
-                return
-            if lists.__len__()>1:
-                lines.append(f"关键词 {i} 查找到多个List. 请输入List ID选择具体的List.")
-                for l in lists:
-                    lines.append(f"{l.id} = {l.name} by {l.creator}")
-                await matcher.send("\n".join(lines))
-                return
-            
-            levels.extend(lists[0].levels)
         
     os.makedirs(IMAGES_PATH,exist_ok=True)
     # Choose a random level
@@ -180,7 +212,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
             GuessAction.START_HARD:(128,128),
             GuessAction.START_INSANE:(64,64),
             GuessAction.START_EXTREME:(32,32)}
-        await guess_start(bot,gdguess,event,args_text,crop_size=sizes.get(guess_args.action,(256,256)),test=False)
+        await guess_start(bot,gdguess,event,guess_args,crop_size=sizes.get(guess_args.action,(256,256)),test=False)
         await gdguess.finish()
         return
     
