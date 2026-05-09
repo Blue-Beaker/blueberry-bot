@@ -230,10 +230,11 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         # await gdguess.send(DCMessage().append(msg).append(DCMessageSegment.attachment("answer.png",content=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop))))
         removeImages(id)
     else:
-        if isinstance(bot,OBBot):
-            if random.randint(0,5)==0:
-                await gdguess.send(f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!")
-        else:
+        if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
+            await reaction_emoji(bot,event.message_id,424) # Button emoji
+        if random.randint(0,5)==0:
+            await sendMessageAndImage(bot,gdguess,f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!",loadFile(IMAGES_PATH/f"{id}.png"))
+        elif not isinstance(bot,OBBot):
             await gdguess.send(f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!")
         
     SAVE_MANAGER.autosave()
@@ -254,6 +255,14 @@ async def _(bot:Bot,event:Event):
     removeImages(id)
     SAVE_MANAGER.autosave()
     await gdguess_giveup.finish()
+    
+async def reaction_emoji(bot:OBBot,msg:int,emoji:int):
+    data={
+    "message_id": msg,
+    "emoji_id": str(emoji),
+    "set": True
+    }
+    await bot.call_api("set_msg_emoji_like",**data)
 
 def roll_until_level(levels:list[int]):
     levels2=levels.copy()
