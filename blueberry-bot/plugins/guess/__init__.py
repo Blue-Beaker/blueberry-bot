@@ -7,7 +7,7 @@ from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
 
 from nonebot.adapters.minecraft import BaseChatEvent as MCBaseChatEvent
-from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent
+from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent,MessageSegment as OBMessageSegment
 from nonebot.adapters.discord import MessageEvent as DCMessageEvent, Bot as DCBot, MessageSegment as DCMessageSegment, Message as DCMessage
 
 from . import guess_data
@@ -73,7 +73,11 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         elif isinstance(event,MCBaseChatEvent):
             await handler_msg.send(f"{feedBackMessage}".replace("{username}",event.player.nickname))
         elif isinstance(event,OBGroupMessageEvent):
-            await handler_msg.send(f"{feedBackMessage}".replace("{username}",f"[CQ:at,qq={event.user_id}]"))
+            split=feedBackMessage.split("{username}")
+            msgseg=OBMessageSegment.text(split[0])
+            for segment in split[1:]:
+                msgseg=msgseg+OBMessageSegment.at(event.user_id)+OBMessageSegment.text(segment)
+            await handler_msg.send(msgseg)
         else:
             await handler_msg.send(feedBackMessage.replace("{username}",""))
         
