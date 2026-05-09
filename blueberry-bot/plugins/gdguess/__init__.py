@@ -24,6 +24,7 @@ plugin_config = get_plugin_config(Config)
 
 DATA_PATH=Path()/"gdguess_data"
 SAVE_PATH=DATA_PATH/"sessions.json"
+IMAGES_PATH=DATA_PATH/"images"
 
 session_manager:SessionManager=SessionManager()
 
@@ -103,15 +104,13 @@ async def guess_start(matcher:type[Matcher],event:Event,args: Message = CommandA
             
             levels.extend(lists[0].levels)
         
-    
-    image_path=DATA_PATH/"images"
-    os.makedirs(image_path,exist_ok=True)
+    os.makedirs(IMAGES_PATH,exist_ok=True)
     # Choose a random level
     levelID,img=roll_until_level(levels)
     # Chosen level
     level=gd_api.getLevel(levelID)[0]
     
-    cachepath=image_path/f"{id}.webp"
+    cachepath=IMAGES_PATH/f"{id}.webp"
     with open(cachepath,"wb") as f:
         f.write(img)
     
@@ -120,7 +119,7 @@ async def guess_start(matcher:type[Matcher],event:Event,args: Message = CommandA
         await matcher.send(DCMessage().append("\n".join(msg)).append(MessageSegment.attachment("guess.png",content=img)))
     else:
         crop_width, crop_height = crop_size
-        cropped_path = image_path/f"{id}.png"
+        cropped_path = IMAGES_PATH/f"{id}.png"
         
         image = cv2.imread(cachepath)
         
@@ -152,6 +151,7 @@ async def _(event:Event,args: Message = CommandArg()):
         session.completed=True
         msg=f"恭喜你猜对了! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
         await gdguess.send(DCMessage().append(msg).append(MessageSegment.attachment("answer.png",content=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop))))
+        removeImages(id)
     else:
         await gdguess.send(f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!")
     await gdguess.finish()
@@ -167,7 +167,9 @@ async def _(event:Event):
     session.completed=True
     
     msg=f"游戏结束! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
+    
     await gdguess.send(DCMessage().append(msg).append(MessageSegment.attachment("answer.png",content=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop))))
+    removeImages(id)
     await gdguess_giveup.finish()
 
 def roll_until_level(levels:list[int]):
@@ -192,3 +194,9 @@ def getid(event: Event) -> str:
 def loadFile(file:str|Path) -> bytes:
     with open(file,'rb') as f:
         return f.read()
+    
+def removeImages(id:str):
+    for ext in ["webp","png"]:
+        path=IMAGES_PATH/f"{id}.{ext}"
+        if path.exists():
+            path.unlink()
