@@ -240,7 +240,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     SAVE_MANAGER.autosave()
     await gdguess.finish()
     
-gdguess_giveup = on_command("gdguess_giveup")
+gdguess_giveup = on_command("gdguess_giveup",aliases=set("gdguess-giveup"))
 @gdguess_giveup.handle()
 async def _(bot:Bot,event:Event):
     id=getid(event)
