@@ -9,6 +9,8 @@ prefix=plugin_config.mc_message_prefix
 
 @MCBot.on_calling_api
 async def handle_api_call(bot: Bot, api: str, data: dict[str, Any]):
+    if not isinstance(bot, MCBot):
+        return
     if(api in ["send_msg","send_private_msg"]):
         data["message"]=prefix+data["message"]
     # logger.info(f"{api},{data}")
