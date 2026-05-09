@@ -1,3 +1,4 @@
+from enum import Enum
 import os
 import random
 import re
@@ -42,42 +43,41 @@ async def load_sessions():
 async def save_sessions():
     session_manager.save(SAVE_PATH.as_posix())
     logger.info(f"Saved {len(session_manager.sessions)} sessions.")
-
-gdguess_start = on_command("gdguess_start")
-@gdguess_start.handle()
-async def _(bot:Bot,event:Event,args: Message = CommandArg()):
-    await guess_start(bot,gdguess_start,event,args,test=False)
-    await gdguess_start.finish()
-    
-gdguess_hard = on_command("gdguess_hard")
-@gdguess_hard.handle()
-async def _(bot:Bot,event:Event,args: Message = CommandArg()):
-    await guess_start(bot,gdguess_hard,event,args,crop_size=(128,128),test=False)
-    await gdguess_hard.finish()
-    
-gdguess_insane = on_command("gdguess_insane")
-@gdguess_insane.handle()
-async def _(bot:Bot,event:Event,args: Message = CommandArg()):
-    await guess_start(bot,gdguess_insane,event,args,crop_size=(64,64),test=False)
-    await gdguess_insane.finish()
-    
-gdguess_extreme = on_command("gdguess_extreme")
-@gdguess_extreme.handle()
-async def _(bot:Bot,event:Event,args: Message = CommandArg()):
-    await guess_start(bot,gdguess_extreme,event,args,crop_size=(32,32),test=False)
-    await gdguess_extreme.finish()
     
 gdguess_test = on_command("gdguess_test",permission=SUPERUSER)
 @gdguess_test.handle()
 async def _(bot:Bot,event:Event,args: Message = CommandArg()):
-    await guess_start(bot,gdguess_test,event,args,test=True)
+    await guess_start(bot,gdguess_test,event,args.extract_plain_text(),test=True)
     await gdguess_test.finish()
 
-async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args: Message = CommandArg(),crop_size:tuple[int,int]=(256,256),test:bool=False):
+class GuessAction(Enum):
+    GUESS="guess"
+    START="start"
+    START_HARD="hard"
+    START_INSANE="insane"
+    START_EXTREME="extreme"
+    
+class GuessArgs:
+    action:GuessAction
+    def __init__(self,text:str) -> None:
+        self.action=GuessAction.GUESS
+        
+        args=text.split(" ")
+        while args and args[0].startswith("-"):
+            arg=args[0]
+            args.pop(0)
+            for i in GuessAction:
+                if arg.startswith("-"+i.value):
+                    self.action=i
+                    break
+            
+        self.text=" ".join(args)
+
+async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,text:str,crop_size:tuple[int,int]=(256,256),test:bool=False):
     # Only allow in Certain Adapters
     if not isSupportedAdapter(bot):
         return
-    args_text=[i.strip() for i in args.extract_plain_text().split(",")]
+    args_text=[i.strip() for i in text.split(",")]
     
     id=getid(event)
     session=session_manager.sessions.get(id)
@@ -145,7 +145,6 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args: Message = 
         await sendMessageAndImage(bot,matcher,msg,loadFile(cropped_path))
     
     
-
 gdguess = on_command("gdguess")
 @gdguess.handle()
 async def _(bot:Bot,event:Event,args: Message = CommandArg()):
@@ -153,10 +152,25 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     if not isSupportedAdapter(bot):
         return
     
+    args_text=args.extract_plain_text().strip()
+    
+    guess_args=GuessArgs(args_text)
+    args_text=guess_args.text
+    
+    if guess_args.action != GuessAction.GUESS:
+        sizes={
+            GuessAction.START:(256,256),
+            GuessAction.START_HARD:(128,128),
+            GuessAction.START_INSANE:(64,64),
+            GuessAction.START_EXTREME:(32,32)}
+        await guess_start(bot,gdguess,event,args_text,crop_size=sizes.get(guess_args.action,(256,256)),test=False)
+        await gdguess.finish()
+        return
+    
     id=getid(event)
     session=session_manager.sessions.get(id)
     if not session or session.completed:
-        await gdguess.send("你还没有正在进行的猜图游戏! 输入 -gdguess_start [List ID] 来开始一个新的游戏.")
+        await gdguess.send("你还没有正在进行的猜图游戏! 输入 -gdguess -start [List ID] 来开始一个新的游戏.\n-start换成 -hard/-insane/-extreme 可以获得更小的截图, 但难度也会更大哦!")
         return
     guess=args.extract_plain_text().strip()
     if session.guess(guess):
