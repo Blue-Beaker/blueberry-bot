@@ -26,7 +26,7 @@ PLAT_SHEET_CACHE=BaseCache(plat_sheets.TheListsEntry,"platsearch_cache/plat_shee
                            plugin_config.sheets_update_interval).set_update_function(plat_sheets.get_3_lists)
 
 @driver.on_startup
-def load_cache():
+async def load_cache():
     os.makedirs("platsearch_cache",exist_ok=True)
     PLAT_CHART_CACHE.get()
     logger.info(f"Loaded {PLAT_CHART_CACHE.entries.__len__()} entries into Plat Chart cache, expiring at {time.ctime(PLAT_CHART_CACHE.expiration_time)}")
