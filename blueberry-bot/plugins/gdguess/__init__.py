@@ -208,11 +208,11 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     
     if guess_args.action != GuessAction.GUESS:
         sizes={
-            GuessAction.START:(256,256),
-            GuessAction.START_HARD:(128,128),
-            GuessAction.START_INSANE:(64,64),
-            GuessAction.START_EXTREME:(32,32)}
-        await guess_start(bot,gdguess,event,guess_args,crop_size=sizes.get(guess_args.action,(256,256)),test=False)
+            GuessAction.START:(512,512),
+            GuessAction.START_HARD:(256,256),
+            GuessAction.START_INSANE:(128,128),
+            GuessAction.START_EXTREME:(64,64)}
+        await guess_start(bot,gdguess,event,guess_args,crop_size=sizes.get(guess_args.action,(512,512)),test=False)
         await gdguess.finish()
         return
     
