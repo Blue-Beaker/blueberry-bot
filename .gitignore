@@ -7,3 +7,4 @@ guess_sessions.json
 config.json
 secrets/**
 gdguess_data/**
+platsearch_cache/**

@@ -30,12 +30,20 @@ class LevelEntry:
             return search.lower().strip() == name.lower().strip()
     def nameKey(self):
         return self.name.lower().strip()
+    def to_dict(self) -> dict:
+        return self.__dict__
+    @classmethod
+    def from_dict(cls,data:dict):
+        inst=cls()
+        inst.__dict__.update(data)
+        return inst
 
-class PlatRankEntry(LevelEntry):
-    def __init__(self,section:str,name:str,weight:str|None=None) -> None:
+class PlatWeight(LevelEntry):
+    def update(self,section:str,name:str,weight:str|None=None):
         self.section=section
         self.name=name
         self.weight=weight
+        return self
     def __repr__(self) -> str:
         return "Level:"+", ".join([f"{k}:{v}"for k,v in self.__dict__.items()])
     def __str__(self):
@@ -43,7 +51,7 @@ class PlatRankEntry(LevelEntry):
 
 @cached(cache=TTLCache(maxsize=20,ttl=30))
 def plat_rank_weights():
-    results:list[PlatRankEntry]=[]
+    results:list[PlatWeight]=[]
     values=PLAT_RANK_WEIGHTS.get()
     if values:
         current_section=""
@@ -57,12 +65,12 @@ def plat_rank_weights():
             misc_place=[i.strip() for i in line[2].split(",")]
             pemonlist_place=[i.strip() for i in line[3].split(",")]
             
-            results.append(PlatRankEntry(current_section,level,weight))
+            results.append(PlatWeight().update(current_section,level,weight))
             
     return results
 
 class TheListsEntry(LevelEntry):
-    def __init__(self,sheet:str,section:str,name:str,creator:str|None=None,checkpoints:str|None=None,skillsets:list[str]=[],description:str|None=None) -> None:
+    def update(self,sheet:str,section:str,name:str,creator:str|None=None,checkpoints:str|None=None,skillsets:list[str]=[],description:str|None=None):
         self.sheet=sheet
         self.section=section
         self.name=name
@@ -70,6 +78,7 @@ class TheListsEntry(LevelEntry):
         self.checkpoints=checkpoints
         self.skillsets=skillsets
         self.description=description
+        return self
     def __repr__(self) -> str:
         return "Level:"+", ".join([f"{k}:{v}"for k,v in self.__dict__.items()])
     def __str__(self):
@@ -92,7 +101,7 @@ def get_hds():
             checkpoints=line[3]
             skillsets=[i.strip() for i in line[5].split(",")]
             desc=line[6]
-            results.append(TheListsEntry("HDS",current_section,level,creator,checkpoints,skillsets,desc))
+            results.append(TheListsEntry().update("HDS",current_section,level,creator,checkpoints,skillsets,desc))
     return results
             
 @cached(cache=TTLCache(maxsize=20,ttl=30))
@@ -112,7 +121,7 @@ def get_ids():
             checkpoints=line[3]
             skillsets=[i.strip() for i in line[4].split(",")]
             desc=line[5]
-            results.append(TheListsEntry("IDS",current_section,level,creator,checkpoints,skillsets,desc))
+            results.append(TheListsEntry().update("IDS",current_section,level,creator,checkpoints,skillsets,desc))
     return results
             
 @cached(cache=TTLCache(maxsize=20,ttl=30))
@@ -134,7 +143,7 @@ def get_nlw():
             checkpoints=line[2]
             skillsets=[i.strip() for i in line[3].split(",")]
             desc=line[5]
-            results.append(TheListsEntry("NLW",current_section,level,creator,checkpoints,skillsets,desc))
+            results.append(TheListsEntry().update("NLW",current_section,level,creator,checkpoints,skillsets,desc))
     return results
 
 def get_3_lists():
@@ -145,16 +154,24 @@ def get_3_lists():
     return results
 
 class PlatChartEntry(LevelEntry):
-    def __init__(self,id:int,name:str,tier:str="",creator:str="",tags:list[str]=[],enj:str="") -> None:
+    tpl:str|None
+    pemon:str|None
+    weight:str|None
+    weight_type:str|None
+    def __init__(self) -> None:
+        super().__init__()
+        self.tpl=None
+        self.pemon=None
+        self.weight=None
+        self.weight_type=None
+    def update(self,id:int,name:str,tier:str="",creator:str="",tags:list[str]=[],enj:str=""):
         self.name=name
         self.id=id
         self.tier=tier
         self.creator=creator
         self.tags=tags
         self.enj=enj
-        self.tpl:str|None=None
-        self.weight:str|None=None
-        self.pemon:str|None=None
+        return self
     def __repr__(self) -> str:
         return "Level:"+", ".join([f"{k}:{v}"for k,v in self.__dict__.items()])
     def __str__(self):
@@ -167,7 +184,7 @@ class PlatChartEntry(LevelEntry):
         creator=line[3]
         tags=[i.strip() for i in line[4].split(",") if i != "---"]
         enj=line[5]
-        return PlatChartEntry(id,name,tier,creator,tags,enj)
+        return PlatChartEntry().update(id,name,tier,creator,tags,enj)
     
 SPECIAL_LEVELID_PATTERN=re.compile('See "(.*)"')
 @cached(cache=TTLCache(maxsize=20,ttl=30))
@@ -211,7 +228,7 @@ def get_plat_chart():
                 pemon=line[4]
                 entry=id_to_levels.get(id)
                 if not entry:
-                    entry=PlatChartEntry(id,line[1],line[2])
+                    entry=PlatChartEntry().update(id,line[1],line[2])
                     results.append(entry)
                 entry.tpl=tpl if tpl!="-" else None
                 entry.pemon=pemon if pemon!="-" else None
@@ -222,8 +239,9 @@ def get_plat_chart():
     for level in weights:
         entry = name_to_levels.get(level.nameKey(),None)
         if not entry:
-            entry=PlatChartEntry(-1,level.name,"")
+            entry=PlatChartEntry().update(-1,level.name,"")
         entry.weight=level.weight
+        entry.weight_type=level.section
 
     return results
 

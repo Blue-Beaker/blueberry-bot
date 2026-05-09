@@ -1,5 +1,7 @@
+import os
 import random
 import re
+import time
 import traceback
 from typing import Any, TypeVar
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
@@ -12,15 +14,24 @@ from nonebot import get_driver
 from .config import Config
 
 from . import plat_sheets
-
-# driver=get_driver()
-
-# @driver.on_startup
-# def test():
-#     logger.info(plat_sheets.get_3_sheets().__str__())
-    
+from .data_cache import BaseCache
 
 plugin_config = get_plugin_config(Config)
+
+driver=get_driver()
+
+PLAT_CHART_CACHE=BaseCache(plat_sheets.PlatChartEntry,"platsearch_cache/plat_chart_cache.json",
+                           plugin_config.sheets_update_interval).set_update_function(plat_sheets.get_plat_chart)
+PLAT_SHEET_CACHE=BaseCache(plat_sheets.TheListsEntry,"platsearch_cache/plat_sheet_cache.json",
+                           plugin_config.sheets_update_interval).set_update_function(plat_sheets.get_3_lists)
+
+@driver.on_startup
+def load_cache():
+    os.makedirs("platsearch_cache",exist_ok=True)
+    PLAT_CHART_CACHE.get()
+    logger.info(f"Loaded {PLAT_CHART_CACHE.entries.__len__()} entries into Plat Chart cache, expiring at {time.ctime(PLAT_CHART_CACHE.expiration_time)}")
+    PLAT_SHEET_CACHE.get()
+    logger.info(f"Loaded {PLAT_SHEET_CACHE.entries.__len__()} entries into Plat Sheet cache, expiring at {time.ctime(PLAT_SHEET_CACHE.expiration_time)}")
 
 class SearchArgs:
     def __init__(self,text:str) -> None:
@@ -57,7 +68,7 @@ async def _(args: Message = CommandArg()):
     #     if search in level.name.lower():
     #         results.append(level)
     
-    results=search_in_levels(plat_sheets.plat_rank_weights(),search,sa.fuzzy)
+    results=search_in_levels(PLAT_CHART_CACHE.get(),search,sa.fuzzy)
     
     count=results.__len__()
     entries_per_page = 5
@@ -69,7 +80,7 @@ async def _(args: Message = CommandArg()):
     else:
         msg.append(f"{count} on Plat Rank (Page {page}/{maxpages}):")
         for l in results:
-            msg.append(f"{l.name} ({l.section}) Weight:{l.weight}")
+            msg.append(f"{l.name} ({l.weight_type}) Weight:{l.weight}")
     await platweight.send("\n".join(msg))
     
 platsheet = on_command("platsheet")
@@ -86,7 +97,7 @@ async def _(args: Message = CommandArg()):
         msg.append(f"Exact match, use -f [levelname] for fuzzy search")
     # results=level_in_three_sheets(search)
     
-    results=search_in_levels(plat_sheets.get_3_lists(),search,sa.fuzzy)
+    results=search_in_levels(PLAT_SHEET_CACHE.get(),search,sa.fuzzy)
     
     
     count=results.__len__()
@@ -128,7 +139,7 @@ async def _(args: Message = CommandArg()):
     # for l in levels:
     #     if search in l.name.lower():
     #         results.append(l)
-    results=search_in_levels(plat_sheets.get_plat_chart(),search,sa.fuzzy)
+    results=search_in_levels(PLAT_CHART_CACHE.entries,search,sa.fuzzy)
     
     count=results.__len__()
     entries_per_page = 5
@@ -177,7 +188,7 @@ async def _(args: Message = CommandArg()):
     msg=[]
     # If no args present, list all skillsets
     if not sa.text:
-        the_lists=plat_sheets.get_3_lists()
+        the_lists=PLAT_SHEET_CACHE.get()
         skills=[]
         for l in the_lists:
             for s in l.skillsets:
@@ -217,7 +228,7 @@ skill_groups=[["dash orbs","wavedash"]]
 
 def skill_in_three_sheets(search:str):
     result:list[plat_sheets.TheListsEntry]=[]
-    the_lists=plat_sheets.get_3_lists()
+    the_lists=PLAT_SHEET_CACHE.get()
     split:list[str]=[t.strip().lower() for t in search.split(",")]
     
     for level in the_lists:
