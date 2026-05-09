@@ -183,7 +183,7 @@ class GuessManager:
         
         while len(self.session.revealed_info)<self.starting_info and len(self.session.unrevealed_entities())>0:
             self.session.reveal_info()
-        return "你能根据以下信息猜出这是哪张图吗? 输入&guess 你的答案 以回答\n"+self.session.get_final_message()
+        return "你能根据以下信息猜出这是哪张图吗? 输入-guess 你的答案 以回答\n"+self.session.get_final_message()
     
     def cancel(self)->str:
         if(not self.session):
@@ -194,7 +194,7 @@ class GuessManager:
     
     def do_guess(self,msg:str) -> str:
         if(not self.session):
-            return "当前没有正在进行的guess 请&guess start开始猜图"
+            return "当前没有正在进行的guess 请-guess start开始猜图"
         result=self.session.do_guess(msg)
         if(self.session.finished):
             self.session=None
