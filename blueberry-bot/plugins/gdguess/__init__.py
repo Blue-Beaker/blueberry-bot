@@ -209,7 +209,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     
 gdguess_giveup = on_command("gdguess_giveup")
 @gdguess_giveup.handle()
-async def _(event:Event):
+async def _(bot:Bot,event:Event):
     id=getid(event)
     session=session_manager.sessions.get(id)
     if not session or session.completed:
@@ -218,7 +218,7 @@ async def _(event:Event):
     session.completed=True
     
     msg=f"游戏结束! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
-    await gdguess.send(DCMessage().append(msg).append(DCMessageSegment.attachment("answer.png",content=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop))))
+    await sendMessageAndImage(bot,gdguess_giveup,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop),"answer.png")
     removeImages(id)
     SAVE_MANAGER.autosave()
     await gdguess_giveup.finish()
