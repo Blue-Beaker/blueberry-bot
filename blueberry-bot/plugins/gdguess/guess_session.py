@@ -17,6 +17,8 @@ class GuessSession:
     
     def __init__(self) -> None:
         self.level_pool=[]
+        self.completed=False
+        self.guesses=0
         
     @classmethod
     def start(cls,session_id:str,level:Level,crop:tuple[int,int,int,int],level_pool:list[int]=[]):

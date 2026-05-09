@@ -1,24 +1,21 @@
 from enum import Enum
 import os
 import random
-import re
-import traceback
-from typing import Any, TypeVar
+import time
+from typing import Optional
 import cv2
-from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
-from nonebot.rule import is_type
+from nonebot import on_command,logger,get_plugin_config
 from nonebot.adapters import Message,Event,Bot
 from nonebot.adapters.discord import Message as DCMessage,Bot as DCBot,MessageSegment as DCMessageSegment,GuildMessageCreateEvent
 from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGroupMessageEvent,MessageSegment as OBMessageSegment
 
 from nonebot.params import CommandArg
-import nonebot.config
 from nonebot import get_driver
 from nonebot.matcher import Matcher
 from nonebot.permission import SUPERUSER
 from pathlib import Path
 
-from .guess_utils import get_variance_cv2,random_crop,isnonsense_cv2
+from .guess_utils import random_crop,isnonsense_cv2
 from .config import Config
 from . import gd_api,thumbnail_api
 from .guess_session import GuessSession,SessionManager
@@ -43,6 +40,19 @@ async def load_sessions():
 async def save_sessions():
     session_manager.save(SAVE_PATH.as_posix())
     logger.info(f"Saved {len(session_manager.sessions)} sessions.")
+
+class SaveManager:
+    next_save_time:int=0
+    def autosave(self):
+        if time.time()>self.next_save_time:
+            self.save()
+            self.next_save_time=int(time.time())+plugin_config.gdguess_save_interval
+    def save(self):
+        session_manager.save(SAVE_PATH.as_posix())
+        logger.info(f"Saved {len(session_manager.sessions)} sessions.")
+        
+SAVE_MANAGER=SaveManager()
+            
     
 gdguess_test = on_command("gdguess_test",permission=SUPERUSER)
 @gdguess_test.handle()
@@ -100,6 +110,10 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,text:str,crop_si
         # Get levels from the provided lists
         for i in args_text:
             lists=gd_api.getList(i)
+            if lists.__len__()==0:
+                lines.append(f"关键词 {i} 没有查找到任何List.")
+                await matcher.send("\n".join(lines))
+                return
             if lists.__len__()>1:
                 lines.append(f"关键词 {i} 查找到多个List. 请输入List ID选择具体的List.")
                 for l in lists:
@@ -143,6 +157,9 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,text:str,crop_si
         lines.append("以下截图是来自哪个关卡呢? 输入 -gdguess 你的答案 以回答")
         msg="\n".join(lines)
         await sendMessageAndImage(bot,matcher,msg,loadFile(cropped_path))
+        
+        SAVE_MANAGER.autosave()
+        await matcher.finish()
     
     
 gdguess = on_command("gdguess")
@@ -184,8 +201,10 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         if isinstance(bot,OBBot):
             if random.randint(0,5)==0:
                 await gdguess.send(f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!")
-            return
-        await gdguess.send(f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!")
+        else:
+            await gdguess.send(f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!")
+        
+    SAVE_MANAGER.autosave()
     await gdguess.finish()
     
 gdguess_giveup = on_command("gdguess_giveup")
@@ -199,9 +218,9 @@ async def _(event:Event):
     session.completed=True
     
     msg=f"游戏结束! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
-    
     await gdguess.send(DCMessage().append(msg).append(DCMessageSegment.attachment("answer.png",content=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop))))
     removeImages(id)
+    SAVE_MANAGER.autosave()
     await gdguess_giveup.finish()
 
 def roll_until_level(levels:list[int]):
@@ -227,6 +246,8 @@ async def sendMessageAndImage(bot:Bot,matcher:type[Matcher],message:str,image:by
 def getid(event: Event) -> str:
     if isinstance(event,GuildMessageCreateEvent):
         return "dc"+str(event.guild_id)
+    if isinstance(event,OBGroupMessageEvent):
+        return "onebot"+str(event.group_id)
     else:
         return "u" + str(event.get_user_id())
     

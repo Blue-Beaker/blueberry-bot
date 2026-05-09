@@ -1,4 +1,5 @@
 import time
+import traceback
 from typing import Callable, Generic, Type,TypeVar
 from .plat_sheets import PlatWeight, TheListsEntry,LevelEntry
 import json
@@ -37,14 +38,18 @@ class BaseCache(Generic[_T]):
         
     def update(self):
         if hasattr(self,"update_function"):
-            result=self.update_function()
-            if result.__len__()>0:
-                self.entries=result
-                self.expiration_time=int(time.time())+self.ttl
-                if self.file_path:
-                    self.save(self.file_path)
-            else:
-                logger.warning("Failed to update cache, got empty data")
+            try:
+                result=self.update_function()
+                if result.__len__()>0:
+                    self.entries=result
+                    self.expiration_time=int(time.time())+self.ttl
+                    if self.file_path:
+                        self.save(self.file_path)
+                else:
+                    logger.warning("Failed to update cache, got empty data")
+            except Exception as e:
+                logger.error(f"Error while updating cache: {e}")
+                logger.debug("Traceback:",traceback.format_exc())
         else:
             logger.warning("No update function set for cache")
             
