@@ -142,7 +142,7 @@ async def _(args: Message = CommandArg()):
     # for l in levels:
     #     if search in l.name.lower():
     #         results.append(l)
-    results=search_in_levels(PLAT_CHART_CACHE.entries,search,sa.fuzzy)
+    results=search_in_levels(PLAT_CHART_CACHE.get(),search,sa.fuzzy)
     
     count=results.__len__()
     entries_per_page = 5
@@ -157,7 +157,8 @@ async def _(args: Message = CommandArg()):
             line:list[str]=[l.name]
             if l.id>=0:
                 line.append(f" ({l.id})")
-            line.append(f"(T{l.tier})")
+            if l.tier:
+                line.append(f"(T{l.tier})")
             if l.tags:
                 line.append(f"\nTags: {','.join(l.tags)}")
             rankline=[]

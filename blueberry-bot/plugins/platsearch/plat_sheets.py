@@ -164,7 +164,7 @@ class PlatChartEntry(LevelEntry):
         self.pemon=None
         self.weight=None
         self.weight_type=None
-    def update(self,id:int,name:str,tier:str="",creator:str="",tags:list[str]=[],enj:str=""):
+    def update(self,id:int,name:str,tier:str|None="",creator:str="",tags:list[str]=[],enj:str=""):
         self.name=name
         self.id=id
         self.tier=tier
@@ -224,14 +224,23 @@ def get_plat_chart():
         for line in upi:
             try:
                 id = int(line[0])
+                name=line[1]
+                tier=line[2]
+                tier=tier if tier!="P" else None
                 tpl=line[3]
+                tpl=tpl if tpl!="-" else None
                 pemon=line[4]
+                pemon=pemon if pemon!="-" else None
                 entry=id_to_levels.get(id)
-                if not entry:
-                    entry=PlatChartEntry().update(id,line[1],line[2])
+                
+                if not entry and (tier or tpl or pemon):
+                    entry=PlatChartEntry().update(id,name,tier)
                     results.append(entry)
-                entry.tpl=tpl if tpl!="-" else None
-                entry.pemon=pemon if pemon!="-" else None
+                    
+                if entry:
+                    entry.tpl=tpl if tpl!="-" else None
+                    entry.pemon=pemon if pemon!="-" else None
+                
             except:
                 pass
             
