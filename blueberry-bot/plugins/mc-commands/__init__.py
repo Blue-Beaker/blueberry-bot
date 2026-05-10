@@ -14,6 +14,13 @@ from .config import Config
 
 plugin_config = get_plugin_config(Config)
 
+
+def get_help(bot,event)->str|None:
+    if isinstance(bot, Bot):
+        return "tp 传送 (只能传送自己)"
+    else:
+        return None
+
 def is_command_segment_number(arg:str):
     for i in arg:
         if i not in "0123456789.-~":

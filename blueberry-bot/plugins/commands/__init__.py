@@ -1,6 +1,6 @@
-from nonebot import on_command,logger,get_plugin_config
+from nonebot import on_command,logger,get_plugin_config,get_loaded_plugins,get_driver
 from nonebot.rule import is_type
-from nonebot.internal.adapter.bot import Bot
+from nonebot.internal.adapter import Bot,Event,Message
 from nonebot.adapters.minecraft.bot import Bot as MCBot
 
 from nonebot.adapters.discord.commands import (
@@ -21,16 +21,26 @@ def get_system_info()->str:
     print(platform)
     return "\n".join(sysinfo)
 
-def get_help(is_mc:bool=False)->str:
+def get_all_help(bot:Bot,event:Event)->str:
+    is_mc=isinstance(bot,MCBot)
     help_lines=[
         f"接受指令前缀: - &{' /' if not is_mc else ''}",
         "help 显示本帮助",
-        "guess <start|giveup> 开始/放弃猜图",
-        "guess <图名> 进行猜图",
         "sysinfo 显示运行此Bot的系统信息"
     ]
-    if(is_mc):
-        help_lines.append("tp 传送 (只能传送自己)")
+        
+    plugins=get_loaded_plugins()
+    for plugin in plugins:
+        if hasattr(plugin.module,"get_help"):
+            help_func=getattr(plugin.module,"get_help")
+            if callable(help_func):
+                try:
+                    lines=help_func(bot,event)
+                    if isinstance(lines,str):
+                        help_lines.append(lines)
+                except Exception as e:
+                    logger.error(f"Error getting help from plugin {plugin.name}: {e}")
+    
     return "\n".join(help_lines)
 
 slash = on_slash_command(
@@ -49,13 +59,13 @@ slash = on_slash_command(
     name="help",
     description="显示帮助")
 @slash.handle()
-async def _():
-    await slash.send(get_help())
+async def _(bot:Bot,event:Event):
+    await slash.send(get_all_help(bot,event))
 
 cmd = on_command("help")
 @cmd.handle()
-async def _(bot:Bot|MCBot):
+async def _(bot:Bot,event:Event):
     if(isinstance(bot,MCBot)):
-        await cmd.send(get_help(True))
+        await cmd.send(get_all_help(bot,event))
     else:
-        await cmd.send(get_help())
+        await cmd.send(get_all_help(bot,event))

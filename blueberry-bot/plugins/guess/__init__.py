@@ -92,6 +92,14 @@ def get_group_id(event:Event):
         return "onebot_"+str(event.group_id)
     else:
         return event.get_session_id()
+    
+def get_help(bot:Bot,event:Event)->str:
+    help_lines=[
+        "guess <start|giveup> 开始/放弃猜图",
+        "guess <图名> 进行猜图"
+    ]
+    return "\n".join(help_lines)
+
 
 # try:
 #     handler_mc.main()
