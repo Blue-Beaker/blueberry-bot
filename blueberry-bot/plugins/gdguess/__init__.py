@@ -55,7 +55,7 @@ class SaveManager:
 SAVE_MANAGER=SaveManager()
             
     
-gdguess_test = on_command("gdguess_test",permission=SUPERUSER)
+gdguess_test = on_command("gdguess-test",permission=SUPERUSER)
 @gdguess_test.handle()
 async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     await guess_start(bot,gdguess_test,event,GuessArgs(args.extract_plain_text()),test=True)
@@ -64,39 +64,54 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
 class GuessAction(Enum):
     GUESS="guess"
     START="start"
-    START_HARD="hard"
-    START_INSANE="insane"
-    START_EXTREME="extreme"
+    GIVEUP="giveup"
+    HELP="help"
 class GuessSource(Enum):
     LAST="last"
     LIST="list"
     PEMONLIST="pemonlist"
+class Difficulty(Enum):
+    EASY=("easy",(512,512))
+    HARD=("hard",(256,256))
+    INSANE=("insane",(128,128))
+    EXTREME=("extreme",(64,64))
+    
     
 class GuessArgs:
     action:GuessAction
     source:GuessSource
+    difficulty:Difficulty
     def __init__(self,text:str) -> None:
         self.action=GuessAction.GUESS
         self.source=GuessSource.LIST
+        self.difficulty=Difficulty.EASY
+        
         args=text.split(" ")
         while args and args[0].startswith("-"):
-            arg=args[0]
+            arg=args[0].removeprefix("-")
             args.pop(0)
-            
-            for i in GuessAction:
-                if arg.startswith("-"+i.value):
-                    self.action=i
-                    break
-                
-            for i in GuessSource:
-                if arg.startswith("-"+i.value):
-                    self.source=i
-                    break
+            self.applyArg(arg)
             
         self.text=" ".join(args)
         
         if self.source==GuessSource.LIST and self.text.strip()=="":
             self.source=GuessSource.LAST
+            
+    def applyArg(self,arg:str):
+            for i in GuessAction:
+                if arg==i.value:
+                    self.action=i
+                    return
+            for i in GuessSource:
+                if arg==i.value:
+                    self.source=i
+                    return
+            for i in Difficulty:
+                if arg==i.value[0]:
+                    self.difficulty=i
+                    self.action=GuessAction.START
+                    return
+            
         
 def get_levels_from_args(args:GuessArgs,session:Optional[GuessSession]):
     levels:list[int]=[]
@@ -142,9 +157,9 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     id=getid(event)
     session=session_manager.sessions.get(id)
     if session and not session.completed:
-        await matcher.send("你已经有一个正在进行的游戏了! 继续猜图吧!")
-        
-        
+        await sendMessageAndImage(bot,gdguess,f"你已经有一个正在进行的游戏了! 继续猜图吧!",loadFile(IMAGES_PATH/f"{session.session_id}.png"))
+        return
+    
     lines=[]
     
     levels,msg=get_levels_from_args(args,session)
@@ -196,23 +211,36 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     
 gdguess = on_command("gdguess")
 @gdguess.handle()
-async def _(bot:Bot,event:Event,args: Message = CommandArg()):
+async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
     # Only allow in Certain Adapters
     if not isSupportedAdapter(bot):
         return
     
-    args_text=args.extract_plain_text().strip()
+    args_text=raw_args.extract_plain_text().strip()
     
-    guess_args=GuessArgs(args_text)
-    args_text=guess_args.text
+    args=GuessArgs(args_text)
+    args_text=args.text
+    if args.action == GuessAction.HELP:
+        help=[
+        "gdguess -start [list IDs] 开始猜GD关卡",
+        "gdguess -help 显示详细帮助",
+        "gdguess -giveup 放弃当前的猜图游戏并显示答案",
+        "gdguess <图名> 进行猜图",
+        "使用list ID指定关卡池, 多个list用,分割",
+        "也可选择-pemonlist参数使用Pemonlist作为关卡池",
+        "将-start替换为-hard,-insane或-extreme可开始更高难度(截取范围更小)的猜图"
+        "不输入list或使用-last参数则沿用上次的关卡池"]
+        await gdguess.send("\n".join(help))
+        await gdguess.finish()
+        return
+        
+    if args.action == GuessAction.GIVEUP:
+        await giveup(bot,gdguess,event)
+        await gdguess.finish()
+        return
     
-    if guess_args.action != GuessAction.GUESS:
-        sizes={
-            GuessAction.START:(512,512),
-            GuessAction.START_HARD:(256,256),
-            GuessAction.START_INSANE:(128,128),
-            GuessAction.START_EXTREME:(64,64)}
-        await guess_start(bot,gdguess,event,guess_args,crop_size=sizes.get(guess_args.action,(512,512)),test=False)
+    if args.action == GuessAction.START:
+        await guess_start(bot,gdguess,event,args,crop_size=args.difficulty.value[1],test=False)
         await gdguess.finish()
         return
     
@@ -220,13 +248,14 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     session=session_manager.sessions.get(id)
     if not session or session.completed:
         await gdguess.send("你还没有正在进行的猜图游戏! 输入 -gdguess -start [List ID] 来开始一个新的游戏.\n-start换成 -hard/-insane/-extreme 可以获得更小的截图, 但难度也会更大哦!")
+        await gdguess.finish()
         return
-    guess=args.extract_plain_text().strip()
+    guess=raw_args.extract_plain_text().strip()
     if session.guess(guess):
         session.completed=True
         msg=f"恭喜你猜对了! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
         
-        await sendMessageAndImage(bot,gdguess,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop))
+        await sendMessageAndImage(bot,gdguess,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{session.session_id}.webp",session.crop))
         # await gdguess.send(DCMessage().append(msg).append(DCMessageSegment.attachment("answer.png",content=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop))))
         removeImages(id)
     else:
@@ -240,21 +269,28 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     SAVE_MANAGER.autosave()
     await gdguess.finish()
     
-gdguess_giveup = on_command("gdguess_giveup",aliases=set("gdguess-giveup"))
-@gdguess_giveup.handle()
-async def _(bot:Bot,event:Event):
+async def giveup(bot:Bot,matcher:type[Matcher],event:Event):
     id=getid(event)
     session=session_manager.sessions.get(id)
     if not session or session.completed:
-        await gdguess_giveup.send("你还没有正在进行的猜图游戏! 输入 -gdguess_start [List ID] 来开始一个新的游戏.")
+        await matcher.send("你还没有正在进行的猜图游戏! 输入 -gdguess_start [List ID] 来开始一个新的游戏.")
         return
     session.completed=True
     
     msg=f"游戏结束! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
-    await sendMessageAndImage(bot,gdguess_giveup,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop),"answer.png")
+    await sendMessageAndImage(bot,matcher,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop),"answer.png")
     removeImages(id)
     SAVE_MANAGER.autosave()
-    await gdguess_giveup.finish()
+    
+    
+def get_help(bot:Bot,event:Event)->str:
+    help_lines=[
+        "gdguess -start [list IDs] 开始猜GD关卡",
+        "gdguess -help 显示详细帮助"
+        "gdguess -giveup 放弃当前的猜图游戏并显示答案",
+        "gdguess <图名> 进行猜图"
+    ]
+    return "\n".join(help_lines)
     
 async def reaction_emoji(bot:OBBot,msg:int,emoji:int):
     data={
