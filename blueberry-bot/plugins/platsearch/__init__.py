@@ -40,16 +40,19 @@ class SearchArgs:
         
         args=text.split(" ")
         
-        while args[0].startswith("-"):
-            arg=args[0]
+        while args and args[0].startswith("-"):
+            arg=args[0].removeprefix("-")
             args.pop(0)
-            if arg.startswith("-f"):
-                self.fuzzy=True
-            elif re.match(r"-[0-9]+",arg):
-                self.page=int(arg.removeprefix("-"))
+            self.applyArg(arg)
             
         self.text=" ".join(args)
         # logger.info(f"Search: Page={self.page}, Fuzzy={self.fuzzy}, Text={self.text}")
+        
+    def applyArg(self,arg:str):
+        if arg=="f":
+            self.fuzzy=True
+        elif re.match(r"[0-9]+",arg):
+            self.page=int(arg)
 
 platweight = on_command("platweight")
 @platweight.handle()
