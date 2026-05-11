@@ -46,6 +46,7 @@ async def save_sessions():
     session_manager.save()
     config_manager.save()
     logger.info(f"Saved {len(session_manager.sessions)} sessions.")
+    SAVE_MANAGER.clean()
 
 class SaveManager:
     next_save_time:int=0
@@ -53,10 +54,20 @@ class SaveManager:
         if time.time()>self.next_save_time:
             self.save()
             self.next_save_time=int(time.time())+plugin_config.gdguess_save_interval
+            
     def save(self):
         session_manager.save()
         config_manager.save()
         logger.info(f"Saved {len(session_manager.sessions)} sessions.")
+        
+    def clean(self):
+        files_to_delete:list[Path]=[]
+        for f in os.listdir(IMAGES_PATH):
+            if f.endswith(".png") or f.endswith(".webp"):
+                if f.removesuffix(".png").removesuffix(".webp") not in session_manager.entries.keys():
+                    files_to_delete.append(IMAGES_PATH/f)
+        for f in files_to_delete:
+            os.remove(f)
         
 SAVE_MANAGER=SaveManager()
             
@@ -387,8 +398,6 @@ def removeImages(id:str):
         path=IMAGES_PATH/f"{id}.{ext}"
         if path.exists():
             path.unlink()
-            
-            
     
 def get_help(bot:Bot,event:Event)->str:
     help_lines=[
