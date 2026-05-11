@@ -25,6 +25,7 @@ plugin_config = get_plugin_config(Config)
 
 DATA_PATH=Path()/"gdguess_data"
 SAVE_PATH=DATA_PATH/"sessions.json"
+CONFIG_PATH=DATA_PATH/"config.json"
 IMAGES_PATH=DATA_PATH/"images"
 
 session_manager:SessionManager=SessionManager()
@@ -199,7 +200,7 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
             if (not isnonsense_cv2(cropped_image)): break
         cv2.imwrite(cropped_path,cropped_image)
         
-        session_manager.sessions[id]=GuessSession.start(id,level,crop=(left, top, right, bottom),level_pool=levels)
+        session_manager.sessions.get(id,GuessSession()).start(id,level,crop=(left, top, right, bottom),level_pool=levels)
         
         lines.append("以下截图是来自哪个关卡呢? 输入 -gdguess 你的答案 以回答")
         msg="\n".join(lines)

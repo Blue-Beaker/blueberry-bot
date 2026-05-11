@@ -20,17 +20,15 @@ class GuessSession:
         self.completed=False
         self.guesses=0
         
-    @classmethod
-    def start(cls,session_id:str,level:Level,crop:tuple[int,int,int,int],level_pool:list[int]=[]):
-        inst=cls()
-        inst.session_id=session_id
-        inst.level_id=level.id
-        inst.level_name=level.name
-        inst.level_creator=level.creator
-        inst.guesses=0
-        inst.crop=crop
-        inst.level_pool=level_pool
-        return inst
+    def start(self,session_id:str,level:Level,crop:tuple[int,int,int,int],level_pool:list[int]=[]):
+        self.session_id=session_id
+        self.level_id=level.id
+        self.level_name=level.name
+        self.level_creator=level.creator
+        self.guesses=0
+        self.crop=crop
+        self.level_pool=level_pool
+        return self
     
     def guess(self,guess:str):
         self.guesses+=1
