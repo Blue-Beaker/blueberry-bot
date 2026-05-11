@@ -81,16 +81,22 @@ class BaseManager:
     
 
 class SessionManager(BaseManager):
-    sessions:dict[str,GuessSession]={}
+    entries:dict[str,GuessSession]={}
     save_path:str|None=None
     def __init__(self,save_path:str|None=None) -> None:
-        self.sessions={}
+        self.entries={}
         self.save_path=save_path
             
+    def get_or_create(self,id:str):
+        entry=self.entries.get(id,None)
+        if not entry:
+            entry=GuessSession()
+            self.entries[id]=entry
+        return entry
     def to_dict(self):
-        return {k:v.to_dict() for k,v in self.sessions.items()}
+        return {k:v.to_dict() for k,v in self.entries.items()}
     def load_dict(self,d:dict[str,dict]):
-        self.sessions={k:GuessSession.from_dict(v) for k,v in d.items()}
+        self.entries={k:GuessSession.from_dict(v) for k,v in d.items()}
 
 class ConfigManager(BaseManager):
     entries:dict[str,ConfigEntry]
@@ -100,7 +106,7 @@ class ConfigManager(BaseManager):
         self.entries={}
         self.save_path=save_path
         
-    def get(self,id:str,default_data:dict[str,Any]={}):
+    def get_or_create(self,id:str,default_data:dict[str,Any]={}):
         cfg=self.entries.get(id,None)
         if not cfg:
             cfg=ConfigEntry.from_dict(default_data)

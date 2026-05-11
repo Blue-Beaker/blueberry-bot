@@ -39,13 +39,13 @@ async def load_sessions():
     os.makedirs(DATA_PATH,exist_ok=True)
     session_manager.load()
     config_manager.load()
-    logger.info(f"Loaded {len(session_manager.sessions)} sessions.")
+    logger.info(f"Loaded {len(session_manager.entries)} sessions.")
     
 @driver.on_shutdown
 async def save_sessions():
     session_manager.save()
     config_manager.save()
-    logger.info(f"Saved {len(session_manager.sessions)} sessions.")
+    logger.info(f"Saved {len(session_manager.entries)} sessions.")
     SAVE_MANAGER.clean()
 
 class SaveManager:
@@ -58,7 +58,7 @@ class SaveManager:
     def save(self):
         session_manager.save()
         config_manager.save()
-        logger.info(f"Saved {len(session_manager.sessions)} sessions.")
+        logger.info(f"Saved {len(session_manager.entries)} sessions.")
         
     def clean(self):
         files_to_delete:list[Path]=[]
@@ -172,7 +172,7 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     # args_text=[i.strip() for i in text.split(",")]
     
     id=getid(event)
-    session=session_manager.sessions.get(id)
+    session=session_manager.entries.get(id)
     
     # When session is active
     if session and not session.completed:
@@ -200,7 +200,7 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     
     # Set cooldown
     if not test:
-        next_guess_time[id]=int(time.time())+config_manager.get(id,get_default_config(id)).cooldown
+        next_guess_time[id]=int(time.time())+config_manager.get_or_create(id,get_default_config(id)).cooldown
     # Actually start the guess
         
     os.makedirs(IMAGES_PATH,exist_ok=True)
@@ -232,9 +232,9 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
             if (not isnonsense_cv2(cropped_image)): break
         cv2.imwrite(cropped_path,cropped_image)
         
-        session=session_manager.sessions.get(id,GuessSession())
+        session=session_manager.get_or_create(id)
         session.start(id,level,crop=(left, top, right, bottom),level_pool=levels)
-        session_manager.sessions[id]=session
+        # session_manager.entries[id]=session
         
         lines.append("以下截图是来自哪个关卡呢? 输入 -gdguess 你的答案 以回答")
         msg="\n".join(lines)
@@ -280,7 +280,7 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
         return
     
     id=getid(event)
-    session=session_manager.sessions.get(id)
+    session=session_manager.entries.get(id)
     if not session or session.completed:
         await gdguess.send("你还没有正在进行的猜图游戏! 输入 -gdguess -start [List ID] 来开始一个新的游戏.\n-start换成 -hard/-insane/-extreme 可以获得更小的截图, 但难度也会更大哦!")
         await gdguess.finish()
@@ -317,7 +317,7 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
             args[spl[0]]=spl[1]
             
     modified=False
-    cfg=config_manager.get(id,get_default_config(id))
+    cfg=config_manager.get_or_create(id,get_default_config(id))
     try:
         new_cd=args.get("cooldown",None)
         if new_cd:
@@ -335,7 +335,7 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
     
 async def giveup(bot:Bot,matcher:type[Matcher],event:Event):
     id=getid(event)
-    session=session_manager.sessions.get(id)
+    session=session_manager.entries.get(id)
     if not session or session.completed:
         await matcher.send("你还没有正在进行的猜图游戏! 输入 -gdguess_start [List ID] 来开始一个新的游戏.")
         return
