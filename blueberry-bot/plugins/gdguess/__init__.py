@@ -283,15 +283,6 @@ async def giveup(bot:Bot,matcher:type[Matcher],event:Event):
     SAVE_MANAGER.autosave()
     
     
-def get_help(bot:Bot,event:Event)->str:
-    help_lines=[
-        "gdguess -start [list IDs] 开始猜GD关卡",
-        "gdguess -help 显示详细帮助"
-        "gdguess -giveup 放弃当前的猜图游戏并显示答案",
-        "gdguess <图名> 进行猜图"
-    ]
-    return "\n".join(help_lines)
-    
 async def reaction_emoji(bot:OBBot,msg:int,emoji:int):
     data={
     "message_id": msg,
@@ -337,3 +328,12 @@ def removeImages(id:str):
         path=IMAGES_PATH/f"{id}.{ext}"
         if path.exists():
             path.unlink()
+            
+            
+    
+def get_help(bot:Bot,event:Event)->str:
+    help_lines=[
+        "gdguess 截图猜GD关卡"
+        "gdguess -help 显示gdguess相关帮助"
+    ]
+    return "\n".join(help_lines)
