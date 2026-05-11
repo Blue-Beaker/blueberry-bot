@@ -1,3 +1,4 @@
+from typing import Type
 from nonebot import get_plugin_config
 from nonebot.plugin import PluginMetadata
 from nonebot.adapters import Bot,Message,Event
@@ -7,6 +8,7 @@ from nonebot.params import CommandArg
 from nonebot import on_command,logger
 from nonebot.permission import SUPERUSER
 from nonebot import require,get_driver
+from nonebot.matcher import Matcher
 import requests
 from pathlib import Path
 import os,json
@@ -64,18 +66,19 @@ async def save():
 
 class SayConfig:
     allowed_sessions:dict[str,bool]={}
+    default_enabled:bool=False
     config_path:str|None=None
     def __init__(self,config_path:str|None=None) -> None:
         self.config_path=config_path
     def set_enabled(self, id:str, enable:bool):
         self.allowed_sessions[id]=enable
     def is_enabled(self, id:str):
-        return self.allowed_sessions.get(id,False)
+        return self.allowed_sessions.get(id) if self.allowed_sessions.keys().__contains__(id) else self.default_enabled
     def save(self):
         if not self.config_path:
             return
         with open(self.config_path,"w") as f:
-            json.dump({"allowed_sessions":self.allowed_sessions},f)
+            json.dump({"allowed_sessions":self.allowed_sessions,"default_enabled":self.default_enabled},f)
     def load(self):
         if not self.config_path or not os.path.exists(self.config_path):
             return
@@ -83,6 +86,7 @@ class SayConfig:
             data=json.load(f)
             if isinstance(data,dict):
                 self.allowed_sessions=data.get("allowed_sessions",self.allowed_sessions)
+                self.default_enabled=data.get("default_enabled",self.default_enabled)
 
 say_config = SayConfig(CONFIG_FILE)
     
@@ -116,11 +120,17 @@ async def _(bot:Bot,event: Event, arg: Message = CommandArg()):
     await say.finish()
 
 @say_on.handle()
-async def _(event:Event):
-    say_config.set_enabled(getid(event),True)
-    await say_on.finish("say功能已为本会话启用！")
+async def _(event:Event, arg: Message = CommandArg()):
+    await set_say_state(True,arg.extract_plain_text().strip()=="-a",event,say_on)
 
 @say_off.handle()
-async def _(event:Event):
-    say_config.set_enabled(getid(event),False)
-    await say_off.finish("say功能已为本会话关闭！")
+async def _(event:Event, arg: Message = CommandArg()):
+    await set_say_state(False,arg.extract_plain_text().strip()=="-a",event,say_off)
+        
+async def set_say_state(enable:bool, isall:bool, event:Event, matcher:Type[Matcher]):
+    if isall:
+        say_config.default_enabled=enable
+        await matcher.finish(f"say功能已默认{'启用' if enable else '关闭'}！")
+    else:
+        say_config.set_enabled(getid(event),enable)
+        await matcher.finish(f"say功能已为本会话{'启用' if enable else '关闭'}！")
