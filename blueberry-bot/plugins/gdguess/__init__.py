@@ -376,7 +376,7 @@ async def sendMessageAndImage(bot:Bot,matcher:type[Matcher],message:str,image:by
         await matcher.send(DCMessage().append(message).append(DCMessageSegment.attachment(image_name,content=image)))
 
 def get_default_config(id:str):
-    if id.startswith("onebot"):
+    if id.startswith("group"):
         return {"cooldown":60}
     else:
         return {"cooldown":10}
@@ -385,7 +385,7 @@ def getid(event: Event) -> str:
     if isinstance(event,GuildMessageCreateEvent):
         return "dc"+str(event.guild_id)
     if isinstance(event,OBGroupMessageEvent):
-        return "onebot"+str(event.group_id)
+        return "group"+str(event.group_id)
     else:
         return "u" + str(event.get_user_id())
     
