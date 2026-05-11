@@ -35,5 +35,5 @@ def getPemonlistLevels():
         except:
             pass
     return levels
-
-print(getPemonlistLevels())
+if __name__ == "__main__":
+    print(getPemonlistLevels())
