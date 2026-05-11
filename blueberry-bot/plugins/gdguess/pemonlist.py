@@ -16,9 +16,17 @@ class Level:
         return "Level:"+", ".join([f"{k}:{v}"for k,v in self.__dict__.items()])
     def __str__(self):
         return f"{self.name} by {self.creator} {self.level_id}"
+
+class EmptyResult(Exception):
+    pass
+def getPemonlistLevels():
+    try:
+        return _getPemonlistLevels()
+    except EmptyResult:
+        return None
     
 @cached(cache=TTLCache(maxsize=20,ttl=600))
-def getPemonlistLevels():
+def _getPemonlistLevels():
     url="https://pemonlist.com/api/list?version=3&page=1&limit=1000"
     headers = {
         "User-Agent": ""
@@ -26,7 +34,7 @@ def getPemonlistLevels():
     
     req = requests.get(url, headers=headers)
     if req.status_code!=200:
-        return None
+        raise EmptyResult()
     levels_raw=req.json().get("data",[])
     levels:list[Level]=[]
     for l in levels_raw:
@@ -34,6 +42,8 @@ def getPemonlistLevels():
             levels.append(Level().from_dict({level_key: l.get(level_key) for level_key in ["name","level_id","creator"]}))
         except:
             pass
+    if not levels:
+        raise EmptyResult()
     return levels
 if __name__ == "__main__":
     print(getPemonlistLevels())

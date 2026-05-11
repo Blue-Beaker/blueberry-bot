@@ -31,7 +31,7 @@ def parseLine(line:str):
         datas.append(data)
     return datas
         
-@cached(cache=TTLCache(maxsize=20,ttl=600))
+# @cached(cache=TTLCache(maxsize=20,ttl=600))
 def getList(search:int|str):
     headers = {
         "User-Agent": ""
@@ -55,7 +55,7 @@ def getList(search:int|str):
         result.append(l)
     return result
 
-@cached(cache=TTLCache(maxsize=20,ttl=600))
+# @cached(cache=TTLCache(maxsize=20,ttl=600))
 def getLevel(search:int|str):
     headers = {
     "User-Agent": ""
