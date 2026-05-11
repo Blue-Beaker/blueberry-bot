@@ -7,3 +7,4 @@ secrets/**
 gdguess_data/**
 platsearch_cache/**
 .env.*
+say_config.json

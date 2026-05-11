@@ -4,7 +4,7 @@ import random
 import time
 from typing import Optional
 import cv2
-from nonebot import on_command,logger,get_plugin_config
+from nonebot import on_command,logger,get_plugin_config, require
 from nonebot.adapters import Message,Event,Bot
 from nonebot.adapters.discord import Message as DCMessage,Bot as DCBot,MessageSegment as DCMessageSegment,GuildMessageCreateEvent
 from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGroupMessageEvent,MessageSegment as OBMessageSegment
@@ -20,6 +20,9 @@ from .config import Config
 from . import gd_api,thumbnail_api
 from .guess_session import GuessSession,SessionManager,ConfigManager,ConfigEntry
 from .pemonlist import getPemonlistLevels
+
+require("bbot_api")
+from ..bbot_api import getid,reaction_emoji,loadFile
 
 plugin_config = get_plugin_config(Config)
 
@@ -345,15 +348,6 @@ async def giveup(bot:Bot,matcher:type[Matcher],event:Event):
     await sendMessageAndImage(bot,matcher,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop),"answer.png")
     removeImages(id)
     SAVE_MANAGER.autosave()
-    
-    
-async def reaction_emoji(bot:OBBot,msg:int,emoji:int):
-    data={
-    "message_id": msg,
-    "emoji_id": str(emoji),
-    "set": True
-    }
-    await bot.call_api("set_msg_emoji_like",**data)
 
 def roll_until_level(levels:list[int]):
     levels2=levels.copy()
@@ -380,18 +374,6 @@ def get_default_config(id:str):
         return {"cooldown":60}
     else:
         return {"cooldown":10}
-
-def getid(event: Event) -> str:
-    if isinstance(event,GuildMessageCreateEvent):
-        return "dc"+str(event.guild_id)
-    if isinstance(event,OBGroupMessageEvent):
-        return "group"+str(event.group_id)
-    else:
-        return "u" + str(event.get_user_id())
-    
-def loadFile(file:str|Path) -> bytes:
-    with open(file,'rb') as f:
-        return f.read()
     
 def removeImages(id:str):
     for ext in ["webp","png"]:
