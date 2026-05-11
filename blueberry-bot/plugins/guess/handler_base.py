@@ -57,6 +57,18 @@ class GuessManagerInstances:
     
     def load(self,dumpData:dict[str,dict]):
         for id,manager in dumpData.items():
-            self.guessManagers[id]=GuessManager.load(manager)
+            new_id = migrate_guess_key(id)
+            self.guessManagers[new_id]=GuessManager.load(manager)
 
 INSTANCES = GuessManagerInstances()
+
+
+def migrate_guess_key(key: str) -> str:
+    """自动迁移旧格式 guess 会话 key 到当前格式。
+    
+    旧格式: mc_xxx / dc_xxx / onebot_xxx
+    当前格式: mc_xxx / dc_xxx / group_xxx
+    """
+    if key.startswith("onebot_"):
+        return "group_" + key[7:]
+    return key

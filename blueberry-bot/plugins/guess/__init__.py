@@ -8,7 +8,9 @@ from nonebot.params import CommandArg
 
 from nonebot.adapters.minecraft import BaseChatEvent as MCBaseChatEvent
 from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent,MessageSegment as OBMessageSegment
-from nonebot.adapters.discord import MessageEvent as DCMessageEvent, Bot as DCBot, MessageSegment as DCMessageSegment, Message as DCMessage
+from nonebot.adapters.discord import MessageEvent as DCMessageEvent, MessageSegment as DCMessageSegment, Message as DCMessage
+
+from ..bbot_api import getid
 
 from . import guess_data
 from . import handler_mc
@@ -40,7 +42,8 @@ async def load():
             handler_base.INSTANCES.load(json.load(f))
             logger.info(f"已加载{len(handler_base.INSTANCES.dump().keys())}个会话")
             logger.debug(f'会话: {handler_base.INSTANCES.dump()}')
-    
+        # 加载后立即以新格式覆写，完成自动迁移
+        saveSessions()
 @driver.on_shutdown
 async def save_sessions():
     saveSessions()
@@ -57,7 +60,7 @@ handler_base.after_command=saveSessions
 handler_msg = on_command("guess")
 @handler_msg.handle()
 async def _(bot:Bot,event:Event,args: Message = CommandArg()):
-    manager=INSTANCES.getOrCreateGuessManager(get_group_id(event))
+    manager=INSTANCES.getOrCreateGuessManager(getid(event))
     
     message=args.extract_plain_text().strip()
     logger.debug(f"'{message}' from{event}")
@@ -83,16 +86,6 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         
     pass
 
-def get_group_id(event:Event):
-    if isinstance(event,MCBaseChatEvent):
-        return "mc_"+event.server_name
-    elif isinstance(event,DCMessageEvent):
-        return "dc_"+str(event.channel_id)
-    elif isinstance(event,OBGroupMessageEvent):
-        return "onebot_"+str(event.group_id)
-    else:
-        return event.get_session_id()
-    
 def get_help(bot:Bot,event:Event)->str:
     help_lines=[
         "guess <start|giveup> 开始/放弃猜图",

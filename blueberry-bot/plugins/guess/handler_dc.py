@@ -9,13 +9,15 @@ from nonebot.adapters.discord.exception import NetworkError
 from nonebot.params import CommandArg
 
 
+from ..bbot_api import getid
+
 from .handler_base import INSTANCES,guess_command
 
 def main():
     handler_cmd = on_command("guess",is_type(MessageEvent))
     @handler_cmd.handle()
     async def _(bot:Bot,event:MessageEvent,args: Message = CommandArg()):
-        manager=INSTANCES.getOrCreateGuessManager(f"dc_{event.channel_id}")
+        manager=INSTANCES.getOrCreateGuessManager(getid(event))
         
         message=args.extract_plain_text().strip()
         logger.debug(f"'{message}' from{event}")

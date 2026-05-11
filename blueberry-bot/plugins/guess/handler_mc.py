@@ -5,6 +5,8 @@ from nonebot.adapters.minecraft import BaseChatEvent
 from nonebot.adapters import Message
 from nonebot.params import CommandArg
 
+from ..bbot_api import getid
+
 from .handler_base import INSTANCES,guess_command
 
 
@@ -12,7 +14,7 @@ def main():
     handler_msg = on_command("guess",is_type(BaseChatEvent))
     @handler_msg.handle()
     async def _(bot:Bot,event:BaseChatEvent,args: Message = CommandArg()):
-        manager=INSTANCES.getOrCreateGuessManager("mc_"+event.server_name)
+        manager=INSTANCES.getOrCreateGuessManager(getid(event))
         
         message=args.extract_plain_text().strip()
         logger.debug(f"'{message}' from{event}")

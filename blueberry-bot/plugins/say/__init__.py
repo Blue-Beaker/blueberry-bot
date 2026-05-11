@@ -85,7 +85,10 @@ class SayConfig:
         with open(self.config_path,"r") as f:
             data=json.load(f)
             if isinstance(data,dict):
-                self.allowed_sessions=data.get("allowed_sessions",self.allowed_sessions)
+                raw_sessions = data.get("allowed_sessions", self.allowed_sessions)
+                self.allowed_sessions = {}
+                for k, v in raw_sessions.items():
+                    self.allowed_sessions[migrate_id_key(k)] = v
                 self.default_enabled=data.get("default_enabled",self.default_enabled)
 
 say_config = SayConfig(CONFIG_FILE)
@@ -134,3 +137,20 @@ async def set_say_state(enable:bool, isall:bool, event:Event, matcher:Type[Match
     else:
         say_config.set_enabled(getid(event),enable)
         await matcher.finish(f"say功能已为本会话{'启用' if enable else '关闭'}！")
+
+
+def migrate_id_key(key: str) -> str:
+    """自动迁移旧格式 ID key 到当前格式（带下划线）。
+    
+    旧格式: dc<id> / group<id> / mc<name> / u<id>
+    当前格式: dc_<id> / group_<id> / mc_<name> / u_<id>
+    """
+    if key.startswith("dc") and not key.startswith("dc_"):
+        return "dc_" + key[2:]
+    if key.startswith("group") and not key.startswith("group_"):
+        return "group_" + key[5:]
+    if key.startswith("mc") and not key.startswith("mc_"):
+        return "mc_" + key[2:]
+    if key.startswith("u") and not key.startswith("u_"):
+        return "u_" + key[1:]
+    return key

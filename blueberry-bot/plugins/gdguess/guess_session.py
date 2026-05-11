@@ -41,6 +41,9 @@ class GuessSession:
     @classmethod
     def from_dict(cls,data:dict):
         inst=cls()
+        # 迁移 session_id 中的旧格式 key
+        if "session_id" in data:
+            data["session_id"] = migrate_single_key(data["session_id"])
         inst.__dict__.update(data)
         return inst
 
@@ -75,7 +78,7 @@ class BaseManager:
         try:
             with open(self.save_path,"r") as f:
                 data=json.load(f)
-                self.load_dict(data)
+                self.load_dict(migrate_entries_keys(data))
         except FileNotFoundError:
             self.entries={}
     
@@ -116,3 +119,37 @@ class ConfigManager(BaseManager):
         return {k:v.to_dict() for k,v in self.entries.items()}
     def load_dict(self,d:dict[str,dict]):
         self.entries={k:ConfigEntry.from_dict(v) for k,v in d.items()}
+
+
+def migrate_entries_keys(data: dict[str, dict]) -> dict[str, dict]:
+    """自动迁移旧格式 entries key 到当前格式（带下划线）。
+    
+    旧格式: dc<id> / group<id> / mc<name> / u<id>
+    当前格式: dc_<id> / group_<id> / mc_<name> / u_<id>
+    """
+    migrated = {}
+    for k, v in data.items():
+        new_key = k
+        if k.startswith("dc") and not k.startswith("dc_"):
+            new_key = "dc_" + k[2:]
+        elif k.startswith("group") and not k.startswith("group_"):
+            new_key = "group_" + k[5:]
+        elif k.startswith("mc") and not k.startswith("mc_"):
+            new_key = "mc_" + k[2:]
+        elif k.startswith("u") and not k.startswith("u_"):
+            new_key = "u_" + k[1:]
+        migrated[new_key] = v
+    return migrated
+
+
+def migrate_single_key(key: str) -> str:
+    """迁移单个 ID key 从旧格式到当前格式（带下划线）。"""
+    if key.startswith("dc") and not key.startswith("dc_"):
+        return "dc_" + key[2:]
+    if key.startswith("group") and not key.startswith("group_"):
+        return "group_" + key[5:]
+    if key.startswith("mc") and not key.startswith("mc_"):
+        return "mc_" + key[2:]
+    if key.startswith("u") and not key.startswith("u_"):
+        return "u_" + key[1:]
+    return key
