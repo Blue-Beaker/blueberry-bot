@@ -18,7 +18,7 @@ from pathlib import Path
 from .guess_utils import random_crop,isnonsense_cv2
 from .config import Config
 from . import gd_api,thumbnail_api
-from .guess_session import GuessSession,SessionManager
+from .guess_session import GuessSession,SessionManager,ConfigManager,ConfigEntry
 from .pemonlist import getPemonlistLevels
 
 plugin_config = get_plugin_config(Config)
@@ -28,19 +28,23 @@ SAVE_PATH=DATA_PATH/"sessions.json"
 CONFIG_PATH=DATA_PATH/"config.json"
 IMAGES_PATH=DATA_PATH/"images"
 
-session_manager:SessionManager=SessionManager()
+session_manager:SessionManager=SessionManager(SAVE_PATH.as_posix())
+config_manager:ConfigManager=ConfigManager(CONFIG_PATH.as_posix())
+next_guess_time:dict[str,int]={}
 
 driver=get_driver()
 
 @driver.on_startup
 async def load_sessions():
     os.makedirs(DATA_PATH,exist_ok=True)
-    session_manager.load(SAVE_PATH.as_posix())
+    session_manager.load()
+    config_manager.load()
     logger.info(f"Loaded {len(session_manager.sessions)} sessions.")
     
 @driver.on_shutdown
 async def save_sessions():
-    session_manager.save(SAVE_PATH.as_posix())
+    session_manager.save()
+    config_manager.save()
     logger.info(f"Saved {len(session_manager.sessions)} sessions.")
 
 class SaveManager:
@@ -50,7 +54,8 @@ class SaveManager:
             self.save()
             self.next_save_time=int(time.time())+plugin_config.gdguess_save_interval
     def save(self):
-        session_manager.save(SAVE_PATH.as_posix())
+        session_manager.save()
+        config_manager.save()
         logger.info(f"Saved {len(session_manager.sessions)} sessions.")
         
 SAVE_MANAGER=SaveManager()
@@ -157,10 +162,21 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     
     id=getid(event)
     session=session_manager.sessions.get(id)
+    
+    # When session is active
     if session and not session.completed:
         await sendMessageAndImage(bot,gdguess,f"你已经有一个正在进行的游戏了! 继续猜图吧!",loadFile(IMAGES_PATH/f"{session.session_id}.png"))
         return
     
+    # When on cooldown
+    cooldown=next_guess_time.get(id,0)-int(time.time())
+    if cooldown>0:
+        if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
+            await reaction_emoji(bot,event.message_id,424) # Button emoji
+        else:
+            await matcher.send(f"再过{id}秒才能再次开始哦")
+        return
+    # Find levels
     lines=[]
     
     levels,msg=get_levels_from_args(args,session)
@@ -170,6 +186,11 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     if not levels:
         await matcher.send("\n".join(lines))
         return
+    
+    # Set cooldown
+    if not test:
+        next_guess_time[id]=int(time.time())+config_manager.get(id,get_default_config(id)).cooldown
+    # Actually start the guess
         
     os.makedirs(IMAGES_PATH,exist_ok=True)
     # Choose a random level
@@ -200,7 +221,9 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
             if (not isnonsense_cv2(cropped_image)): break
         cv2.imwrite(cropped_path,cropped_image)
         
-        session_manager.sessions.get(id,GuessSession()).start(id,level,crop=(left, top, right, bottom),level_pool=levels)
+        session=session_manager.sessions.get(id,GuessSession())
+        session.start(id,level,crop=(left, top, right, bottom),level_pool=levels)
+        session_manager.sessions[id]=session
         
         lines.append("以下截图是来自哪个关卡呢? 输入 -gdguess 你的答案 以回答")
         msg="\n".join(lines)
@@ -270,6 +293,35 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
     SAVE_MANAGER.autosave()
     await gdguess.finish()
     
+
+gdguess_config = on_command("gdguess-config",permission=SUPERUSER)
+@gdguess_config.handle()
+async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
+    id=getid(event)
+    
+    args:dict[str,str|int|bool]={}
+    for seg in raw_args.extract_plain_text().split(","):
+        spl=seg.split("=",1)
+        if spl.__len__()==2:
+            args[spl[0]]=spl[1]
+            
+    modified=False
+    cfg=config_manager.get(id,get_default_config(id))
+    try:
+        new_cd=args.get("cooldown",None)
+        if new_cd:
+            cfg.cooldown=int(new_cd)
+            modified=True
+    except:
+        pass
+    
+    config_manager.save()
+    
+    if modified:
+        await gdguess_config.finish(f"已更新本会话的guess配置:\n{cfg.__str__()}")
+    else:
+        await gdguess_config.finish(f"本会话的guess配置未改变:\n{cfg.__str__()}")
+    
 async def giveup(bot:Bot,matcher:type[Matcher],event:Event):
     id=getid(event)
     session=session_manager.sessions.get(id)
@@ -311,6 +363,12 @@ async def sendMessageAndImage(bot:Bot,matcher:type[Matcher],message:str,image:by
         await matcher.send(OBMessageSegment.text(message)+OBMessageSegment.image(image))
     else:
         await matcher.send(DCMessage().append(message).append(DCMessageSegment.attachment(image_name,content=image)))
+
+def get_default_config(id:str):
+    if id.startswith("onebot"):
+        return {"cooldown":60}
+    else:
+        return {"cooldown":10}
 
 def getid(event: Event) -> str:
     if isinstance(event,GuildMessageCreateEvent):
