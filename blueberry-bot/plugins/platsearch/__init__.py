@@ -269,3 +269,13 @@ def search_in_levels(levels:list[L],search:str,fuzzy:bool=False):
         if level.matchesName(search,fuzzy):
             result.append(level)
     return result
+
+
+def get_help(bot:Bot,event:Event)->str:
+    help_lines=[
+        "platsearch 搜索Plat关卡",
+        "platsheet 在NLW/IDS/HDS中搜索Plat关卡",
+        "platweight 获取Plat Rank中关卡的Weight",
+        "platskill <Skillsets> 根据NLW/IDS/HDS的Skillset标签搜索Plat关卡"
+    ]
+    return "\n".join(help_lines)
