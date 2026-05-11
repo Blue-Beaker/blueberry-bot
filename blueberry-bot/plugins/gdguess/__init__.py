@@ -333,7 +333,7 @@ def removeImages(id:str):
     
 def get_help(bot:Bot,event:Event)->str:
     help_lines=[
-        "gdguess 截图猜GD关卡"
+        "gdguess 截图猜GD关卡",
         "gdguess -help 显示gdguess相关帮助"
     ]
     return "\n".join(help_lines)
