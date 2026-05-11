@@ -210,7 +210,13 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     # Choose a random level
     levelID,img=roll_until_level(levels)
     # Chosen level
-    level=gd_api.getLevel(levelID)[0]
+    fetched_levels=gd_api.getLevel(levelID)
+    
+    if not fetched_levels:
+        await matcher.send("出现错误, 未找到关卡.")
+        return
+    
+    level=fetched_levels[0]
     
     cachepath=IMAGES_PATH/f"{id}.webp"
     with open(cachepath,"wb") as f:

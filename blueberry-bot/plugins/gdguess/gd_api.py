@@ -1,5 +1,6 @@
 import requests
 from cachetools import cached, TTLCache
+from nonebot import logger
     
 class Level:
     id:int
@@ -45,7 +46,9 @@ def getList(search:int|str):
 
     url = "http://www.boomlings.com/database/getGJLevelLists.php"
 
+    logger.info(f"Searching list {search}...")
     req = requests.post(url=url, data=data, headers=headers)
+    logger.debug(f"Raw response: {req.text}")
     
     result:list[Level]=[]
     for data in parseLine(req.text):
@@ -53,6 +56,7 @@ def getList(search:int|str):
         if l.id==-1:
             continue
         result.append(l)
+        
     return result
 
 # @cached(cache=TTLCache(maxsize=20,ttl=600))
@@ -70,10 +74,14 @@ def getLevel(search:int|str):
 
     url = "http://www.boomlings.com/database/getGJLevels21.php"
 
+    logger.info(f"Searching level {search}...")
     req = requests.post(url=url, data=data, headers=headers)
+    logger.debug(f"Raw response: {req.text}")
     
     result:list[Level]=[]
     spl=req.text.split("#")
+    if spl.__len__()<2:
+        return None
     
     for data in parseLine(spl[0]):
         l=Level.build(data)
@@ -89,6 +97,7 @@ def getLevel(search:int|str):
             result[i].creator=creator
         except:
             pass
+        
     return result
 
 # Test code
