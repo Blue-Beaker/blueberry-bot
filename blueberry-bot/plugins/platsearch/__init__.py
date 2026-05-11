@@ -1,6 +1,7 @@
 import os
 import random
 import re
+import threading
 import time
 import traceback
 from typing import Any, TypeVar
@@ -28,10 +29,12 @@ PLAT_SHEET_CACHE=BaseCache(plat_sheets.TheListsEntry,"platsearch_cache/plat_shee
 @driver.on_startup
 async def load_cache():
     os.makedirs("platsearch_cache",exist_ok=True)
-    PLAT_CHART_CACHE.get()
-    logger.info(f"Loaded {PLAT_CHART_CACHE.entries.__len__()} entries into Plat Chart cache, expiring at {time.ctime(PLAT_CHART_CACHE.expiration_time)}")
-    PLAT_SHEET_CACHE.get()
-    logger.info(f"Loaded {PLAT_SHEET_CACHE.entries.__len__()} entries into Plat Sheet cache, expiring at {time.ctime(PLAT_SHEET_CACHE.expiration_time)}")
+    threading.Thread(target=threaded_update_cache,args=[PLAT_CHART_CACHE,"Plat Chart cache"]).start()
+    threading.Thread(target=threaded_update_cache,args=[PLAT_SHEET_CACHE,"Plat Sheet cache"]).start()
+
+def threaded_update_cache(cache:BaseCache,name:str):
+    cache.get()
+    logger.info(f"Loaded {cache.entries.__len__()} entries into {name}, expiring at {time.ctime(cache.expiration_time)}")
 
 class SearchArgs:
     def __init__(self,text:str) -> None:
