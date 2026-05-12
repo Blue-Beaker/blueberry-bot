@@ -190,6 +190,7 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
         "不输入list或使用-last参数则沿用上次的关卡池",
         "举例: '-gdguess -insane 83317' 使用该list开始insane难度的猜图",
         "gdguess -help 显示详细帮助",
+        "gdguess -hint 获取提示",
         "gdguess -giveup 放弃当前的猜图游戏并显示答案",
         "gdguess <图名> 进行猜图",]
         await gdguess.send("\n".join(help))
@@ -235,8 +236,8 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
     else:
         if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
             await reaction_emoji(bot,event.message_id,424) # Button emoji
-        if random.randint(0,5)==0:
-            await sendMessageAndImage(bot,gdguess,f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!",loadFile(IMAGES_PATH/f"{id}.png"))
+        if session.guesses%5==0:
+            await sendMessageAndImage(bot,gdguess,f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!\n需要提示吗? -gdguess -hint 以获取提示",loadFile(IMAGES_PATH/f"{id}.png"))
         elif not isinstance(bot,OBBot):
             await gdguess.send(f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!")
         
