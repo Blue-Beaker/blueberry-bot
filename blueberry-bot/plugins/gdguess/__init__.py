@@ -15,6 +15,8 @@ from nonebot.matcher import Matcher
 from nonebot.permission import SUPERUSER
 from pathlib import Path
 
+from numpy import ndarray
+
 from .guess_utils import random_crop,isnonsense_cv2
 from .config import Config
 from . import gd_api,thumbnail_api
@@ -86,6 +88,7 @@ class GuessAction(Enum):
     START="start"
     GIVEUP="giveup"
     HELP="help"
+    HINT="hint"
 class GuessSource(Enum):
     LAST="last"
     LIST="list"
@@ -166,6 +169,80 @@ def get_levels_from_args(args:GuessArgs,session:Optional[GuessSession]):
             return None,"在你提供的List中没有找到任何关卡."
         return levels,"关卡池已设置为你提供的List中的关卡!"
     return levels,None
+    
+gdguess = on_command("gdguess")
+@gdguess.handle()
+async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
+    # Only allow in Certain Adapters
+    if not isSupportedAdapter(bot):
+        return
+    
+    args_text=raw_args.extract_plain_text().strip()
+    
+    args=GuessArgs(args_text)
+    args_text=args.text
+    if args.action == GuessAction.HELP:
+        help=[
+        "gdguess -start [list IDs] 开始猜GD关卡",
+        "使用list ID指定关卡池, 多个list用,分割",
+        "也可加入-pemonlist参数使用Pemonlist作为关卡池",
+        "将-start替换为-hard,-insane或-extreme可开始更高难度(截取范围更小)的猜图",
+        "不输入list或使用-last参数则沿用上次的关卡池",
+        "举例: '-gdguess -insane 83317' 使用该list开始insane难度的猜图",
+        "gdguess -help 显示详细帮助",
+        "gdguess -giveup 放弃当前的猜图游戏并显示答案",
+        "gdguess <图名> 进行猜图",]
+        await gdguess.send("\n".join(help))
+        await gdguess.finish()
+        return
+    
+    id=getid(event)
+    session=session_manager.entries.get(id)
+    if session and not session.completed:
+        recover_cache_img(id,session)
+    
+    if args.action == GuessAction.GIVEUP:
+        await giveup(bot,gdguess,event)
+        await gdguess.finish()
+        return
+    
+    elif args.action == GuessAction.START:
+        await guess_start(bot,gdguess,event,args,crop_size=args.difficulty.value[1],test=False)
+        await gdguess.finish()
+        return
+    
+    elif args.action == GuessAction.HINT:
+        await hint(bot,gdguess,event)
+        await gdguess.finish()
+        return
+    
+    id=getid(event)
+    session=session_manager.entries.get(id)
+    if not session or session.completed:
+        await gdguess.send("你还没有正在进行的猜图游戏! 输入 -gdguess -start [List ID] 来开始一个新的游戏.\n-start换成 -hard/-insane/-extreme 可以获得更小的截图, 但难度也会更大哦!")
+        await gdguess.finish()
+        return
+    guess=raw_args.extract_plain_text().strip()
+    if session.guess(guess):
+        session.completed=True
+        msg=f"恭喜你猜对了! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
+        if session.hints_used:
+            msg=msg+" (已使用提示)"
+        
+        await sendMessageAndImage(bot,gdguess,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{session.session_id}.webp",session.crop))
+        # await gdguess.send(DCMessage().append(msg).append(DCMessageSegment.attachment("answer.png",content=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop))))
+        removeImages(id)
+    else:
+        if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
+            await reaction_emoji(bot,event.message_id,424) # Button emoji
+        if random.randint(0,5)==0:
+            await sendMessageAndImage(bot,gdguess,f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!",loadFile(IMAGES_PATH/f"{id}.png"))
+        elif not isinstance(bot,OBBot):
+            await gdguess.send(f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!")
+        
+    SAVE_MANAGER.autosave()
+    await gdguess.finish()
+    
 
 async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,crop_size:tuple[int,int]=(256,256),test:bool=False):
     # Only allow in Certain Adapters
@@ -209,11 +286,15 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     os.makedirs(IMAGES_PATH,exist_ok=True)
     # Choose a random level
     levelID,img=roll_until_level(levels)
+    if not levelID or not img:
+        await matcher.send("出现错误, 未找到有截图的关卡.")
+        return
+        
     # Chosen level
     fetched_levels=gd_api.getLevel(levelID)
     
     if not fetched_levels:
-        await matcher.send("出现错误, 未找到关卡.")
+        await matcher.send("出现错误, 未找到关卡信息.")
         return
     
     level=fetched_levels[0]
@@ -252,68 +333,47 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
         SAVE_MANAGER.autosave()
         await matcher.finish()
     
-    
-gdguess = on_command("gdguess")
-@gdguess.handle()
-async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
-    # Only allow in Certain Adapters
-    if not isSupportedAdapter(bot):
-        return
-    
-    args_text=raw_args.extract_plain_text().strip()
-    
-    args=GuessArgs(args_text)
-    args_text=args.text
-    if args.action == GuessAction.HELP:
-        help=[
-        "gdguess -start [list IDs] 开始猜GD关卡",
-        "使用list ID指定关卡池, 多个list用,分割",
-        "也可加入-pemonlist参数使用Pemonlist作为关卡池",
-        "将-start替换为-hard,-insane或-extreme可开始更高难度(截取范围更小)的猜图",
-        "不输入list或使用-last参数则沿用上次的关卡池",
-        "举例: '-gdguess -insane 83317' 使用该list开始insane难度的猜图",
-        "gdguess -help 显示详细帮助",
-        "gdguess -giveup 放弃当前的猜图游戏并显示答案",
-        "gdguess <图名> 进行猜图",]
-        await gdguess.send("\n".join(help))
-        await gdguess.finish()
-        return
-        
-    if args.action == GuessAction.GIVEUP:
-        await giveup(bot,gdguess,event)
-        await gdguess.finish()
-        return
-    
-    if args.action == GuessAction.START:
-        await guess_start(bot,gdguess,event,args,crop_size=args.difficulty.value[1],test=False)
-        await gdguess.finish()
-        return
-    
+async def hint(bot:Bot,matcher:type[Matcher],event:Event):
     id=getid(event)
     session=session_manager.entries.get(id)
     if not session or session.completed:
-        await gdguess.send("你还没有正在进行的猜图游戏! 输入 -gdguess -start [List ID] 来开始一个新的游戏.\n-start换成 -hard/-insane/-extreme 可以获得更小的截图, 但难度也会更大哦!")
-        await gdguess.finish()
+        await matcher.send("你还没有正在进行的猜图游戏! 输入 -gdguess_start [List ID] 来开始一个新的游戏.")
         return
-    guess=raw_args.extract_plain_text().strip()
-    if session.guess(guess):
-        session.completed=True
-        msg=f"恭喜你猜对了! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
-        
-        await sendMessageAndImage(bot,gdguess,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{session.session_id}.webp",session.crop))
-        # await gdguess.send(DCMessage().append(msg).append(DCMessageSegment.attachment("answer.png",content=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop))))
-        removeImages(id)
-    else:
-        if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
-            await reaction_emoji(bot,event.message_id,424) # Button emoji
-        if random.randint(0,5)==0:
-            await sendMessageAndImage(bot,gdguess,f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!",loadFile(IMAGES_PATH/f"{id}.png"))
-        elif not isinstance(bot,OBBot):
-            await gdguess.send(f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!")
-        
-    SAVE_MANAGER.autosave()
-    await gdguess.finish()
     
+    if not session.hints_used:
+        hint_text = []
+        charactors = []
+        for i in range(len(session.level_name)):
+            c=session.level_name[i]
+            if c not in " -":
+                charactors.append(i)
+                hint_text.append("_")
+            else:
+                hint_text.append(c)
+                
+        for i in random.choices(charactors,k=int(len(charactors)/5)):
+            hint_text[i]=session.level_name[i]
+        
+        session.hint_text=" ".join(hint_text)
+        session.hints_used=1
+        
+    await matcher.send(f"提示: {session.hint_text}")
+    return
+    
+    
+   
+async def giveup(bot:Bot,matcher:type[Matcher],event:Event):
+    id=getid(event)
+    session=session_manager.entries.get(id)
+    if not session or session.completed:
+        await matcher.send("你还没有正在进行的猜图游戏! 输入 -gdguess_start [List ID] 来开始一个新的游戏.")
+        return
+    session.completed=True
+    
+    msg=f"游戏结束! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
+    await sendMessageAndImage(bot,matcher,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop),"answer.png")
+    removeImages(id)
+    SAVE_MANAGER.autosave()
 
 gdguess_config = on_command("gdguess-config",permission=SUPERUSER)
 @gdguess_config.handle()
@@ -342,30 +402,37 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
         await gdguess_config.finish(f"已更新本会话的guess配置:\n{cfg.__str__()}")
     else:
         await gdguess_config.finish(f"本会话的guess配置未改变:\n{cfg.__str__()}")
-    
-async def giveup(bot:Bot,matcher:type[Matcher],event:Event):
-    id=getid(event)
-    session=session_manager.entries.get(id)
-    if not session or session.completed:
-        await matcher.send("你还没有正在进行的猜图游戏! 输入 -gdguess_start [List ID] 来开始一个新的游戏.")
-        return
-    session.completed=True
-    
-    msg=f"游戏结束! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
-    await sendMessageAndImage(bot,matcher,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop),"answer.png")
-    removeImages(id)
-    SAVE_MANAGER.autosave()
-
+ 
 def roll_until_level(levels:list[int]):
     levels2=levels.copy()
     img=None
-    while not img:
+    levelID=None
+    while levels2 and not img:
         levelID = random.choice(levels2)
         img=thumbnail_api.getThumbnail(levelID,plugin_config.level_thumbnails_api_base)
         if not img:
             levels2.remove(levelID)
             
     return levelID,img
+
+def recover_cache_img(id:str,session:GuessSession):
+    cachepath=IMAGES_PATH/f"{id}.webp"
+    cropped_path = IMAGES_PATH/f"{id}.png"
+    
+    if os.path.exists(cachepath) and os.path.exists(cropped_path):
+        return
+    rawimg=thumbnail_api.getThumbnail(session.level_id,plugin_config.level_thumbnails_api_base)
+    if not rawimg:
+        return False
+    with open(cachepath,"wb") as f:
+        f.write(rawimg)
+        
+    img = cv2.imread(cachepath)
+    if not isinstance(img,ndarray):
+        return False
+    cropped=guess_utils.crop_image(img,*session.crop)
+    cv2.imwrite(cropped_path,cropped)
+    return True
 
 def isSupportedAdapter(bot:Bot):
     return isinstance(bot,DCBot) or isinstance(bot,OBBot)

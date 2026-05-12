@@ -13,23 +13,31 @@ class GuessSession:
     crop:tuple[int,int,int,int]
     
     level_pool:list[int]
-    
-    completed:bool=False
+    hints_used:int
+    hint_text:str=""
+    completed:bool
     
     def __init__(self) -> None:
         self.level_pool=[]
+        self.reset()
+    
+    def reset(self):
         self.completed=False
         self.guesses=0
+        self.hints_used=0
+        self.hint_text=""
+        return self
         
     def start(self,session_id:str,level:Level,crop:tuple[int,int,int,int],level_pool:list[int]=[]):
+        self.reset()
+        
         self.session_id=session_id
         self.level_id=level.id
         self.level_name=level.name
         self.level_creator=level.creator
-        self.guesses=0
         self.crop=crop
         self.level_pool=level_pool
-        self.completed=False
+        
         return self
     
     def guess(self,guess:str):

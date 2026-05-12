@@ -42,6 +42,9 @@ def random_crop(crop_width, crop_height, image:ndarray):
     cropped_image = image[top:bottom,left:right]
     return left,top,right,bottom,cropped_image
 
+def crop_image(img:ndarray,left:int,top:int,right:int,bottom:int):
+    return img[top:bottom,left:right]
+
 def draw_rectangle_on_image(image_path:Path, pos:tuple[int,int,int,int]):
     image = cv2.imread(image_path)
     
