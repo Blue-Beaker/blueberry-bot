@@ -270,12 +270,24 @@ def search_in_levels(levels:list[L],search:str,fuzzy:bool=False):
             result.append(level)
     return result
 
-
-def get_help(bot:Bot,event:Event)->str:
+plathelp = on_command("plathelp")
+@plathelp.handle()
+async def _():
     help_lines=[
+        "plathelp 显示Plat搜索功能相关帮助",
         "platsearch 搜索Plat关卡",
         "platsheet 在NLW/IDS/HDS中搜索Plat关卡",
         "platweight 获取Plat Rank中关卡的Weight",
-        "platskill <Skillsets> 根据NLW/IDS/HDS的Skillset标签搜索Plat关卡"
+        "platskill <Skillsets> 根据NLW/IDS/HDS的Skillset标签搜索Plat关卡",
+        "加入 -f 以模糊匹配, -页数 以翻页",
+        "举例: '-platsearch -f -3 dash' 搜索名称包含dash的关卡, 并翻到第3页",
     ]
-    return "\n".join(help_lines)
+    await plathelp.finish("\n".join(help_lines))
+    return
+
+def get_help(bot:Bot,event:Event):
+    help_lines=[
+            "platsearch 搜索Plat关卡",
+            "plathelp 显示Plat搜索功能相关帮助"
+            ]
+    return help_lines

@@ -38,6 +38,8 @@ def get_all_help(bot:Bot,event:Event)->str:
                     lines=help_func(bot,event)
                     if isinstance(lines,str):
                         help_lines.append(lines)
+                    elif isinstance(lines,list):
+                        help_lines.extend([str(l) for l in lines])
                 except Exception as e:
                     logger.error(f"Error getting help from plugin {plugin.name}: {e}")
     

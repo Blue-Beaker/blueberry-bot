@@ -154,3 +154,9 @@ def migrate_id_key(key: str) -> str:
     if key.startswith("u") and not key.startswith("u_"):
         return "u_" + key[1:]
     return key
+
+def get_help(bot:Bot,event:Event):
+    if say_config.is_enabled(getid(event)):
+        return "say 说一句话"
+    else:
+        return None

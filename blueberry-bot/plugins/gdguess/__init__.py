@@ -267,13 +267,14 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
     if args.action == GuessAction.HELP:
         help=[
         "gdguess -start [list IDs] 开始猜GD关卡",
+        "使用list ID指定关卡池, 多个list用,分割",
+        "也可加入-pemonlist参数使用Pemonlist作为关卡池",
+        "将-start替换为-hard,-insane或-extreme可开始更高难度(截取范围更小)的猜图",
+        "不输入list或使用-last参数则沿用上次的关卡池",
+        "举例: '-gdguess -insane 83317' 使用该list开始insane难度的猜图",
         "gdguess -help 显示详细帮助",
         "gdguess -giveup 放弃当前的猜图游戏并显示答案",
-        "gdguess <图名> 进行猜图",
-        "使用list ID指定关卡池, 多个list用,分割",
-        "也可选择-pemonlist参数使用Pemonlist作为关卡池",
-        "将-start替换为-hard,-insane或-extreme可开始更高难度(截取范围更小)的猜图"
-        "不输入list或使用-last参数则沿用上次的关卡池"]
+        "gdguess <图名> 进行猜图",]
         await gdguess.send("\n".join(help))
         await gdguess.finish()
         return
@@ -387,9 +388,9 @@ def removeImages(id:str):
         if path.exists():
             path.unlink()
     
-def get_help(bot:Bot,event:Event)->str:
+def get_help(bot:Bot,event:Event):
     help_lines=[
         "gdguess 截图猜GD关卡",
         "gdguess -help 显示gdguess相关帮助"
     ]
-    return "\n".join(help_lines)
+    return help_lines
