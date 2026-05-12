@@ -16,6 +16,7 @@ from nonebot.permission import SUPERUSER
 from pathlib import Path
 
 from numpy import ndarray
+import requests
 
 from .guess_utils import random_crop,isnonsense_cv2
 from .config import Config
@@ -285,17 +286,25 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     # Actually start the guess
         
     os.makedirs(IMAGES_PATH,exist_ok=True)
+    
     # Choose a random level
-    levelID,img=roll_until_level(levels)
+    levelID=None
+    img=None
+    try:
+        levelID,img=roll_until_level(levels)
+    except requests.ConnectionError as e:
+        logger.error(f"Error fetching level thumbnail: {e}")
+        await matcher.send("获取关卡截图时发生错误.")
+        return
     if not levelID or not img:
-        await matcher.send("出现错误, 未找到有截图的关卡.")
+        await matcher.send("错误:未找到有截图的关卡.")
         return
         
     # Chosen level
     fetched_levels=gd_api.getLevel(levelID)
     
     if not fetched_levels:
-        await matcher.send("出现错误, 未找到关卡信息.")
+        await matcher.send("错误:未找到关卡信息")
         return
     
     level=fetched_levels[0]
@@ -420,19 +429,27 @@ def recover_cache_img(id:str,session:GuessSession):
     cachepath=IMAGES_PATH/f"{id}.webp"
     cropped_path = IMAGES_PATH/f"{id}.png"
     
-    if os.path.exists(cachepath) and os.path.exists(cropped_path):
-        return
-    rawimg=thumbnail_api.getThumbnail(session.level_id,plugin_config.level_thumbnails_api_base)
-    if not rawimg:
-        return False
-    with open(cachepath,"wb") as f:
-        f.write(rawimg)
-        
-    img = cv2.imread(cachepath)
-    if not isinstance(img,ndarray):
-        return False
-    cropped=guess_utils.crop_image(img,*session.crop)
-    cv2.imwrite(cropped_path,cropped)
+    # Fetch thumbnail
+    if not os.path.exists(cachepath):
+        logger.error(f"Recovering thumbnail for {id}")
+        try:
+            rawimg=thumbnail_api.getThumbnail(session.level_id,plugin_config.level_thumbnails_api_base)
+        except requests.ConnectionError as e:
+            logger.error(f"Error fetching level thumbnail: {e}")
+            return False
+    
+        if not rawimg:
+            return False
+        with open(cachepath,"wb") as f:
+            f.write(rawimg)
+            
+    if not os.path.exists(cropped_path):
+        logger.error(f"Recovering cropped image for {id}")
+        img = cv2.imread(cachepath)
+        if not isinstance(img,ndarray):
+            return False
+        cropped=guess_utils.crop_image(img,*session.crop)
+        cv2.imwrite(cropped_path,cropped)
     return True
 
 def isSupportedAdapter(bot:Bot):
