@@ -352,7 +352,7 @@ async def hint(bot:Bot,matcher:type[Matcher],event:Event):
             else:
                 hint_text.append(c)
                 
-        for i in random.choices(charactors,k=int(len(charactors)/5)):
+        for i in random.choices(charactors,k=int((len(charactors)-1)/3)):
             hint_text[i]=session.level_name[i]
         
         session.hint_text=" ".join(hint_text)
