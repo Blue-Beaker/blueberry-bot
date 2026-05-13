@@ -37,6 +37,7 @@ IMAGES_PATH=DATA_PATH/"images"
 session_manager:SessionManager=SessionManager(SAVE_PATH.as_posix())
 config_manager:ConfigManager=ConfigManager(CONFIG_PATH.as_posix())
 next_guess_time:dict[str,int]={}
+last_finish_time:dict[str,int]={}
 
 driver=get_driver()
 
@@ -221,7 +222,14 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
     id=getid(event)
     session=session_manager.entries.get(id)
     if not session or session.completed:
-        await gdguess.send("你还没有正在进行的猜图游戏! 输入 -gdguess -start [List ID] 来开始一个新的游戏.\n-start换成 -hard/-insane/-extreme 可以获得更小的截图, 但难度也会更大哦!")
+        msg="你还没有正在进行的猜图游戏! 输入 -gdguess -start [List ID] 来开始一个新的游戏.\n-start换成 -hard/-insane/-extreme 可以获得更小的截图, 但难度也会更大哦!"
+        
+        if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
+            await reaction_emoji(bot,event.message_id,10068) # Questionmark
+        # Dont send tips when it's just finished
+        if time.time()-last_finish_time.get(id,0)>10:
+            await gdguess.send(msg)
+        
         await gdguess.finish()
         return
     guess=raw_args.extract_plain_text().strip()
@@ -231,8 +239,12 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
         if session.hints_used:
             msg=msg+" (已使用提示)"
         
-        await sendMessageAndImage(bot,gdguess,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{session.session_id}.webp",session.crop))
-        # await gdguess.send(DCMessage().append(msg).append(DCMessageSegment.attachment("answer.png",content=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{id}.webp",session.crop))))
+        await gdguess.send(buildMessageImage(bot,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{session.session_id}.webp",session.crop)),at_sender=True)
+        if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
+            await reaction_emoji(bot,event.message_id,144) # Confetti emoji
+            
+        last_finish_time[id]=int(time.time())
+        
         removeImages(id)
     else:
         if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
@@ -456,10 +468,13 @@ def isSupportedAdapter(bot:Bot):
     return isinstance(bot,DCBot) or isinstance(bot,OBBot)
 
 async def sendMessageAndImage(bot:Bot,matcher:type[Matcher],message:str,image:bytes,image_name:str="guess.png"):
+    await matcher.send(buildMessageImage(bot,message,image,image_name))
+        
+def buildMessageImage(bot:Bot,message:str,image:bytes,image_name:str="guess.png"):
     if isinstance(bot,OBBot):
-        await matcher.send(OBMessageSegment.text(message)+OBMessageSegment.image(image))
+        return(OBMessageSegment.text(message)+OBMessageSegment.image(image))
     else:
-        await matcher.send(DCMessage().append(message).append(DCMessageSegment.attachment(image_name,content=image)))
+        return(DCMessage().append(message).append(DCMessageSegment.attachment(image_name,content=image)))
 
 def get_default_config(id:str):
     if id.startswith("group"):
