@@ -19,5 +19,7 @@ async def _(event: Event, matcher: Matcher):
         
         if is_listed!=plugin_config.debug_sessions_is_on:
             raise IgnoredException(f"Blocked: {eid}")
-    except:
+    except Exception as e:
+        if isinstance(e,IgnoredException):
+            raise e
         pass
