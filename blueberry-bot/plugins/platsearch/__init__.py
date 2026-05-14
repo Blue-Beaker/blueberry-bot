@@ -1,3 +1,4 @@
+import math
 import os
 import random
 import re
@@ -55,7 +56,14 @@ class SearchArgs:
         self.fuzzy=args.f
         self.text=" ".join(args.search)
         self.tier=args.t
-        
+
+def get_weight_factors():
+    factor=0.2**(1/9)
+    weight_factors=[]
+    for i in range(0,10):
+        weight_factors.append(1*(factor**i))
+    return weight_factors
+WEIGHT_FACTORS=get_weight_factors()
 
 platweight = on_command("platweight")
 @platweight.handle()
@@ -96,14 +104,14 @@ async def _(args: Message = CommandArg()):
         top10_weight=0
         total_weight=0
         weights:list[int]=[l.weight for l in results if l.weight]
-        weight_factors=[1,0.84,0.7,0.58,0.49,0.41,0.34,0.29,0.24,0.2]
+        # weight_factors=[1,0.84,0.7,0.58,0.49,0.41,0.34,0.29,0.24,0.2]
         for i in range(0,10):
             r=results[i]
-            factored_weight=weights[i]*weight_factors[i]
-            msg.append(f"{r.name} by {r.creator} ({r.weight}*{weight_factors[i]:.2f}={factored_weight:.2f})")
+            factored_weight=weights[i]*WEIGHT_FACTORS[i]
+            msg.append(f"{r.name} by {r.creator} ({r.weight}*{WEIGHT_FACTORS[i]:.2f}={factored_weight:.2f})")
             top10_weight+=factored_weight
             total_weight+=weights[i]
-        msg.append(f"你的点数为{top10_weight:.1f}, 原始权重和为{total_weight}")
+        msg.append(f"你的点数为{top10_weight:.2f}, 原始权重和为{total_weight}")
     else:
         total_weight=0
         for r in results.copy():
