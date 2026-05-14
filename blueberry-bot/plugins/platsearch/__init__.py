@@ -62,32 +62,48 @@ platweight = on_command("platweight")
 async def _(args: Message = CommandArg()):
     sa=SearchArgs(args.extract_plain_text())
     text=sa.text
-    page=sa.page
     
-    search = text.strip().lower()
+    search = [s.strip() for s in text.lower().split(",")]
+    
     msg=[]
+    results:list[plat_sheets.PlatChartEntry]=[]
+    errored:bool=False
+    for s in search:
+        levels=[l for l in PLAT_CHART_CACHE.get() if l.exactMatch(s) and l.weight]
+        if levels.__len__()==1:
+            results.append(levels[0])
+            continue
+        elif levels.__len__()==0:
+            errored=True
+            msg.append(f"没有找到'{s}'的权重,请更正或移除.")
+        else:
+            msg.append(f"'{s}' 找到{levels.__len__()}个结果, 请根据实际情况扣除相应条目的权重:")
+            for l in levels:
+                results.append(l)
+                msg.append(f"{l.name} by {l.creator} ({l.weight})")
+    if errored:
+        msg.append("请解决上述问题再重新运行本指令.")
+        await platweight.finish("\n".join(msg))
+        return
     
-    if not sa.fuzzy:
-        msg.append(f"Exact match, use -f [levelname] for fuzzy search")
-    # results:list[plat_sheets.PlatRankEntry]=[]
-    # for level in plat_sheets.plat_rank_weights():
-    #     if search in level.name.lower():
-    #         results.append(level)
+    def sortWeight(l:plat_sheets.PlatChartEntry):
+        return l.weight or float('inf')
     
-    results=search_in_levels(PLAT_CHART_CACHE.get(),search,sa.fuzzy)
+    results.sort(key=sortWeight)
+    total_weight=0
+    for r in results.copy():
+        if not r.weight:
+            continue
+        try:
+            msg.append(f"{r.name} by {r.creator} ({r.weight})")
+            total_weight+=r.weight
+        except:
+            results.remove(r)
+            pass
+        
+    msg.append(f"{results.__len__()} 项的总权重为 {total_weight}")
     
-    count=results.__len__()
-    entries_per_page = 5
-    
-    results,maxpages,page=select_page(results,count,entries_per_page,page)
-    
-    if count==0:
-        msg.append("Not found on Plat Rank")
-    else:
-        msg.append(f"{count} on Plat Rank (Page {page}/{maxpages}):")
-        for l in results:
-            msg.append(f"{l.name} ({l.weight_type}) Weight:{l.weight}")
-    await platweight.send("\n".join(msg))
+    await platweight.finish("\n".join(msg))
     
 platsheet = on_command("platsheet")
 @platsheet.handle()

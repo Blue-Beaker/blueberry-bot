@@ -1,5 +1,6 @@
 
 import re
+from typing import Any, TypeVar
 from cachetools import cached, TTLCache
 
 from .sheets_api import Sheet
@@ -18,6 +19,8 @@ DIFFICULTY_CHART = Sheet("1ApwiAVAcBmfyoPW3wvDzc8JvY4Lfg5tFsPlYg3DNWhc","The Cha
 
 class LevelEntry:
     name:str
+    def exactMatch(self,search:str):
+        return search.lower().replace("(","").replace(")","").strip() == self.name.lower().replace("(","").replace(")","").strip()
     def matchesName(self,search:str,fuzzy_match:bool=False):
         if fuzzy_match:
             return search.lower() in self.name.lower()
@@ -39,7 +42,7 @@ class LevelEntry:
         return inst
 
 class PlatWeight(LevelEntry):
-    def update(self,section:str,name:str,weight:str|None=None):
+    def update(self,section:str,name:str,weight:int|None=None):
         self.section=section
         self.name=name
         self.weight=weight
@@ -57,7 +60,8 @@ def plat_rank_weights():
         current_section=""
         for line in values:
             level=line[0]
-            weight=line[1]
+            weight=safeInt(line[1],None)
+            
             if not weight:
                 current_section=level.removesuffix("Placements").strip()
                 continue
@@ -156,7 +160,7 @@ def get_3_lists():
 class PlatChartEntry(LevelEntry):
     tpl:str|None
     pemon:str|None
-    weight:str|None
+    weight:int|None
     weight_type:str|None
     def __init__(self) -> None:
         super().__init__()
@@ -223,7 +227,7 @@ def get_plat_chart():
     if upi:
         for line in upi:
             try:
-                id = int(line[0])
+                id = safeInt(line[0])
                 name=line[1]
                 tier=line[2]
                 tier=tier if tier!="P" else None
@@ -254,8 +258,9 @@ def get_plat_chart():
 
     return results
 
-def safeInt(i:str):
+_A = TypeVar(name="_A")
+def safeInt(i:Any,fallback:_A=-1) -> int|_A:
     try:
         return int(i)
     except:
-        return -1
+        return fallback
