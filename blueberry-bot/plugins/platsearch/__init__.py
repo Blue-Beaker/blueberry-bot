@@ -331,7 +331,7 @@ async def _():
 def get_help(bot:Bot,event:Event):
     help_lines=[
             "platsearch 搜索Plat关卡",
-            "platweight 计算Plat关卡的Weight之和"
+            "platweight 计算Plat关卡的Weight之和",
             "plathelp 显示Plat搜索功能相关帮助"
             ]
     return help_lines
