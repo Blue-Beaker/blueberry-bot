@@ -69,7 +69,7 @@ async def _(args: Message = CommandArg()):
     results:list[plat_sheets.PlatChartEntry]=[]
     errored:bool=False
     for s in search:
-        levels=[l for l in PLAT_CHART_CACHE.get() if l.exactMatch(s) and l.weight]
+        levels=[l for l in PLAT_CHART_CACHE.get() if (l.exactMatch(s) or str(l.id)==s) and l.weight]
         if levels.__len__()==1:
             results.append(levels[0])
             continue
@@ -77,10 +77,11 @@ async def _(args: Message = CommandArg()):
             errored=True
             msg.append(f"没有找到'{s}'的权重,请更正或移除.")
         else:
-            msg.append(f"'{s}' 找到{levels.__len__()}个结果, 请根据实际情况扣除相应条目的权重:")
+            errored=True
+            msg.append(f"'{s}' 找到{levels.__len__()}个结果, 请改用关卡ID:")
             for l in levels:
                 results.append(l)
-                msg.append(f"{l.name} by {l.creator} ({l.weight})")
+                msg.append(f"({l.id}) {l.name} by {l.creator} ({l.weight})")
     if errored:
         msg.append("请解决上述问题再重新运行本指令.")
         await platweight.finish("\n".join(msg))
@@ -90,18 +91,32 @@ async def _(args: Message = CommandArg()):
         return l.weight or float('inf')
     
     results.sort(key=sortWeight)
-    total_weight=0
-    for r in results.copy():
-        if not r.weight:
-            continue
-        try:
-            msg.append(f"{r.name} by {r.creator} ({r.weight})")
-            total_weight+=r.weight
-        except:
-            results.remove(r)
-            pass
-        
-    msg.append(f"{results.__len__()} 项的总权重为 {total_weight}")
+    
+    if results.__len__()==10:
+        top10_weight=0
+        total_weight=0
+        weights:list[int]=[l.weight for l in results if l.weight]
+        weight_factors=[1,0.84,0.7,0.58,0.49,0.41,0.34,0.29,0.24,0.2]
+        for i in range(0,10):
+            r=results[i]
+            factored_weight=weights[i]*weight_factors[i]
+            msg.append(f"{r.name} by {r.creator} ({r.weight}*{weight_factors[i]:.2f}={factored_weight:.2f})")
+            top10_weight+=factored_weight
+            total_weight+=weights[i]
+        msg.append(f"你的点数为{top10_weight:.1f}, 原始权重和为{total_weight}")
+    else:
+        total_weight=0
+        for r in results.copy():
+            if not r.weight:
+                continue
+            try:
+                msg.append(f"{r.name} by {r.creator} ({r.weight})")
+                total_weight+=r.weight
+            except:
+                results.remove(r)
+                pass
+        msg.append(f"{results.__len__()} 项的原始权重和为 {total_weight}.\n提供10项以计算你的点数.")
+    
     
     await platweight.finish("\n".join(msg))
     
