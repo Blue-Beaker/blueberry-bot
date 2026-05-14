@@ -296,7 +296,7 @@ async def _():
         "plathelp 显示Plat搜索功能相关帮助",
         "platsearch 搜索Plat关卡",
         "platsheet 在NLW/IDS/HDS中搜索Plat关卡",
-        "platweight 获取Plat Rank中关卡的Weight",
+        "platweight <关卡1>,<关卡2>... 计算Plat关卡的Weight之和",
         "platskill <Skillsets> 根据NLW/IDS/HDS的Skillset标签搜索Plat关卡",
         "加入 -f 以模糊匹配, -p<页数> 以翻页, -t<Tier数> 按Tier过滤",
         "举例: '-platsearch -f -p3 dash' 搜索名称包含dash的关卡, 并翻到第3页",
@@ -308,6 +308,7 @@ async def _():
 def get_help(bot:Bot,event:Event):
     help_lines=[
             "platsearch 搜索Plat关卡",
+            "platweight 计算Plat关卡的Weight之和"
             "plathelp 显示Plat搜索功能相关帮助"
             ]
     return help_lines
