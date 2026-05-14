@@ -11,6 +11,7 @@ from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
 import nonebot.config
 from nonebot import get_driver
+import argparse
 
 from .config import Config
 
@@ -37,25 +38,24 @@ def threaded_update_cache(cache:BaseCache,name:str):
     logger.info(f"Loaded {cache.entries.__len__()} entries into {name}, expiring at {time.ctime(cache.expiration_time)}")
 
 class SearchArgs:
+    parser=argparse.ArgumentParser()
+    parser.add_argument('-p',type=int,default=1)
+    parser.add_argument('-f',action='store_true')
+    parser.add_argument('search', nargs='*', type=str, help='search string')
+    parser.add_argument('-t',type=int,default=-1)
+    
+    page:int
+    fuzzy:bool
+    text:str
+    tier:int
+    
     def __init__(self,text:str) -> None:
-        self.page=0
-        self.fuzzy=False
+        args=self.parser.parse_args(text.split(" "))
+        self.page=args.p
+        self.fuzzy=args.f
+        self.text=" ".join(args.search)
+        self.tier=args.t
         
-        args=text.split(" ")
-        
-        while args and args[0].startswith("-"):
-            arg=args[0].removeprefix("-")
-            args.pop(0)
-            self.applyArg(arg)
-            
-        self.text=" ".join(args)
-        # logger.info(f"Search: Page={self.page}, Fuzzy={self.fuzzy}, Text={self.text}")
-        
-    def applyArg(self,arg:str):
-        if arg=="f":
-            self.fuzzy=True
-        elif re.match(r"[0-9]+",arg):
-            self.page=int(arg)
 
 platweight = on_command("platweight")
 @platweight.handle()
@@ -146,6 +146,9 @@ async def _(args: Message = CommandArg()):
     #     if search in l.name.lower():
     #         results.append(l)
     results=search_in_levels(PLAT_CHART_CACHE.get(),search,sa.fuzzy)
+    
+    if sa.tier>=0:
+        results = [r for r in results if r.tier==str(sa.tier)]
     
     count=results.__len__()
     entries_per_page = 5
@@ -279,8 +282,9 @@ async def _():
         "platsheet 在NLW/IDS/HDS中搜索Plat关卡",
         "platweight 获取Plat Rank中关卡的Weight",
         "platskill <Skillsets> 根据NLW/IDS/HDS的Skillset标签搜索Plat关卡",
-        "加入 -f 以模糊匹配, -页数 以翻页",
-        "举例: '-platsearch -f -3 dash' 搜索名称包含dash的关卡, 并翻到第3页",
+        "加入 -f 以模糊匹配, -p<页数> 以翻页, -t<Tier数> 按Tier过滤",
+        "举例: '-platsearch -f -p3 dash' 搜索名称包含dash的关卡, 并翻到第3页",
+        "举例: '-platsearch -f -t9' 列举 Tier 9 的关卡",
     ]
     await plathelp.finish("\n".join(help_lines))
     return
