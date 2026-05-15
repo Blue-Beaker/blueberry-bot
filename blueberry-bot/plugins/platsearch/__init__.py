@@ -54,7 +54,7 @@ class SearchArgs:
         args=self.parser.parse_args(text.split(" "))
         self.page=args.p
         self.fuzzy=args.f
-        self.text=" ".join(args.search)
+        self.text=(" ".join(args.search)).replace("_","-")
         self.tier=args.t
 
 def get_weight_factors():
@@ -324,6 +324,7 @@ async def _():
         "加入 -f 以模糊匹配, -p<页数> 以翻页, -t<Tier数> 按Tier过滤",
         "举例: '-platsearch -f -p3 dash' 搜索名称包含dash的关卡, 并翻到第3页",
         "举例: '-platsearch -f -t9' 列举 Tier 9 的关卡",
+        "由于搜索参数限制, 关名有-请用_代替",
     ]
     await plathelp.finish("\n".join(help_lines))
     return
