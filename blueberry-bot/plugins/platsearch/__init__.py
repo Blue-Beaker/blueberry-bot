@@ -11,13 +11,16 @@ from nonebot.rule import is_type
 from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
 import nonebot.config
-from nonebot import get_driver
+from nonebot import get_driver,require
 import argparse
 
 from .config import Config
 
 from . import plat_sheets
 from .data_cache import BaseCache
+
+require('bbot_api')
+from ..bbot_api.argparse import ArgumentError,ArgParser
 
 plugin_config = get_plugin_config(Config)
 
@@ -38,23 +41,8 @@ def threaded_update_cache(cache:BaseCache,name:str):
     cache.get()
     logger.info(f"Loaded {cache.entries.__len__()} entries into {name}, expiring at {time.ctime(cache.expiration_time)}")
 
-class ArgumentError(Exception):
-    pass
-
-class SafeParser(argparse.ArgumentParser):
-    def error(self, message):
-        """error(message: string)
-
-        Prints a usage message incorporating the message to stderr and
-        exits.
-
-        If you override this in a subclass, it should not return -- it
-        should either exit or raise an exception.
-        """
-        raise ArgumentError(message)
-
 class SearchArgs:
-    parser=SafeParser()
+    parser=ArgParser()
     parser.add_argument('-p',type=int,default=1)
     parser.add_argument('-f',action='store_true')
     parser.add_argument('search', nargs='*', type=str, help='search string')
