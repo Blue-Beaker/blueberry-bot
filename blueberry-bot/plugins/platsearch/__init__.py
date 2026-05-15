@@ -38,8 +38,23 @@ def threaded_update_cache(cache:BaseCache,name:str):
     cache.get()
     logger.info(f"Loaded {cache.entries.__len__()} entries into {name}, expiring at {time.ctime(cache.expiration_time)}")
 
+class ArgumentError(Exception):
+    pass
+
+class SafeParser(argparse.ArgumentParser):
+    def error(self, message):
+        """error(message: string)
+
+        Prints a usage message incorporating the message to stderr and
+        exits.
+
+        If you override this in a subclass, it should not return -- it
+        should either exit or raise an exception.
+        """
+        raise ArgumentError(message)
+
 class SearchArgs:
-    parser=argparse.ArgumentParser()
+    parser=SafeParser()
     parser.add_argument('-p',type=int,default=1)
     parser.add_argument('-f',action='store_true')
     parser.add_argument('search', nargs='*', type=str, help='search string')
@@ -71,7 +86,12 @@ WEIGHT_FACTORS=get_weight_factors()
 platweight = on_command("platweight")
 @platweight.handle()
 async def _(args: Message = CommandArg()):
-    sa=SearchArgs(args.extract_plain_text())
+    try:
+        sa=SearchArgs(args.extract_plain_text())
+    except ArgumentError as e:
+        await platweight.finish(f"参数解析失败:{e}")
+        return
+        
     text=sa.text
     
     search = [s.strip() for s in text.lower().split(",")]
@@ -134,7 +154,11 @@ async def _(args: Message = CommandArg()):
 platsheet = on_command("platsheet")
 @platsheet.handle()
 async def _(args: Message = CommandArg()):
-    sa=SearchArgs(args.extract_plain_text())
+    try:
+        sa=SearchArgs(args.extract_plain_text())
+    except ArgumentError as e:
+        await platweight.finish(f"参数解析失败:{e}")
+        return
     text=sa.text
     page=sa.page
     
@@ -171,7 +195,11 @@ async def _(args: Message = CommandArg()):
 platsearch = on_command("platsearch")
 @platsearch.handle()
 async def _(args: Message = CommandArg()):
-    sa=SearchArgs(args.extract_plain_text())
+    try:
+        sa=SearchArgs(args.extract_plain_text())
+    except ArgumentError as e:
+        await platweight.finish(f"参数解析失败:{e}")
+        return
     text=sa.text
     page=sa.page
     skills=sa.skills
@@ -237,7 +265,11 @@ async def _(args: Message = CommandArg()):
 platskill = on_command("platskill")
 @platskill.handle()
 async def _(args: Message = CommandArg()):
-    sa=SearchArgs(args.extract_plain_text())
+    try:
+        sa=SearchArgs(args.extract_plain_text())
+    except ArgumentError as e:
+        await platweight.finish(f"参数解析失败:{e}")
+        return
     search=sa.text
     page=sa.page
     
