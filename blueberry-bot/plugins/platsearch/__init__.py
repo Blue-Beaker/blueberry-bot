@@ -44,16 +44,19 @@ class SearchArgs:
     parser.add_argument('-f',action='store_true')
     parser.add_argument('search', nargs='*', type=str, help='search string')
     parser.add_argument('-t',type=int,default=-1)
+    parser.add_argument('-s',type=str,default=None)
     
     page:int
     fuzzy:bool
     text:str
     tier:int
+    skills:list[str]
     
     def __init__(self,text:str) -> None:
         args=self.parser.parse_args(text.split(" "))
         self.page=args.p
         self.fuzzy=args.f
+        self.skills=[t.strip().lower() for t in args.s.split(",")] if args.s else []
         self.text=(" ".join(args.search)).replace("_","-")
         self.tier=args.t
 
@@ -171,6 +174,7 @@ async def _(args: Message = CommandArg()):
     sa=SearchArgs(args.extract_plain_text())
     text=sa.text
     page=sa.page
+    skills=sa.skills
     
     search = text.strip().lower()
     
@@ -185,6 +189,9 @@ async def _(args: Message = CommandArg()):
     #     if search in l.name.lower():
     #         results.append(l)
     results=search_in_levels(PLAT_CHART_CACHE.get(),search,sa.fuzzy)
+    
+    if skills:
+        results = [r for r in results if r.has_skills(skills)]
     
     if sa.tier>=0:
         results = [r for r in results if r.tier==str(sa.tier)]

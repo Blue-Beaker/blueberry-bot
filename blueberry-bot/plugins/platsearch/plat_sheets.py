@@ -162,6 +162,7 @@ class PlatChartEntry(LevelEntry):
     pemon:str|None
     weight:int|None
     weight_type:str|None
+    tags:list[str]=[]
     def __init__(self) -> None:
         super().__init__()
         self.tpl=None
@@ -180,6 +181,9 @@ class PlatChartEntry(LevelEntry):
         return "Level:"+", ".join([f"{k}:{v}"for k,v in self.__dict__.items()])
     def __str__(self):
         return f"{self.name} {self.id}"
+    
+    def has_skills(self,search:list[str]):
+        return has_skills(search,self.tags)
     
     @classmethod
     def build(cls,tier:str,line:list[str]):
@@ -257,6 +261,26 @@ def get_plat_chart():
         entry.weight_type=level.section
 
     return results
+
+skill_groups=[["dash orbs","wavedash"]]
+
+def has_skills(search:list[str],level_skills:list[str]):
+    lskills=set()
+    for s in level_skills:
+        lskills.add(s.lower())
+        if " " in s:
+            lskills.add(s.lower().replace(" ",""))
+    
+    for group in skill_groups:
+        intersect=list(set(group) & set(lskills))
+        if intersect:
+            lskills=list(set(group) | set(lskills))
+    matched=True
+    for s in search:
+        if s.lower() not in lskills:
+            matched=False
+            break
+    return matched
 
 _A = TypeVar(name="_A")
 def safeInt(i:Any,fallback:_A=-1) -> int|_A:
