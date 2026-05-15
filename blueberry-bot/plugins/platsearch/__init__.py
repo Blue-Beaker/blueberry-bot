@@ -1,18 +1,15 @@
-import math
 import os
 import random
-import re
 import threading
 import time
-import traceback
 from typing import Any, TypeVar
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
 from nonebot.rule import is_type
 from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
+from nonebot.permission import SUPERUSER
 import nonebot.config
 from nonebot import get_driver,require
-import argparse
 
 from .config import Config
 
@@ -354,6 +351,17 @@ async def _():
         "由于搜索参数限制, 关名有-请用_代替",
     ]
     await plathelp.finish("\n".join(help_lines))
+    return
+
+
+platupdate = on_command("platupdate",permission=SUPERUSER)
+@platupdate.handle()
+async def _():
+    await platupdate.send("开始刷新platsearch缓存...\n刷新DifficultyChart...")
+    PLAT_CHART_CACHE.update()
+    await platupdate.send("刷新NLW/IDS/HDS...")
+    PLAT_SHEET_CACHE.update()
+    await platupdate.finish(f"刷新完毕. DifficultyChart:{PLAT_CHART_CACHE.entries.__len__()}, NLW/IDS/HDS:{PLAT_SHEET_CACHE.entries.__len__()})")
     return
 
 def get_help(bot:Bot,event:Event):

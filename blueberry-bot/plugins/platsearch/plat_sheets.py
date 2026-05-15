@@ -233,6 +233,10 @@ def get_plat_chart():
             try:
                 id = safeInt(line[0])
                 name=line[1]
+                # Skip challenges like Evernight (Coin), Storm Front (Deathless) etc.
+                if "(" in name or ")" in name:
+                    continue
+                
                 tier=line[2]
                 tier=tier if tier!="P" else None
                 tpl=line[3]
