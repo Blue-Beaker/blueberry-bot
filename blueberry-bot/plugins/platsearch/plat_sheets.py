@@ -142,8 +142,9 @@ def get_nlw():
                 current_section=level.removeprefix("|").strip()
                 continue
             creator=line[1]
-            if not level:
-                current_section="WTH IS THIS"
+            if not level and not creator:
+                # current_section="WTH IS THIS"
+                break
             checkpoints=line[2]
             skillsets=[i.strip() for i in line[3].split(",")]
             desc=line[5]
