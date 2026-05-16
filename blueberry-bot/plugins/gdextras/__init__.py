@@ -1,3 +1,4 @@
+import math
 import os
 import random
 import threading
@@ -16,7 +17,7 @@ from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGro
 require('bbot_api')
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel,getList
+from ..gd_api.gd import getLevel2,getList2
 from ..gd_api.thumbs import getThumbnail
 
 driver=get_driver()
@@ -32,20 +33,25 @@ async def _(args: Message = CommandArg()):
         parsed=parser.parse_args(raw_args)
         
         search=" ".join(parsed.search)
-        page=parsed.p or 0
+        page=parsed.p or 1
         
     except Exception as e:
         await gdlist.finish(str(e))
         return
     
     lines:list[str]=[]
-    lists=getList(search,page)
+    lists,pageinfo=getList2(search,page-1)
     
-    if lists.__len__()==0:
+    if lists.__len__()==0 or not pageinfo:
         lines.append("没有查找到任何List.")
-    else:
+    elif lists.__len__()>1:
+        lines.append(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
         for l in lists:
-            lines.append(f"{l.id} = {l.name} by {l.creator}")
+            lines.append(f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)")
+        await gdlist.finish("\n".join(lines))
+        return
+    l=lists[0]
+    lines.append(f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)")
     await gdlist.finish("\n".join(lines))
     
 
@@ -62,7 +68,7 @@ async def _(bot:Bot,args: Message = CommandArg()):
         parsed=parser.parse_args(raw_args)
         
         search=" ".join(parsed.search)
-        page=parsed.p or 0
+        page=parsed.p or 1
         rated=not parsed.a
         
     except Exception as e:
@@ -70,15 +76,16 @@ async def _(bot:Bot,args: Message = CommandArg()):
         return
     
     lines:list[str]=[]
-    levels=getLevel(search,page,rated)
+    levels,pageinfo=getLevel2(search,page-1,rated)
     if not isinstance(levels,list):
-        await gdthumb.finish("查找出错,可能是网络错误.")
+        await gdthumb.finish("查找出错.")
         return
     if levels.__len__()==0:
         await gdthumb.finish("没有查找到任何关卡.")
         return
-    elif levels.__len__()>1:
+    elif levels.__len__()>1 and pageinfo:
         lines.append("找到多个关卡,请用id选择:")
+        lines.append(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
         for l in levels:
             lines.append(f"{l.id} = {l.name} by {l.creator} ({l.repr_difficulty()})")
         await gdthumb.finish("\n".join(lines))

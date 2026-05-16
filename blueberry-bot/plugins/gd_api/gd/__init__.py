@@ -52,6 +52,22 @@ class Difficulty(Enum):
     EXTREME_DEMON=10
     AUTO=11
     
+class PageInfo:
+    def __init__(self) -> None:
+        self.total=0
+        self.offset=0
+        self.amount=10
+    def parse(self,line:str):
+        spl=line.split(":")
+        try:
+            if spl.__len__()>=3:
+                self.total=int(spl[0])
+                self.offset=int(spl[1])
+                self.amount=int(spl[2])
+        except:
+            pass
+        return self
+    
 class Level(BaseLevel):
     def __init__(self) -> None:
         self.stars:int=0
@@ -101,8 +117,11 @@ def parseLine(line:str):
             data[spl[i]]=spl[i+1]
         datas.append(data)
     return datas
-        
+
 def getList(search:int|str,page:int=0):
+    return getList2(search,page)[0]
+    
+def getList2(search:int|str,page:int=0):
     headers = {
         "User-Agent": ""
     }
@@ -123,7 +142,7 @@ def getList(search:int|str,page:int=0):
     result:list[LevelList]=[]
     spl=req.text.split("#")
     if spl.__len__()<4:
-        return []
+        return [],None
     rawLists=spl[0]
     rawCreators=spl[1]
     rawPageInfo=spl[2]
@@ -135,9 +154,11 @@ def getList(search:int|str,page:int=0):
             continue
         result.append(l)
         
-    return result
+    return result,PageInfo().parse(rawPageInfo)
 
 def getLevel(search:int|str,page:int=0,rated:bool=False):
+    return getLevel2(search,page,rated)[0]
+def getLevel2(search:int|str,page:int=0,rated:bool=False):
     headers = {
     "User-Agent": ""
     }
@@ -159,7 +180,7 @@ def getLevel(search:int|str,page:int=0,rated:bool=False):
     result:list[Level]=[]
     spl=req.text.split("#")
     if spl.__len__()<5:
-        return None
+        return None,None
     
     rawLevels=spl[0]
     rawCreators=spl[1]
@@ -182,7 +203,7 @@ def getLevel(search:int|str,page:int=0,rated:bool=False):
         except:
             pass
         
-    return result
+    return result,PageInfo().parse(rawPageInfo)
 
 
 _A = TypeVar(name="_A")
