@@ -57,8 +57,7 @@ async def _(args: Message = CommandArg()):
 
 gdthumb = on_command("gdthumb")
 @gdthumb.handle()
-async def _(bot:Bot,args: Message = CommandArg()):
-    
+async def _(bot:OBBot|DCBot,args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     try:
         parser=ArgParser()
@@ -107,3 +106,10 @@ def buildMessageImage(bot:Bot,message:str,image:bytes,image_name:str):
         return(OBMessageSegment.text(message)+OBMessageSegment.image(image))
     else:
         return(DCMessage().append(message).append(DCMessageSegment.attachment(image_name,content=image)))
+    
+
+def get_help(bot:Bot,event:Event):
+    if isinstance(bot,OBBot) or isinstance(bot,DCBot):
+        return ["gdthumb [关名/ID] 获取关卡截图"]
+    else:
+        return None
