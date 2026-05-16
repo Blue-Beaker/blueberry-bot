@@ -58,6 +58,7 @@ CONFIG_FILE="say_config.json"
 @driver.on_startup
 async def load():
     say_config.load()
+    logger.info(f"Loaded {say_config.allowed_sessions.keys().__len__()} say config entries")
     
 @driver.on_shutdown
 async def save():
@@ -137,6 +138,7 @@ async def set_say_state(enable:bool, isall:bool, event:Event, matcher:Type[Match
     else:
         say_config.set_enabled(getid(event),enable)
         await matcher.finish(f"say功能已为本会话{'启用' if enable else '关闭'}！")
+    say_config.save()
 
 
 def migrate_id_key(key: str) -> str:
