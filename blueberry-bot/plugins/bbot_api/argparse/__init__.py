@@ -6,6 +6,10 @@ class ArgumentError(Exception):
     pass
 
 class ArgParser(argparse.ArgumentParser):
+    def __init__(self,*args,**kwargs):
+        super().__init__(exit_on_error=False,add_help=False,*args,**kwargs)
+    def _print_message(self, message, file=None):
+        pass
     def error(self, message):
         """error(message: string)
 
@@ -15,4 +19,6 @@ class ArgParser(argparse.ArgumentParser):
         If you override this in a subclass, it should not return -- it
         should either exit or raise an exception.
         """
+        raise ArgumentError(message)
+    def exit(self, status=0, message=None):
         raise ArgumentError(message)

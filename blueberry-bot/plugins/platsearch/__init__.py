@@ -40,25 +40,37 @@ def threaded_update_cache(cache:BaseCache,name:str):
 
 class SearchArgs:
     parser=ArgParser()
-    parser.add_argument('-p',type=int,default=1)
-    parser.add_argument('-f',action='store_true')
+    parser.add_argument('-p',help="Page",type=int,default=1)
+    parser.add_argument('-f',help="Fuzzy Search",action='store_true')
     parser.add_argument('search', nargs='*', type=str, help='search string')
-    parser.add_argument('-t',type=int,default=-1)
-    parser.add_argument('-s',type=str,default=None)
+    parser.add_argument('-t',help="Tier",type=int,default=-1)
+    parser.add_argument('-s',help="Skills",type=str,default=None)
     
     page:int
     fuzzy:bool
     text:str
     tier:int
     skills:list[str]
+    error:str|None=None
     
-    def __init__(self,text:str) -> None:
-        args=self.parser.parse_args(text.split(" "))
-        self.page=args.p
-        self.fuzzy=args.f
-        self.skills=[t.strip().lower() for t in args.s.split(",")] if args.s else []
-        self.text=(" ".join(args.search)).replace("_","-")
-        self.tier=args.t
+    def __init__(self) -> None:
+        self.page=1
+        self.fuzzy=False
+        self.skills=[]
+        self.text=""
+        self.tier=-1
+        
+    def parse(self,text:str):
+        try:
+            args=self.parser.parse_args(text.split(" "))
+            self.page=args.p
+            self.fuzzy=args.f
+            self.skills=[t.strip().lower() for t in args.s.split(",")] if args.s else []
+            self.text=(" ".join(args.search)).replace("_","-")
+            self.tier=args.t
+        except Exception as e:
+            self.error=str(e)
+        return self
 
 def get_weight_factors():
     factor=0.2**(1/9)
@@ -71,10 +83,9 @@ WEIGHT_FACTORS=get_weight_factors()
 platweight = on_command("platweight")
 @platweight.handle()
 async def _(args: Message = CommandArg()):
-    try:
-        sa=SearchArgs(args.extract_plain_text())
-    except ArgumentError as e:
-        await platweight.finish(f"参数解析失败:{e}")
+    sa=SearchArgs().parse(args.extract_plain_text())
+    if sa.error:
+        await platweight.finish(sa.error)
         return
         
     text=sa.text
@@ -139,10 +150,9 @@ async def _(args: Message = CommandArg()):
 platsheet = on_command("platsheet")
 @platsheet.handle()
 async def _(args: Message = CommandArg()):
-    try:
-        sa=SearchArgs(args.extract_plain_text())
-    except ArgumentError as e:
-        await platweight.finish(f"参数解析失败:{e}")
+    sa=SearchArgs().parse(args.extract_plain_text())
+    if sa.error:
+        await platweight.finish(sa.error)
         return
     text=sa.text
     page=sa.page
@@ -180,16 +190,27 @@ async def _(args: Message = CommandArg()):
 platsearch = on_command("platsearch")
 @platsearch.handle()
 async def _(args: Message = CommandArg()):
-    try:
-        sa=SearchArgs(args.extract_plain_text())
-    except ArgumentError as e:
-        await platweight.finish(f"参数解析失败:{e}")
+    if not args.extract_plain_text().strip():
+        await platsearch.finish("\n".join(
+            [
+                "用法: -platsearch [参数] <关名/ID>"
+                "加入 -f 以模糊匹配, -p<页数> 以翻页",
+                "-t<Tier数> 按Tier过滤, -s<Tags> 按Tag过滤(自动启用模糊匹配)",
+                "举例: '-platsearch -f -p3 dash' 搜索名称包含dash的关卡, 并翻到第3页",
+                "举例: '-platsearch -t9' 列举 Tier 9 的关卡"
+                ]))
+    sa=SearchArgs().parse(args.extract_plain_text())
+    if sa.error:
+        await platweight.finish(sa.error)
         return
     text=sa.text
     page=sa.page
     skills=sa.skills
     
     search = text.strip().lower()
+    
+    if sa.tier>=0 or sa.skills:
+        sa.fuzzy=True
     
     msg:list[str]=[]
     
@@ -201,7 +222,8 @@ async def _(args: Message = CommandArg()):
     # for l in levels:
     #     if search in l.name.lower():
     #         results.append(l)
-    results=search_in_levels(PLAT_CHART_CACHE.get(),search,sa.fuzzy)
+    # results=search_in_levels(PLAT_CHART_CACHE.get(),search,sa.fuzzy)
+    results=[l for l in PLAT_CHART_CACHE.get() if (l.matchesName(search,sa.fuzzy) or str(l.id)==search)]
     
     if skills:
         results = [r for r in results if r.has_skills(skills)]
@@ -224,24 +246,31 @@ async def _(args: Message = CommandArg()):
                 line.append(f" ({l.id})")
             if l.tier:
                 line.append(f"(T{l.tier})")
-            if l.tags:
-                line.append(f"\nTags: {','.join(l.tags)}")
-            rankline=[]
-            if l.enj and l.enj!="/":
-                rankline.append(f"Enj: {l.enj}")
-            if l.tpl and l.weight and l.tpl==l.weight:
-                rankline.append(f"TPL/Weight: {l.tpl}")
+            if count<=3:
+                if l.tags:
+                    line.append(f"\nTags: {','.join(l.tags)}")
+                rankline=[]
+                if l.enj and l.enj!="/":
+                    rankline.append(f"Enj: {l.enj}")
+                if l.tpl and l.weight and l.tpl==l.weight:
+                    rankline.append(f"TPL/Weight: {l.tpl}")
+                else:
+                    if l.tpl:
+                        rankline.append(f"TPL: {l.tpl}")
+                    if l.weight:
+                        rankline.append(f"Weight: {l.weight}")
+                if l.pemon:
+                    rankline.append(f"Pemonlist: {l.pemon}")
+                    
+                if rankline:
+                    line.append("\n"+",".join(rankline))
             else:
-                if l.tpl:
-                    rankline.append(f"TPL: {l.tpl}")
-                if l.weight:
-                    rankline.append(f"Weight: {l.weight}")
-            if l.pemon:
-                rankline.append(f"Pemonlist: {l.pemon}")
+                tagstr=','.join(l.tags) if l.tags else ""
+                if tagstr.__len__()>15:
+                    tagstr=tagstr[0:13]+"..."
+                line.append(f"\nE{l.enj or '-'},W{l.weight or l.tpl or '-'},P{l.pemon or '-'}")
+                line.append(f" {tagstr}")
                 
-            if rankline:
-                line.append("\n"+",".join(rankline))
-            
             msg.append("".join(line))
         
     await platsearch.send("\n".join(msg))
@@ -250,10 +279,9 @@ async def _(args: Message = CommandArg()):
 platskill = on_command("platskill")
 @platskill.handle()
 async def _(args: Message = CommandArg()):
-    try:
-        sa=SearchArgs(args.extract_plain_text())
-    except ArgumentError as e:
-        await platweight.finish(f"参数解析失败:{e}")
+    sa=SearchArgs().parse(args.extract_plain_text())
+    if sa.error:
+        await platweight.finish(sa.error)
         return
     search=sa.text
     page=sa.page
@@ -345,9 +373,7 @@ async def _():
         "platsheet 在NLW/IDS/HDS中搜索Plat关卡",
         "platweight <关卡1>,<关卡2>... 计算Plat关卡的Weight之和",
         "platskill <Skillsets> 根据NLW/IDS/HDS的Skillset标签搜索Plat关卡",
-        "加入 -f 以模糊匹配, -p<页数> 以翻页, -t<Tier数> 按Tier过滤",
-        "举例: '-platsearch -f -p3 dash' 搜索名称包含dash的关卡, 并翻到第3页",
-        "举例: '-platsearch -f -t9' 列举 Tier 9 的关卡",
+        "加入 -f 以模糊匹配, -p<页数> 以翻页",
         "由于搜索参数限制, 关名有-请用_代替",
     ]
     await plathelp.finish("\n".join(help_lines))

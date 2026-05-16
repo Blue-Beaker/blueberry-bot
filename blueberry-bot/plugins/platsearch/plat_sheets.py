@@ -158,8 +158,8 @@ def get_3_lists():
     return results
 
 class PlatChartEntry(LevelEntry):
-    tpl:str|None
-    pemon:str|None
+    tpl:int|None
+    pemon:int|None
     weight:int|None
     weight_type:str|None
     tags:list[str]=[]
@@ -250,8 +250,8 @@ def get_plat_chart():
                     results.append(entry)
                     
                 if entry:
-                    entry.tpl=tpl if tpl!="-" else None
-                    entry.pemon=pemon if pemon!="-" else None
+                    entry.tpl=safeInt(tpl,None)
+                    entry.pemon=safeInt(pemon,None)
                 
             except:
                 pass
