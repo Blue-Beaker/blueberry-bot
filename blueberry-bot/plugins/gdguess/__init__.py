@@ -20,12 +20,14 @@ import requests
 
 from .guess_utils import random_crop,isnonsense_cv2
 from .config import Config
-from . import gd_api,thumbnail_api
 from .guess_session import GuessSession,SessionManager,ConfigManager,ConfigEntry
-from .pemonlist import getPemonlistLevels
 
 require("bbot_api")
 from ..bbot_api import getid,reaction_emoji,loadFile
+require("gd_api")
+from ..gd_api.pemonlist import getPemonlistLevels
+from ..gd_api import thumbs
+from ..gd_api import gd
 
 plugin_config = get_plugin_config(Config)
 
@@ -157,7 +159,7 @@ def get_levels_from_args(args:GuessArgs,session:Optional[GuessSession]):
         for i in args_text:
             if not i:
                 continue
-            lists=gd_api.getList(i)
+            lists=gd.getList(i)
             if lists.__len__()==0:
                 return None,f"关键词 {i} 没有查找到任何List."
             if lists.__len__()>1:
@@ -313,7 +315,7 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
         return
         
     # Chosen level
-    fetched_levels=gd_api.getLevel(levelID)
+    fetched_levels=gd.getLevel(levelID)
     
     if not fetched_levels:
         await matcher.send("错误:未找到关卡信息")
@@ -431,7 +433,7 @@ def roll_until_level(levels:list[int]):
     levelID=None
     while levels2 and not img:
         levelID = random.choice(levels2)
-        img=thumbnail_api.getThumbnail(levelID,plugin_config.level_thumbnails_api_base)
+        img=thumbs.getThumbnail(levelID,plugin_config.level_thumbnails_api_base)
         if not img:
             levels2.remove(levelID)
             
@@ -445,7 +447,7 @@ def recover_cache_img(id:str,session:GuessSession):
     if not os.path.exists(cachepath):
         logger.error(f"Recovering thumbnail for {id}")
         try:
-            rawimg=thumbnail_api.getThumbnail(session.level_id,plugin_config.level_thumbnails_api_base)
+            rawimg=thumbs.getThumbnail(session.level_id,plugin_config.level_thumbnails_api_base)
         except requests.ConnectionError as e:
             logger.error(f"Error fetching level thumbnail: {e}")
             return False

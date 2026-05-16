@@ -1,6 +1,9 @@
 import json
 from typing import Any
-from .gd_api import Level
+from nonebot import require
+
+require("gd_api")
+from ..gd_api.gd import Level
 
 class GuessSession:
     session_id:str
