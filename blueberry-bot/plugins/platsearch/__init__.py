@@ -46,13 +46,13 @@ class SearchArgs:
     parser.add_argument('-p',help="Page",type=int,default=1)
     parser.add_argument('-f',help="Fuzzy Search",action='store_true')
     parser.add_argument('search', nargs='*', type=str, help='search string')
-    parser.add_argument('-t',help="Tier",type=int,default=-1)
+    parser.add_argument('-t',help="Tier",type=str,default="")
     parser.add_argument('-s',help="Skills",type=str,default=None)
     
     page:int
     fuzzy:bool
     text:str
-    tier:int
+    tier:str
     skills:list[str]
     error:str|None=None
     
@@ -61,7 +61,7 @@ class SearchArgs:
         self.fuzzy=False
         self.skills=[]
         self.text=""
-        self.tier=-1
+        self.tier=""
         
     def parse(self,text:str):
         try:
@@ -86,12 +86,16 @@ WEIGHT_FACTORS=get_weight_factors()
 platweight = on_command("platweight")
 @platweight.handle()
 async def _(args: Message = CommandArg()):
-    sa=SearchArgs().parse(args.extract_plain_text())
-    if sa.error:
-        await platweight.finish(sa.error)
-        return
+    raw_args=args.extract_plain_text().split()
+    try:
+        parser=ArgParser()
+        parser.add_argument('search', nargs='*', type=str, help='search string')
+        parsed=parser.parse_args(raw_args)
         
-    text=sa.text
+        text=" ".join(parsed.search)
+    except Exception as e:
+        await platweight.finish(str(e))
+        return
     
     search = [s.strip() for s in text.lower().split(",")]
     
@@ -153,26 +157,46 @@ async def _(args: Message = CommandArg()):
 platsheet = on_command("platsheet")
 @platsheet.handle()
 async def _(args: Message = CommandArg()):
+    if not args.extract_plain_text().strip():
+        await platsheet.finish("\n".join(
+            [
+                "用法: -platsheet [参数] <关名/ID>"
+                "加入 -f 以模糊匹配, -p<页数> 以翻页",
+                "-t<Tier数> 按Tier过滤, -s<Tags> 按Skillset过滤(自动启用模糊匹配)",
+                "举例: '-platsheet -p3 -s dash' 搜索名称包含dash的关卡, 并翻到第3页",
+                "举例: '-platsheet -t easy -s wavedash' 列举 Easy 且包含 wavedash skill 的关卡"
+                ]))
+        
     sa=SearchArgs().parse(args.extract_plain_text())
     if sa.error:
         await platweight.finish(sa.error)
         return
     text=sa.text
     page=sa.page
+    skills=sa.skills
+    tier=sa.tier.lower()
+    fuzzy=sa.fuzzy
     
+    if tier or skills:
+        fuzzy=True
+        
     search = text.strip().lower()
     msg=[]
     
-    if not sa.fuzzy:
+    if not fuzzy:
         msg.append(f"Exact match, use -f [levelname] for fuzzy search")
     # results=level_in_three_sheets(search)
     
-    results=search_in_levels(PLAT_SHEET_CACHE.get(),search,sa.fuzzy)
+    results=[l for l in PLAT_SHEET_CACHE.get() if l.matchesName(search,fuzzy)]
     
-    
+    if skills:
+        results = [r for r in results if r.has_skills(skills)]
+    if tier:
+        results = [r for r in results if r.section.lower()==tier]
+        
     count=results.__len__()
     
-    entries_per_page = 3
+    entries_per_page = 5
     
     results:list[plat_sheets.TheListsEntry]
     results,maxpages,page=select_page(results,count,entries_per_page,page)
@@ -183,9 +207,15 @@ async def _(args: Message = CommandArg()):
         msg.append(f"{count} on sheets (Page {page}/{maxpages}):")
         
         for level in results:
-            msg.append(f"{level.name} by {level.creator} ({level.sheet} {level.section}):")
-            msg.append(f"Checkpoints: {level.checkpoints}, Skillsets: {",".join(level.skillsets)}")
-            msg.append(f"Description: {level.description}")
+            if count<=3:
+                msg.append(f"{level.name} by {level.creator} ({level.sheet} {level.section}):")
+                msg.append(f"Checkpoints: {level.checkpoints}, Skillsets: {",".join(level.skillsets)}")
+                msg.append(f"Description: {level.description}")
+            else:
+                line=f"{level.name} by {level.creator} ({level.sheet} {level.section})"
+                if level.checkpoints:
+                    line+=f" ◆{level.checkpoints}"
+                msg.append(line)
         
     await platsheet.send("\n".join(msg))
 
@@ -209,15 +239,16 @@ async def _(args: Message = CommandArg()):
     text=sa.text
     page=sa.page
     skills=sa.skills
+    tier=sa.tier
     
     search = text.strip().lower()
     
-    if sa.tier>=0 or sa.skills:
-        sa.fuzzy=True
+    if tier or skills:
+        fuzzy=True
     
     msg:list[str]=[]
     
-    if not sa.fuzzy:
+    if not fuzzy:
         msg.append(f"Exact match, use -f [levelname] for fuzzy search")
     # results:list[plat_sheets.PlatChartEntry]=[]
     # levels=plat_sheets.get_plat_chart()
@@ -225,14 +256,14 @@ async def _(args: Message = CommandArg()):
     # for l in levels:
     #     if search in l.name.lower():
     #         results.append(l)
-    # results=search_in_levels(PLAT_CHART_CACHE.get(),search,sa.fuzzy)
-    results=[l for l in PLAT_CHART_CACHE.get() if (l.matchesName(search,sa.fuzzy) or str(l.id)==search)]
+    # results=search_in_levels(PLAT_CHART_CACHE.get(),search,fuzzy)
+    results=[l for l in PLAT_CHART_CACHE.get() if (l.matchesName(search,fuzzy) or str(l.id)==search)]
     
     if skills:
         results = [r for r in results if r.has_skills(skills)]
     
-    if sa.tier>=0:
-        results = [r for r in results if r.tier==str(sa.tier)]
+    if tier:
+        results = [r for r in results if r.tier==str(tier)]
     
     count=results.__len__()
     entries_per_page = 5
@@ -279,46 +310,46 @@ async def _(args: Message = CommandArg()):
     await platsearch.send("\n".join(msg))
     
     
-platskill = on_command("platskill")
-@platskill.handle()
-async def _(args: Message = CommandArg()):
-    sa=SearchArgs().parse(args.extract_plain_text())
-    if sa.error:
-        await platweight.finish(sa.error)
-        return
-    search=sa.text
-    page=sa.page
+# platskill = on_command("platskill")
+# @platskill.handle()
+# async def _(args: Message = CommandArg()):
+#     sa=SearchArgs().parse(args.extract_plain_text())
+#     if sa.error:
+#         await platweight.finish(sa.error)
+#         return
+#     search=sa.text
+#     page=sa.page
     
-    msg=[]
-    # If no args present, list all skillsets
-    if not sa.text:
-        the_lists=PLAT_SHEET_CACHE.get()
-        skills=[]
-        for l in the_lists:
-            for s in l.skillsets:
-                if s not in skills:
-                    skills.append(s)
-        msg.append(f"There are {skills.__len__()} skills.")
-        msg.append(f"Use '-platskill skill1,skill2...' to filter levels by skillsets.")
-        msg.append(f"Example: -platskill {random.choice(skills)}")
-        await platskill.send("\n".join(msg))
-        return
+#     msg=[]
+#     # If no args present, list all skillsets
+#     if not sa.text:
+#         the_lists=PLAT_SHEET_CACHE.get()
+#         skills=[]
+#         for l in the_lists:
+#             for s in l.skillsets:
+#                 if s not in skills:
+#                     skills.append(s)
+#         msg.append(f"There are {skills.__len__()} skills.")
+#         msg.append(f"Use '-platskill skill1,skill2...' to filter levels by skillsets.")
+#         msg.append(f"Example: -platskill {random.choice(skills)}")
+#         await platskill.send("\n".join(msg))
+#         return
         
     
-    results:list[plat_sheets.TheListsEntry]=skill_in_three_sheets(search)
+#     results:list[plat_sheets.TheListsEntry]=skill_in_three_sheets(search)
     
-    count=results.__len__()
-    entries_per_page = 5
+#     count=results.__len__()
+#     entries_per_page = 5
     
-    results,maxpages,page=select_page(results,count,entries_per_page,page)
+#     results,maxpages,page=select_page(results,count,entries_per_page,page)
         
-    if not count:
-        msg.append(f"No levels found with skill {search}")
-    else:
-        msg.append(f"{count} levels found with skills (Page {page}/{maxpages}):")
-        msg.extend([f"{l.name} by {l.creator}" for l in results])
+#     if not count:
+#         msg.append(f"No levels found with skill {search}")
+#     else:
+#         msg.append(f"{count} levels found with skills (Page {page}/{maxpages}):")
+#         msg.extend([f"{l.name} by {l.creator}" for l in results])
     
-    await platskill.send("\n".join(msg))
+#     await platskill.send("\n".join(msg))
 
 def level_in_three_sheets(search:str):
     result:list[plat_sheets.TheListsEntry]=[]
@@ -328,35 +359,33 @@ def level_in_three_sheets(search:str):
             result.append(level)
     return result
 
-skill_groups=[["dash orbs","wavedash"]]
-
-def skill_in_three_sheets(search:str):
-    result:list[plat_sheets.TheListsEntry]=[]
-    the_lists=PLAT_SHEET_CACHE.get()
-    split:list[str]=[t.strip().lower() for t in search.split(",")]
+# def skill_in_three_sheets(search:str):
+#     result:list[plat_sheets.TheListsEntry]=[]
+#     the_lists=PLAT_SHEET_CACHE.get()
+#     split:list[str]=[t.strip().lower() for t in search.split(",")]
     
-    for level in the_lists:
-        lskills=[s.lower() for s in level.skillsets]
-        for group in skill_groups:
-            intersect=list(set(group) & set(lskills))
-            if intersect:
-                lskills=list(set(group) | set(lskills))
-        matched=True
-        for s in split:
-            if s not in lskills:
-                matched=False
-                break
-        if matched:
-            result.append(level)
-    return result
+#     for level in the_lists:
+#         lskills=[s.lower() for s in level.skillsets]
+#         for group in skill_groups:
+#             intersect=list(set(group) & set(lskills))
+#             if intersect:
+#                 lskills=list(set(group) | set(lskills))
+#         matched=True
+#         for s in split:
+#             if s not in lskills:
+#                 matched=False
+#                 break
+#         if matched:
+#             result.append(level)
+#     return result
 
-L = TypeVar("L", bound=plat_sheets.LevelEntry)
-def search_in_levels(levels:list[L],search:str,fuzzy:bool=False):
-    result:list[L]=[]
-    for level in levels:
-        if level.matchesName(search,fuzzy):
-            result.append(level)
-    return result
+# L = TypeVar("L", bound=plat_sheets.LevelEntry)
+# def search_in_levels(levels:list[L],search:str,fuzzy:bool=False):
+#     result:list[L]=[]
+#     for level in levels:
+#         if level.matchesName(search,fuzzy):
+#             result.append(level)
+#     return result
 
 plathelp = on_command("plathelp")
 @plathelp.handle()
@@ -366,7 +395,6 @@ async def _():
         "platsearch 搜索Plat关卡",
         "platsheet 在NLW/IDS/HDS中搜索Plat关卡",
         "platweight <关卡1>,<关卡2>... 计算Plat关卡的Weight之和",
-        "platskill <Skillsets> 根据NLW/IDS/HDS的Skillset标签搜索Plat关卡",
         "加入 -f 以模糊匹配, -p<页数> 以翻页",
         "由于搜索参数限制, 关名有-请用_代替",
     ]

@@ -85,6 +85,8 @@ class TheListsEntry(LevelEntry):
         self.skillsets=skillsets
         self.description=description
         return self
+    def has_skills(self,search:list[str]):
+        return has_skills(search,self.skillsets,[["dash orbs","wavedash"]])
     def __repr__(self) -> str:
         return "Level:"+", ".join([f"{k}:{v}"for k,v in self.__dict__.items()])
     def __str__(self):
@@ -269,9 +271,7 @@ def get_plat_chart():
 
     return results
 
-skill_groups=[["dash orbs","wavedash"]]
-
-def has_skills(search:list[str],level_skills:list[str]):
+def has_skills(search:list[str],level_skills:list[str],skill_groups:list[list[str]]=[]):
     lskills=set()
     for s in level_skills:
         lskills.add(s.lower())
