@@ -1,8 +1,11 @@
 from pathlib import Path
+from typing import Any, TypeVar
 from nonebot.adapters import Event
 from nonebot.adapters.discord import GuildMessageCreateEvent,MessageEvent as DCMessageEvent
 from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent,Bot as OBBot
 from nonebot.adapters.minecraft import BaseChatEvent as MCBaseChatEvent
+from . import sheets_api
+sheets_api=sheets_api
 
 def getid(event: Event) -> str:
     if isinstance(event,DCMessageEvent):
@@ -25,3 +28,10 @@ async def reaction_emoji(bot:OBBot,msg:int,emoji:int):
 def loadFile(file:str|Path) -> bytes:
     with open(file,'rb') as f:
         return f.read()
+    
+_A = TypeVar(name="_A")
+def safeInt(i:Any,fallback:_A=-1) -> int|_A:
+    try:
+        return int(i)
+    except:
+        return fallback

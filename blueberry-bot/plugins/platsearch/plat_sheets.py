@@ -2,8 +2,10 @@
 import re
 from typing import Any, TypeVar
 from cachetools import cached, TTLCache
+from nonebot import require
 
-from .sheets_api import Sheet
+require('bbot_api')
+from ..bbot_api.sheets_api import Sheet
 
 PLAT_RANK_ID = "1uicngbhpej4PEmtYYeGmYlFsA28PwTzzouWb4EWQkTY"
 

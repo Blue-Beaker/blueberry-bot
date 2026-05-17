@@ -1,4 +1,4 @@
 from pydantic import BaseModel, field_validator
 
 class Config(BaseModel):
-    pass
+    sheets_api_key:str=""
