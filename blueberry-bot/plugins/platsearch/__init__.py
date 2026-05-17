@@ -15,9 +15,12 @@ from .config import Config
 
 from . import plat_sheets
 from .data_cache import BaseCache
+from .utils import select_page
 
 require('bbot_api')
 from ..bbot_api.argparse import ArgumentError,ArgParser
+
+from . import underrated
 
 plugin_config = get_plugin_config(Config)
 
@@ -346,15 +349,6 @@ def skill_in_three_sheets(search:str):
         if matched:
             result.append(level)
     return result
-
-T = TypeVar("T", bound=Any)
-def select_page(results:list[T],count:int,entries_per_page:int,page:int):
-    maxpages=1+((count-1)//entries_per_page)
-    page=max(1,min(page,maxpages))
-    if count>entries_per_page:
-        results=results[(page-1)*entries_per_page:min(page*entries_per_page,count)]
-    return results,maxpages,page
-
 
 L = TypeVar("L", bound=plat_sheets.LevelEntry)
 def search_in_levels(levels:list[L],search:str,fuzzy:bool=False):
