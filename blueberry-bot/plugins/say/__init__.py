@@ -106,7 +106,8 @@ async def _(bot:Bot,event: Event, arg: Message = CommandArg()):
     res = requests.get(plugin_config.say_request_url.replace("{$text}",text))
     if res.status_code != 200:
         logger.error(f"Request say failed: {res.status_code}")
-        await say.finish()
+        await say.finish("发生错误.")
+        return
         
     content_disposition = res.headers.get('Content-Disposition')
 
