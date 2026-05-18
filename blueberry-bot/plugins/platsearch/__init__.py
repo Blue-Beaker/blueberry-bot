@@ -240,6 +240,7 @@ async def _(args: Message = CommandArg()):
     page=sa.page
     skills=sa.skills
     tier=sa.tier
+    fuzzy=sa.fuzzy
     
     search = text.strip().lower()
     
