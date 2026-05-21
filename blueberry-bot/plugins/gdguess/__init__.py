@@ -240,10 +240,11 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
         msg=f"恭喜你猜对了! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
         if session.hints_used:
             msg=msg+" (已使用提示)"
-        
-        await gdguess.send(buildMessageImage(bot,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{session.session_id}.webp",session.crop)),at_sender=True)
+            
         if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
             await reaction_emoji(bot,event.message_id,144) # Confetti emoji
+        
+        await gdguess.send(buildMessageImage(bot,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{session.session_id}.webp",session.crop)),at_sender=True)
             
         last_finish_time[id]=int(time.time())
         
