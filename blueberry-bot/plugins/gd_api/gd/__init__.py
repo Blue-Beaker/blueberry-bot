@@ -122,6 +122,36 @@ class PlayerIcons:
     def __repr__(self) -> str:
         return f"Icon: {self.__dict__}"
     
+class PlayerDemonLevels:
+    ezd:int=-1
+    med:int=-1
+    hdd:int=-1
+    insd:int=-1
+    exd:int=-1
+    
+    weekly:int=-1
+    gauntlet:int=-1
+    
+    def load(self,data:str):
+        spl=data.split(",")
+        if spl.__len__()>=5:
+            self.ezd=safeInt(spl[0])
+            self.med=safeInt(spl[1])
+            self.hdd=safeInt(spl[2])
+            self.insd=safeInt(spl[3])
+            self.exd=safeInt(spl[4])
+        if spl.__len__()>=12:
+            self.weekly=safeInt(spl[10])
+            self.gauntlet=safeInt(spl[11])
+        return self
+    
+    def sum(self):
+        l=self
+        return l.ezd+l.med+l.hdd+l.insd+l.exd
+    
+    def __repr__(self) -> str:
+        return f"Demons: {self.__dict__}"
+
 class PlayerLevels:
     auto:int=-1
     easy:int=-1
@@ -129,14 +159,8 @@ class PlayerLevels:
     hard:int=-1
     harder:int=-1
     insane:int=-1
-    ezd:int=-1
-    med:int=-1
-    hdd:int=-1
-    insd:int=-1
-    exd:int=-1
     
     daily:int=-1
-    gauntlet_demons:int=-1
     gauntlet:int=-1
     
     def load(self,data:str):
@@ -152,16 +176,9 @@ class PlayerLevels:
             self.gauntlet=safeInt(spl[7]) if spl.__len__()>7 else -1
         return self
     
-    def load_demons(self,data:str):
-        spl=data.split(",")
-        if spl.__len__()>=5:
-            self.ezd=safeInt(spl[0])
-            self.med=safeInt(spl[1])
-            self.hdd=safeInt(spl[2])
-            self.insd=safeInt(spl[3])
-            self.exd=safeInt(spl[4])
-            self.gauntlet_demons=safeInt(spl[11]) if spl.__len__()>11 else -1
-        return self
+    def sum(self):
+        l=self
+        return l.auto+l.easy+l.normal+l.hard+l.harder+l.insane
     
     def __repr__(self) -> str:
         return f"Levels: {self.__dict__}"
@@ -184,6 +201,8 @@ class PlayerInfo:
     icon:PlayerIcons
     classic_levels:PlayerLevels
     plat_levels:PlayerLevels
+    classic_demons:PlayerDemonLevels
+    plat_demons:PlayerDemonLevels
     
     def load(self,data:dict[str,str]):
         self.user_name=data.get("1","")
@@ -231,7 +250,14 @@ class PlayerInfo:
         # Demons breakdown (key 55): {easy},{medium},{hard},{insane},{extreme},{easyPlat},{mediumPlat},{hardPlat},{insanePlat},{extremePlat},{weekly},{gauntlet}
         demons_raw=data.get("55","")
         if demons_raw:
-            self.classic_levels.load_demons(demons_raw)
+            self.classic_demons=PlayerDemonLevels().load(demons_raw)
+            spl=demons_raw.split(",")
+            if spl.__len__()>=10:
+                plat_demons_data=",".join(spl[5:10])
+                self.plat_demons=PlayerDemonLevels().load(plat_demons_data)
+        else:
+            self.classic_demons=PlayerDemonLevels()
+            self.plat_demons=PlayerDemonLevels()
         
         return self
         

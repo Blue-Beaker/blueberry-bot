@@ -17,7 +17,8 @@ from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGro
 require('bbot_api')
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2,getList2
+from ..gd_api.gd import getLevel2,getList2,getUser
+from ..gd_api import gd
 from ..gd_api.thumbs import getThumbnail
 
 driver=get_driver()
@@ -99,6 +100,75 @@ async def _(bot:OBBot|DCBot,args: Message = CommandArg()):
         await gdthumb.finish(buildMessageImage(bot,f"{l.name} by {l.creator} ({l.repr_difficulty()})",thumb,f"{l.id}.png"))
         return
     
+gduser = on_command("gduser")
+@gduser.handle()
+async def _(args: Message = CommandArg()):
+    raw_args=args.extract_plain_text().split()
+    try:
+        parser=ArgParser()
+        parser.add_argument('-c',help='Show Classic breakdown',action='store_true')
+        parser.add_argument('-p',help='Show Platformer breakdown',action='store_true')
+        parser.add_argument('-d',help='Show Demons breakdown',action='store_true')
+        parser.add_argument('-v',help='Show Other Info',action='store_true')
+        parser.add_argument('search', nargs='*', type=str, help='search string')
+        parsed=parser.parse_args(raw_args)
+        search=" ".join(parsed.search)
+        show_classic=bool(parsed.c)
+        show_plat=bool(parsed.p)
+        show_demons=bool(parsed.d)
+        show_other=bool(parsed.v)
+        
+    except Exception as e:
+        await gduser.finish(str(e))
+        return
+    
+    lines:list[str]=[]
+    
+    user=getUser(search)
+    if not user:
+        await gduser.finish("未找到玩家, 或发生错误.")
+        
+    lines.append(f"{user.user_name}")
+    stats_line=f"{user.stars}★ {user.moons}🌙 {user.secret_coins}✪ {user.user_coins}© {user.demons}😈 {user.diamonds}💎"
+    if user.creator_points:
+        stats_line+=f"{user.creator_points}🛠"
+    lines.append(stats_line)
+    
+    c=user.classic_levels
+    p=user.plat_levels
+    demons=user.classic_demons
+    pemons=user.plat_demons
+    
+    def format_nondemons(l:gd.PlayerLevels):
+        return f"{l.auto}🤖 {l.easy}😃 {l.normal}🙂 {l.hard}🙁, {l.harder}😡, {l.insane}😫"
+    
+    lines.append(f"Non-demons: {user.classic_levels.sum()}, Non-pemons: {user.plat_levels.sum()}")
+    lines.append(f"Demons: {demons.sum()}, Pemons: {pemons.sum()}")
+    
+    
+    if not (show_classic or show_plat or show_demons):
+        lines.append("使用-c、-p、-d参数, 可显示Classic、Plat与Demon关卡的详细计数")
+    
+    if show_classic:
+        lines.append(f"Classic: ")
+        lines.append(format_nondemons(user.classic_levels))
+        lines.append(f"Daily: {c.daily} Gauntlets: {c.gauntlet}")
+        
+    if show_plat:
+        lines.append(f"Plat: ")
+        lines.append(format_nondemons(user.plat_levels))
+    
+    if show_demons:
+        lines.append(f"{demons.ezd}EZD {demons.med}MED {demons.hdd}HDD {demons.insd}INSD {demons.exd}EXD")
+        lines.append(f"{pemons.ezd}EZP {pemons.med}MEP {pemons.hdd}HDP {pemons.insd}INSP {pemons.exd}EXP")
+        lines.append(f"Weekly: {demons.weekly} Gauntlets: {demons.gauntlet}")
+        
+    if show_other:
+        lines.append(f"Global Rank {user.global_rank}")
+        lines.append(f"Account ID {user.account_id}")
+        lines.append(f"Player ID {user.user_id}")
+    
+    await gduser.finish("\n".join(lines))
     
     
 def buildMessageImage(bot:Bot,message:str,image:bytes,image_name:str):
@@ -110,6 +180,7 @@ def buildMessageImage(bot:Bot,message:str,image:bytes,image_name:str):
 
 def get_help(bot:Bot,event:Event):
     if isinstance(bot,OBBot) or isinstance(bot,DCBot):
-        return ["gdthumb [关名/ID] 获取关卡截图"]
+        return ["gdthumb [关名/ID] 获取关卡截图",
+                "gduser [用户名/ID] 展示玩家信息"]
     else:
         return None
