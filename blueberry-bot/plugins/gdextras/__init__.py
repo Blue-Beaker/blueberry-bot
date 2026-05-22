@@ -129,7 +129,7 @@ async def _(args: Message = CommandArg()):
         await gduser.finish("未找到玩家, 或发生错误.")
         
     lines.append(f"{user.user_name}")
-    stats_line=f"{user.stars}★ {user.moons}🌙 {user.secret_coins}✪ {user.user_coins}© {user.demons}😈 {user.diamonds}💎"
+    stats_line=f"{user.stars}⭐ {user.moons}🌙 {user.secret_coins}✪ {user.user_coins}© {user.demons}😈 {user.diamonds}💎"
     if user.creator_points:
         stats_line+=f"{user.creator_points}🛠"
     lines.append(stats_line)
