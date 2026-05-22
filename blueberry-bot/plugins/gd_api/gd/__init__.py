@@ -105,17 +105,158 @@ class Level(BaseLevel):
         return self
     def __repr__(self) -> str:
         return f"{self.name} by {self.creator}, id={self.id}, {self.repr_difficulty()}"
+
+class PlayerIcons:
+    color:int
+    color2:int
+    icon_type:int
+    acc_icon:int
+    acc_ship:int
+    acc_ball:int
+    acc_ufo:int
+    acc_wave:int
+    acc_robot:int
+    acc_glow:int
+    acc_swing:int
+    acc_jetpack:int
+    def __repr__(self) -> str:
+        return f"Icon: {self.__dict__}"
+    
+class PlayerLevels:
+    auto:int=-1
+    easy:int=-1
+    normal:int=-1
+    hard:int=-1
+    harder:int=-1
+    insane:int=-1
+    ezd:int=-1
+    med:int=-1
+    hdd:int=-1
+    insd:int=-1
+    exd:int=-1
+    
+    daily:int=-1
+    gauntlet_demons:int=-1
+    gauntlet:int=-1
+    
+    def load(self,data:str):
+        spl=data.split(",")
+        if spl.__len__()>=7:
+            self.auto=safeInt(spl[0])
+            self.easy=safeInt(spl[1])
+            self.normal=safeInt(spl[2])
+            self.hard=safeInt(spl[3])
+            self.harder=safeInt(spl[4])
+            self.insane=safeInt(spl[5])
+            self.daily=safeInt(spl[6])
+            self.gauntlet=safeInt(spl[7]) if spl.__len__()>7 else -1
+        return self
+    
+    def load_demons(self,data:str):
+        spl=data.split(",")
+        if spl.__len__()>=5:
+            self.ezd=safeInt(spl[0])
+            self.med=safeInt(spl[1])
+            self.hdd=safeInt(spl[2])
+            self.insd=safeInt(spl[3])
+            self.exd=safeInt(spl[4])
+            self.gauntlet_demons=safeInt(spl[11]) if spl.__len__()>11 else -1
+        return self
+    
+    def __repr__(self) -> str:
+        return f"Levels: {self.__dict__}"
+    
+class PlayerInfo:
+    user_name:str
+    user_id:int
+    stars:int
+    moons:int
+    demons:int
+    diamonds:int
+    mod_level:int
+    
+    global_rank:int
+    creator_points:int
+    secret_coins:int
+    account_id:int
+    user_coins:int
+    
+    icon:PlayerIcons
+    classic_levels:PlayerLevels
+    plat_levels:PlayerLevels
+    
+    def load(self,data:dict[str,str]):
+        self.user_name=data.get("1","")
+        self.user_id=safeInt(data.get("2"))
+        self.stars=safeInt(data.get("3"),0)
+        self.demons=safeInt(data.get("4"),0)
+        self.creator_points=safeInt(data.get("8"),0)
+        self.secret_coins=safeInt(data.get("13"),0)
+        self.account_id=safeInt(data.get("16"),0)
+        self.user_coins=safeInt(data.get("17"),0)
+        self.global_rank=safeInt(data.get("30"),-1)
+        self.diamonds=safeInt(data.get("46"),0)
+        self.mod_level=safeInt(data.get("49"),0)
+        self.moons=safeInt(data.get("52"),0)
+        
+        # Parse icon data
+        icon=PlayerIcons()
+        icon.color=safeInt(data.get("10"),0)
+        icon.color2=safeInt(data.get("11"),0)
+        icon.icon_type=safeInt(data.get("14"),0)
+        icon.acc_icon=safeInt(data.get("21"),0)
+        icon.acc_ship=safeInt(data.get("22"),0)
+        icon.acc_ball=safeInt(data.get("23"),0)
+        icon.acc_ufo=safeInt(data.get("24"),0)
+        icon.acc_wave=safeInt(data.get("25"),0)
+        icon.acc_robot=safeInt(data.get("26"),0)
+        icon.acc_glow=safeInt(data.get("28"),0)
+        icon.acc_swing=safeInt(data.get("53"),0)
+        icon.acc_jetpack=safeInt(data.get("54"),0)
+        self.icon=icon
+        
+        # Parse level breakdowns
+        classic_raw=data.get("56","")
+        if classic_raw:
+            self.classic_levels=PlayerLevels().load(classic_raw)
+        else:
+            self.classic_levels=PlayerLevels()
+            
+        plat_raw=data.get("57","")
+        if plat_raw:
+            self.plat_levels=PlayerLevels().load(plat_raw)
+        else:
+            self.plat_levels=PlayerLevels()
+        
+        # Demons breakdown (key 55): {easy},{medium},{hard},{insane},{extreme},{easyPlat},{mediumPlat},{hardPlat},{insanePlat},{extremePlat},{weekly},{gauntlet}
+        demons_raw=data.get("55","")
+        if demons_raw:
+            self.classic_levels.load_demons(demons_raw)
+        
+        return self
+        
+    def __repr__(self) -> str:
+        return f"{self.user_name}: {self.__dict__}"
+
+
+def parseDict(s:str):
+    spl=s.split(":")
+    data:dict[str,str]={}
+    for i in range(0,spl.__len__()-1,2):
+        data[spl[i]]=spl[i+1]
+    return data
     
 
 def parseLine(line:str):
     sublines=line.split("|")
     datas:list[dict[str,str]]=[]
     for subline in sublines:
-        spl=subline.split(":")
-        data:dict[str,str]={}
-        for i in range(0,spl.__len__()-1,2):
-            data[spl[i]]=spl[i+1]
-        datas.append(data)
+        # spl=subline.split(":")
+        # data:dict[str,str]={}
+        # for i in range(0,spl.__len__()-1,2):
+        #     data[spl[i]]=spl[i+1]
+        # datas.append(data)
+        datas.append(parseDict(subline))
     return datas
 
 def getList(search:int|str,page:int=0):
@@ -205,6 +346,35 @@ def getLevel2(search:int|str,page:int=0,rated:bool=False):
         
     return result,PageInfo().parse(rawPageInfo)
 
+def getUser(search:int|str):
+    headers = {
+        "User-Agent": ""  # Empty User-Agent
+    }
+    userid=safeInt(search)
+    data = {
+        "secret": "Wmfd2893gb7"
+    }
+    player_info=PlayerInfo()
+    # Name search
+    if userid<0:
+        data2=data.copy()
+        data2["str"]=str(search)
+        req = requests.post('http://www.boomlings.com/database/getGJUsers20.php', data=data2, headers=headers)
+        spl=req.text.split("#")
+        if spl.__len__()<2:
+            return None
+        user=spl[0]
+        pages=spl[1]
+        player_info.load(parseDict(user))
+        userid=player_info.account_id
+        
+    data["targetAccountID"]=str(userid)
+    req = requests.post("http://www.boomlings.com/database/getGJUserInfo20.php", data=data, headers=headers)
+    
+    # print(req.text)
+    
+    return player_info.load(parseDict(req.text))
+
 
 _A = TypeVar(name="_A")
 def safeInt(i:Any,fallback:_A=-1) -> int|_A:
@@ -215,9 +385,12 @@ def safeInt(i:Any,fallback:_A=-1) -> int|_A:
     
 # Test code
 if __name__ == "__main__":
-    lists=getList(754820)
-    for l in lists:
-        print(l.name,l.creator,l.levels)
+    # lists=getList(754820)
+    # for l in lists:
+    #     print(l.name,l.creator,l.levels)
         
-    print(getLevel(lists[0].levels[0]))
+    # print(getLevel(lists[0].levels[0]))
+    
+    user=getUser("BlueBeaker")
+    print(user)
     
