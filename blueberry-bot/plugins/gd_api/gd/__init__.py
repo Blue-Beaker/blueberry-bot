@@ -69,6 +69,7 @@ class PageInfo:
         return self
     
 class Level(BaseLevel):
+    creator_id:int
     def __init__(self) -> None:
         self.stars:int=0
         self.difficulty:int=0
@@ -101,6 +102,7 @@ class Level(BaseLevel):
         self.length=safeInt(data.get('15'),0)
         self.demon=bool(data.get('17'))
         self.auto=bool(data.get('25'))
+        self.creator_id=safeInt(data.get('6'))
         
         return self
     def __repr__(self) -> str:
@@ -355,18 +357,27 @@ def getLevel2(search:int|str,page:int=0,rated:bool=False):
     rawPageInfo=spl[3]
     rawHashes=spl[4]
     
-    for data in parseLine(spl[0]):
+    leveldata=parseLine(spl[0])
+    
+    creator_to_level:dict[int,Level]={}
+    
+    for data in leveldata:
         l=Level().load(data)
         if l.id==-1:
             continue
         result.append(l)
+        creator_to_level[l.creator_id]=l
     
     creators=spl[1].split("|")
-    for i in range(creators.__len__()):
+    for c in creators:
         try:
-            creator=creators[i].split(":")[1]
+            spl=c.split(":")
+            creator_id=safeInt(spl[0])
+            creator=spl[1]
             # print(creator)
-            result[i].creator=creator
+            level=creator_to_level.get(creator_id)
+            if level:
+                level.creator=creator
         except:
             pass
         
@@ -417,6 +428,8 @@ if __name__ == "__main__":
         
     # print(getLevel(lists[0].levels[0]))
     
-    user=getUser("BlueBeaker")
-    print(user)
+    print(getLevel("CATHARSIS",True))
+    
+    # user=getUser("BlueBeaker")
+    # print(user)
     
