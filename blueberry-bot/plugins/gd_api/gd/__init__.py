@@ -92,7 +92,7 @@ class Level(BaseLevel):
         if self.demon and self.is_plat():
             diffstr=diffstr.removesuffix('D')+'P'
         
-        return f"{diffstr} {self.stars} {'★' if not self.is_plat() else '🌙'}" 
+        return f"{diffstr} {self.stars} {'⭐' if not self.is_plat() else '🌙'}" 
     
     @override
     def load(self,data:dict[str,str]):
