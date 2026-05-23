@@ -14,7 +14,10 @@ from nonebot import get_driver,require
 from nonebot.adapters.discord import Message as DCMessage,Bot as DCBot,MessageSegment as DCMessageSegment,GuildMessageCreateEvent
 from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGroupMessageEvent,MessageSegment as OBMessageSegment
 
+from . import godot_draw
+
 require('bbot_api')
+from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
 from ..gd_api.gd import getLevel2,getList2,getUser
@@ -102,7 +105,7 @@ async def _(bot:OBBot|DCBot,args: Message = CommandArg()):
     
 gduser = on_command("gduser")
 @gduser.handle()
-async def _(args: Message = CommandArg()):
+async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     try:
         parser=ArgParser()
@@ -127,12 +130,20 @@ async def _(args: Message = CommandArg()):
     user=getUser(search)
     if not user:
         await gduser.finish("未找到玩家, 或发生错误.")
-        
-    lines.append(f"{user.user_name}")
-    stats_line=f"{user.stars}⭐ {user.moons}🌙 {user.secret_coins}✪ {user.user_coins}© {user.demons}😈 {user.diamonds}💎"
-    if user.creator_points:
-        stats_line+=f"{user.creator_points}🛠"
-    lines.append(stats_line)
+    
+    image:bytes|None=None
+    
+    if isinstance(bot,OBBot) or isinstance(bot,DCBot):
+        img=await godot_draw.render_player_info(bbot_api.getid(event),user.user_name,user.stars,user.moons,user.secret_coins,user.user_coins,user.demons)
+        if isinstance(img,bytes):
+            image=img
+    
+    if image is None:
+        lines.append(f"{user.user_name}")
+        stats_line=f"{user.stars}⭐ {user.moons}🌙 {user.secret_coins}✪ {user.user_coins}© {user.demons}😈 {user.diamonds}💎"
+        if user.creator_points:
+            stats_line+=f"{user.creator_points}🛠"
+        lines.append(stats_line)
     
     c=user.classic_levels
     p=user.plat_levels
@@ -168,7 +179,10 @@ async def _(args: Message = CommandArg()):
         lines.append(f"Account ID {user.account_id}")
         lines.append(f"Player ID {user.user_id}")
     
-    await gduser.finish("\n".join(lines))
+    if image is not None:
+        await gduser.send(buildMessageImage(bot,"\n".join(lines),image,""))
+    else:
+        await gduser.finish("\n".join(lines))
     
     
 def buildMessageImage(bot:Bot,message:str,image:bytes,image_name:str):
