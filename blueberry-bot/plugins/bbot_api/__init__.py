@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Any, TypeVar
-from nonebot.adapters import Event
-from nonebot.adapters.discord import GuildMessageCreateEvent,MessageEvent as DCMessageEvent
-from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent,Bot as OBBot
+from nonebot.adapters import Event,Bot
+from nonebot.adapters.discord import GuildMessageCreateEvent,MessageEvent as DCMessageEvent,Message as DCMessage,MessageSegment as DCMessageSegment,Bot as DCBot
+from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent,Bot as OBBot,Message as OBMessage,MessageSegment as OBMessageSegment
 from nonebot.adapters.minecraft import BaseChatEvent as MCBaseChatEvent
 from . import sheets_api
 sheets_api=sheets_api
@@ -35,3 +35,25 @@ def safeInt(i:Any,fallback:_A=-1) -> int|_A:
         return int(i)
     except:
         return fallback
+    
+class TextImageMessage:
+    msg:DCMessage|OBMessage|str
+    def __init__(self,msg:DCMessage|OBMessage|str) -> None:
+        self.msg=msg
+    @classmethod
+    def build(cls,bot:Bot):
+        if isinstance(bot,DCBot):
+            return cls(DCMessage())
+        elif isinstance(bot,OBBot):
+            return cls(OBMessage())
+        else:
+            return cls("")
+    def addText(self,text:str):
+        self.msg+=text
+        return self
+    def addImage(self,image:bytes,image_name:str="image.png"):
+        if isinstance(self.msg,DCMessage):
+            self.msg.append(DCMessageSegment.attachment(image_name,content=image))
+        elif isinstance(self.msg,OBMessage):
+            self.msg.append(OBMessageSegment.image(image))
+        return self

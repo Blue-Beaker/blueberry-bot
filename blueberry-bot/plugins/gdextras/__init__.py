@@ -15,6 +15,7 @@ from nonebot.adapters.discord import Message as DCMessage,Bot as DCBot,MessageSe
 from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGroupMessageEvent,MessageSegment as OBMessageSegment
 
 from . import godot_draw
+from .config import Config
 
 require('bbot_api')
 from .. import bbot_api
@@ -25,6 +26,10 @@ from ..gd_api import gd
 from ..gd_api.thumbs import getThumbnail
 
 driver=get_driver()
+plugin_cfg=get_plugin_config(Config)
+
+render_api=godot_draw.RenderAPI()
+render_api.uri=plugin_cfg.render_server_uri
 
 gdlist = on_command("gdlist")
 @gdlist.handle()
@@ -131,58 +136,76 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     if not user:
         await gduser.finish("未找到玩家, 或发生错误.")
     
-    image:bytes|None=None
+    has_image=(isinstance(bot,OBBot) or isinstance(bot,DCBot))
+    msg=bbot_api.TextImageMessage.build(bot)
     
-    if isinstance(bot,OBBot) or isinstance(bot,DCBot):
-        img=await godot_draw.render_player_info(bbot_api.getid(event),user.user_name,user.stars,user.moons,user.secret_coins,user.user_coins,user.demons)
+    
+    c=user.classic_levels
+    p=user.plat_levels
+    c_demons=user.classic_demons
+    pemons=user.plat_demons
+    
+    info_image=False
+    nondemon_image=False
+    demon_image=False
+    
+    # Image Sections
+    if has_image:
+        req_id_base=bbot_api.getid(event)
+        img=await render_api.render_player_info(req_id_base+"_base",user.user_name,user.stars,user.moons,user.secret_coins,user.user_coins,user.demons,user.creator_points,c.sum(),p.sum(),c_demons.sum(),pemons.sum())
         if isinstance(img,bytes):
-            image=img
-    
-    if image is None:
+            msg.addImage(img)
+            info_image=True
+        if show_classic or show_plat:
+            img=await render_nondemons(req_id_base+"_nondemon",c,p)
+            if isinstance(img,bytes):
+                msg.addImage(img)
+                nondemon_image=True
+        if show_demons:
+            img=await render_demons(req_id_base+"_demon",c_demons,pemons)
+            if isinstance(img,bytes):
+                msg.addImage(img)
+                demon_image=True
+            
+    # Basic Info (Text)
+    if not info_image:
         lines.append(f"{user.user_name}")
         stats_line=f"{user.stars}⭐ {user.moons}🌙 {user.secret_coins}✪ {user.user_coins}© {user.demons}😈 {user.diamonds}💎"
         if user.creator_points:
             stats_line+=f"{user.creator_points}🛠"
         lines.append(stats_line)
-    
-    c=user.classic_levels
-    p=user.plat_levels
-    demons=user.classic_demons
-    pemons=user.plat_demons
-    
-    def format_nondemons(l:gd.PlayerLevels):
-        return f"{l.auto}🤖 {l.easy}😃 {l.normal}🙂 {l.hard}🙁, {l.harder}😡, {l.insane}😫"
-    
-    lines.append(f"Non-demons: {user.classic_levels.sum()}, Non-pemons: {user.plat_levels.sum()}")
-    lines.append(f"Demons: {demons.sum()}, Pemons: {pemons.sum()}")
-    
+        lines.append(f"Non-demons: {user.classic_levels.sum()}, Non-pemons: {user.plat_levels.sum()}")
+        lines.append(f"Demons: {c_demons.sum()}, Pemons: {pemons.sum()}")
     
     if not (show_classic or show_plat or show_demons):
         lines.append("使用-c、-p、-d参数, 可显示Classic、Plat与Demon关卡的详细计数")
-    
-    if show_classic:
-        lines.append(f"Classic: ")
-        lines.append(format_nondemons(user.classic_levels))
-        lines.append(f"Daily: {c.daily} Gauntlets: {c.gauntlet}")
         
-    if show_plat:
-        lines.append(f"Plat: ")
-        lines.append(format_nondemons(user.plat_levels))
+    if not nondemon_image:
+        # Nondemons (Text)
+        def format_nondemons(l:gd.PlayerLevels):
+            return f"{l.auto}🤖 {l.easy}😃 {l.normal}🙂 {l.hard}🙁, {l.harder}😡, {l.insane}😫"
+        if show_classic:
+            lines.append(f"Classic: ")
+            lines.append(format_nondemons(user.classic_levels))
+            lines.append(f"Daily: {c.daily} Gauntlets: {c.gauntlet}")
+        if show_plat:
+            lines.append(f"Plat: ")
+            lines.append(format_nondemons(user.plat_levels))
     
-    if show_demons:
-        lines.append(f"{demons.ezd}EZD {demons.med}MED {demons.hdd}HDD {demons.insd}INSD {demons.exd}EXD")
+    # Demons (Text)
+    if (not demon_image) and show_demons:
+        lines.append(f"{c_demons.ezd}EZD {c_demons.med}MED {c_demons.hdd}HDD {c_demons.insd}INSD {c_demons.exd}EXD")
         lines.append(f"{pemons.ezd}EZP {pemons.med}MEP {pemons.hdd}HDP {pemons.insd}INSP {pemons.exd}EXP")
-        lines.append(f"Weekly: {demons.weekly} Gauntlets: {demons.gauntlet}")
-        
+        lines.append(f"Weekly: {c_demons.weekly} Gauntlets: {c_demons.gauntlet}")
+    
+    # Others (Text)
     if show_other:
         lines.append(f"Global Rank {user.global_rank}")
         lines.append(f"Account ID {user.account_id}")
         lines.append(f"Player ID {user.user_id}")
-    
-    if image is not None:
-        await gduser.send(buildMessageImage(bot,"\n".join(lines),image,""))
-    else:
-        await gduser.finish("\n".join(lines))
+        
+    msg.addText("\n".join(lines))
+    await gduser.finish(msg.msg)
     
     
 def buildMessageImage(bot:Bot,message:str,image:bytes,image_name:str):
@@ -190,7 +213,6 @@ def buildMessageImage(bot:Bot,message:str,image:bytes,image_name:str):
         return(OBMessageSegment.text(message)+OBMessageSegment.image(image))
     else:
         return(DCMessage().append(message).append(DCMessageSegment.attachment(image_name,content=image)))
-    
 
 def get_help(bot:Bot,event:Event):
     if isinstance(bot,OBBot) or isinstance(bot,DCBot):
@@ -198,3 +220,10 @@ def get_help(bot:Bot,event:Event):
                 "gduser [用户名/ID] 展示玩家信息"]
     else:
         return None
+    
+    
+async def render_nondemons(req_id:str,classic:gd.PlayerLevels,plat:gd.PlayerLevels):
+    return await render_api.render_nondemons(req_id,classic.auto,classic.easy,classic.normal,classic.hard,classic.harder,classic.insane,classic.sum(),plat.auto,plat.easy,plat.normal,plat.hard,plat.harder,plat.insane,plat.sum(),classic.daily,classic.gauntlet)
+
+async def render_demons(req_id:str,classic:gd.PlayerDemonLevels,plat:gd.PlayerDemonLevels):
+    return await render_api.render_demons(req_id,classic.ezd,classic.med,classic.hdd,classic.insd,classic.exd,classic.sum(),plat.ezd,plat.med,plat.hdd,plat.insd,plat.exd,plat.sum(),classic.weekly,classic.gauntlet)
