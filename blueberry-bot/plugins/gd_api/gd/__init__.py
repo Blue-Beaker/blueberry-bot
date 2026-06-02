@@ -325,9 +325,9 @@ def getList2(search:int|str,page:int=0):
         
     return result,PageInfo().parse(rawPageInfo)
 
-def getLevel(search:int|str,page:int=0,rated:bool=False):
-    return getLevel2(search,page,rated)[0]
-def getLevel2(search:int|str,page:int=0,rated:bool=False):
+def getLevel(search:int|str,page:int=0,rated:bool=False,**kwargs):
+    return getLevel2(search,page,rated,**kwargs)[0]
+def getLevel2(search:int|str,page:int=0,rated:bool=False,**kwargs):
     headers = {
     "User-Agent": ""
     }
@@ -339,6 +339,7 @@ def getLevel2(search:int|str,page:int=0,rated:bool=False):
         "page": page,
         "secret": "Wmfd2893gb7",
     }
+    data.update(kwargs)
 
     url = "http://www.boomlings.com/database/getGJLevels21.php"
 
@@ -382,6 +383,9 @@ def getLevel2(search:int|str,page:int=0,rated:bool=False):
             pass
         
     return result,PageInfo().parse(rawPageInfo)
+
+def getLevelsFromList(listID:int):
+    return getLevel(str(listID),type=25)
 
 def getUser(search:int|str):
     headers = {
@@ -428,7 +432,11 @@ if __name__ == "__main__":
         
     # print(getLevel(lists[0].levels[0]))
     
-    print(getLevel("CATHARSIS",True))
+    # print(getLevel("CATHARSIS",True))
+    
+    # print(getLevel("645883",rated=True,type=25))
+    
+    print(getLevelsFromList(645883))
     
     # user=getUser("BlueBeaker")
     # print(user)
