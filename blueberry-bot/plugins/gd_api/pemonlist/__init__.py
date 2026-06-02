@@ -1,5 +1,8 @@
+from pathlib import Path
+from typing import Any
 import requests
 from cachetools import cached, TTLCache
+from ..file_based_cache import FileBasedCache
 
 class Level:
     name:str
@@ -19,23 +22,37 @@ class Level:
 
 class EmptyResult(Exception):
     pass
-def getPemonlistLevels():
-    try:
-        return _getPemonlistLevels()
-    except EmptyResult:
-        return None
-    
-@cached(cache=TTLCache(maxsize=20,ttl=600))
-def _getPemonlistLevels():
-    url="https://pemonlist.com/api/list?version=3&page=1&limit=1000"
+
+def getPemonlistResponse():
+    url="https://pemonlist.com/api/list?version=3&page=1&limit=5000"
     headers = {
         "User-Agent": ""
     }
     
     req = requests.get(url, headers=headers)
     if req.status_code!=200:
-        raise EmptyResult()
-    levels_raw=req.json().get("data",[])
+        return None
+    else:
+        return req.json()
+    
+CACHE=FileBasedCache(dict,getPemonlistResponse,Path("cache")/"pemonlist.json")
+
+def getPemonlistLevels():
+    # url="https://pemonlist.com/api/list?version=3&page=1&limit=5000"
+    # headers = {
+    #     "User-Agent": ""
+    # }
+    
+    # req = requests.get(url, headers=headers)
+    # if req.status_code!=200:
+    #     raise EmptyResult()
+    # data=req.json()
+    
+    data=CACHE.getOrUpdate()
+    if not data:
+        return None
+    
+    levels_raw=data.get("data",[])
     levels:list[Level]=[]
     for l in levels_raw:
         try:
@@ -43,7 +60,8 @@ def _getPemonlistLevels():
         except:
             pass
     if not levels:
-        raise EmptyResult()
+        return None
     return levels
+
 if __name__ == "__main__":
     print(getPemonlistLevels())
