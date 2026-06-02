@@ -22,6 +22,8 @@ from ..bbot_api.argparse import ArgumentError,ArgParser
 
 from . import underrated
 
+from . import gd_extras
+
 plugin_config = get_plugin_config(Config)
 
 driver=get_driver()
