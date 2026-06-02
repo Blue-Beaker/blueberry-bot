@@ -421,4 +421,5 @@ def get_help(bot:Bot,event:Event):
             "platweight 计算Plat关卡的Weight之和",
             "plathelp 显示Plat搜索功能相关帮助"
             ]
+    help_lines.extend(gd_extras.get_help(bot,event))
     return help_lines

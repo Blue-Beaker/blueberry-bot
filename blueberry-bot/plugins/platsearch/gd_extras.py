@@ -219,7 +219,7 @@ def get_help(bot:Bot,event:Event):
         return ["gdthumb [关名/ID] 获取关卡截图",
                 "gduser [用户名/ID] 展示玩家信息"]
     else:
-        return None
+        return ["gduser [用户名/ID] 展示玩家信息"]
     
     
 async def render_nondemons(req_id:str,classic:gd.PlayerLevels,plat:gd.PlayerLevels):
