@@ -77,8 +77,8 @@ async def _(args: Message = CommandArg()):
         
         l=lists[0]
         lines.append(f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)")
-        
         lines.append(f"{page}/{math.ceil(count/page_size)}页 ({start+1}-{min(start+page_size,count)} of {count})")
+        lines.append(f"-gdlist -p <页数> <ListID> 以翻页.")
         
         for l in levels:
             lines.append(repr_level(l))
@@ -99,6 +99,8 @@ async def _(args: Message = CommandArg()):
             return
         l=lists[0]
         lines.append(f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)")
+        lines.append(f"-gdlist {l.id} 以查看list内容.")
+        
         await gdlist.finish("\n".join(lines))
     
 
