@@ -8,8 +8,9 @@ class ArgumentError(Exception):
 class ArgParser(argparse.ArgumentParser):
     def __init__(self,*args,**kwargs):
         super().__init__(exit_on_error=False,add_help=False,*args,**kwargs)
+        self.messages=[]
     def _print_message(self, message, file=None):
-        pass
+        self.messages.append(message)
     def error(self, message):
         """error(message: string)
 

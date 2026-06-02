@@ -3,6 +3,42 @@ from typing import Any, TypeVar, override
 import requests
 from cachetools import cached, TTLCache
 from nonebot import logger
+
+class ListSearchType(Enum):
+    SEARCH=0
+    DOWNLOADS=1
+    LIKES=2
+    TRENDING=3
+    RECENT=4
+    FROM_USER=5
+    LISTS_BUTTON=6
+    MAGIC=7 #(returns the same levels as most liked)
+    AWARDED=11
+    FOLLOWED=12
+    FRIENDS=13
+    SENT=27
+
+class LevelSearchType(Enum):
+    SEARCH=0
+    DOWNLOADS=1
+    LIKES=2
+    TRENDING=3
+    RECENT=4
+    FROM_USER=5
+    FEATURED=6
+    MAGIC=7
+    MOD_SENT=8
+    LIST_OF_LEVELS=10
+    AWARDED=11
+    FOLLOWED=12
+    FRIENDS=13
+    WORLD_LIKED=15
+    HALL_OF_FAME=16
+    WORLD_FEATURED=17
+    DAILY=21
+    WEEKLY=22
+    LEVEL_FROM_LIST=25
+    SENT=27
     
 class BaseLevel:
     id:int
@@ -287,20 +323,21 @@ def parseLine(line:str):
         datas.append(parseDict(subline))
     return datas
 
-def getList(search:int|str,page:int=0):
-    return getList2(search,page)[0]
+def getList(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs):
+    return getList2(search,page,searchType=searchType,**kwargs)[0]
     
-def getList2(search:int|str,page:int=0):
+def getList2(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs):
     headers = {
         "User-Agent": ""
     }
 
     data = {
         "str": str(search),
-        "type": 0,
+        "type": searchType.value if isinstance(searchType,Enum) else searchType,
         "page": page,
         "secret": "Wmfd2893gb7",
     }
+    data.update(kwargs)
 
     url = "http://www.boomlings.com/database/getGJLevelLists.php"
 
@@ -325,9 +362,9 @@ def getList2(search:int|str,page:int=0):
         
     return result,PageInfo().parse(rawPageInfo)
 
-def getLevel(search:int|str,page:int=0,rated:bool=False,**kwargs):
-    return getLevel2(search,page,rated,**kwargs)[0]
-def getLevel2(search:int|str,page:int=0,rated:bool=False,**kwargs):
+def getLevel(search:int|str,page:int=0,rated:bool=False,searchType:LevelSearchType|int=0,**kwargs):
+    return getLevel2(search,page,rated,searchType=searchType,**kwargs)[0]
+def getLevel2(search:int|str,page:int=0,rated:bool=False,searchType:LevelSearchType|int=0,**kwargs):
     headers = {
     "User-Agent": ""
     }
@@ -335,7 +372,7 @@ def getLevel2(search:int|str,page:int=0,rated:bool=False,**kwargs):
     data = {
         "str": str(search),
         "star": 0 if not rated else 1,
-        "type": 0,
+        "type": searchType.value if isinstance(searchType,Enum) else searchType,
         "page": page,
         "secret": "Wmfd2893gb7",
     }
@@ -385,7 +422,7 @@ def getLevel2(search:int|str,page:int=0,rated:bool=False,**kwargs):
     return result,PageInfo().parse(rawPageInfo)
 
 def getLevelsFromList(listID:int):
-    return getLevel(str(listID),type=25)
+    return getLevel(str(listID),searchType=LevelSearchType.LEVEL_FROM_LIST)
 
 def getUser(search:int|str):
     headers = {

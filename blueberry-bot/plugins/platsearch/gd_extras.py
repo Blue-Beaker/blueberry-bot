@@ -21,7 +21,7 @@ require('bbot_api')
 from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList
+from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType
 from ..gd_api import gd
 from ..gd_api.thumbs import getThumbnail
 
@@ -39,10 +39,12 @@ async def _(args: Message = CommandArg()):
         parser=ArgParser()
         parser.add_argument('-p',help='Page',type=int)
         parser.add_argument('search', nargs='*', type=str, help='search string')
+        parser.add_argument('-u',help="Search User's Lists",action='store_true')
         parsed=parser.parse_args(raw_args)
         
         search=" ".join(parsed.search)
         page=parsed.p or 1
+        fromuser=bool(parsed.u)
         
     except Exception as e:
         await gdlist.finish(str(e))
@@ -50,11 +52,23 @@ async def _(args: Message = CommandArg()):
     
     lines:list[str]=[]
     
+    searchType:gd.ListSearchType=gd.ListSearchType.SEARCH
+    
+    if fromuser:
+        searchType=gd.ListSearchType.FROM_USER
+        user=getUser(search)
+        if not user:
+            lines.append("未找到指定用户.")
+            await gdlist.finish("\n".join(lines))
+            return
+        search=str(user.account_id)
+    
     listID = None
-    try:
-        listID = int(search)
-    except:
-        pass
+    if searchType==gd.ListSearchType.SEARCH:
+        try:
+            listID = int(search)
+        except:
+            pass
     
     if listID is not None:
         page_size=10
@@ -85,9 +99,8 @@ async def _(args: Message = CommandArg()):
             
         await gdlist.finish("\n".join(lines))
         
-    else:
-        
-        lists,pageinfo=getList2(search,page-1)
+    else:   
+        lists,pageinfo=getList2(search,page-1,searchType=searchType)
         
         if lists.__len__()==0 or not pageinfo:
             lines.append("没有查找到任何List.")
