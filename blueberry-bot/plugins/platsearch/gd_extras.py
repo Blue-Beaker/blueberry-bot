@@ -21,7 +21,7 @@ require('bbot_api')
 from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2,getList2,getUser
+from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList
 from ..gd_api import gd
 from ..gd_api.thumbs import getThumbnail
 
@@ -49,19 +49,57 @@ async def _(args: Message = CommandArg()):
         return
     
     lines:list[str]=[]
-    lists,pageinfo=getList2(search,page-1)
     
-    if lists.__len__()==0 or not pageinfo:
-        lines.append("没有查找到任何List.")
-    elif lists.__len__()>1:
-        lines.append(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
-        for l in lists:
-            lines.append(f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)")
+    listID = None
+    try:
+        listID = int(search)
+    except:
+        pass
+    
+    if listID is not None:
+        page_size=10
+        lists,pageinfo=getList2(search,page-1)
+        if not lists:
+            lines.append("没有查找到List.")
+            await gdlist.finish("\n".join(lines))
+        levels = getLevelsFromList(listID)
+        if not levels:
+            lines.append("List为空.")
+            await gdlist.finish("\n".join(lines))
+        
+        count=levels.__len__()
+        max_page=math.ceil(count/page_size)
+        
+        page=min(page,max_page)
+        start=(page-1)*page_size
+        
+        levels=levels[start:min(start+page_size,count)]
+        
+        l=lists[0]
+        lines.append(f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)")
+        
+        lines.append(f"{page}/{math.ceil(count/page_size)}页 ({start+1}-{min(start+page_size,count)} of {count})")
+        
+        for l in levels:
+            lines.append(repr_level(l))
+            
         await gdlist.finish("\n".join(lines))
-        return
-    l=lists[0]
-    lines.append(f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)")
-    await gdlist.finish("\n".join(lines))
+        
+    else:
+        
+        lists,pageinfo=getList2(search,page-1)
+        
+        if lists.__len__()==0 or not pageinfo:
+            lines.append("没有查找到任何List.")
+        elif lists.__len__()>1:
+            lines.append(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
+            for l in lists:
+                lines.append(f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)")
+            await gdlist.finish("\n".join(lines))
+            return
+        l=lists[0]
+        lines.append(f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)")
+        await gdlist.finish("\n".join(lines))
     
 
 gdthumb = on_command("gdthumb")
@@ -95,7 +133,7 @@ async def _(bot:OBBot|DCBot,args: Message = CommandArg()):
         lines.append("找到多个关卡,请用id选择:")
         lines.append(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
         for l in levels:
-            lines.append(f"{l.id} = {l.name} by {l.creator} ({l.repr_difficulty()})")
+            lines.append(repr_level(l))
         await gdthumb.finish("\n".join(lines))
         return
     
@@ -221,6 +259,8 @@ def get_help(bot:Bot,event:Event):
     else:
         return ["gduser [用户名/ID] 展示玩家信息"]
     
+def repr_level(l:gd.Level):
+    return f"{l.id} = {l.name} by {l.creator} ({l.repr_difficulty()})"
     
 async def render_nondemons(req_id:str,classic:gd.PlayerLevels,plat:gd.PlayerLevels):
     return await render_api.render_nondemons(req_id,classic.auto,classic.easy,classic.normal,classic.hard,classic.harder,classic.insane,classic.sum(),plat.auto,plat.easy,plat.normal,plat.hard,plat.harder,plat.insane,plat.sum(),classic.daily,classic.gauntlet)
