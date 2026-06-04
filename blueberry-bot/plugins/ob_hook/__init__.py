@@ -7,7 +7,6 @@ from nonebot.adapters.onebot.v11.message import Message,MessageSegment
 from .config import Config
 
 plugin_config = get_plugin_config(Config)
-prefix=plugin_config.mc_message_prefix
 
 @OBBot.on_calling_api
 async def handle_api_call(bot: Bot, api: str, data: dict[str, Any]):
