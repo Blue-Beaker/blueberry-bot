@@ -12,6 +12,8 @@ from ..bbot_api import getid
 
 @run_preprocessor
 async def _(event: Event, matcher: Matcher):
+    if matcher.module_name and matcher.module_name.split(".")[-1] in plugin_config.debug_always_allowed_plugins:
+        return
     debuglist=plugin_config.debug_sessions
     try:
         eid = getid(event)
