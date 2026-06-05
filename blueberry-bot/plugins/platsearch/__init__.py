@@ -339,7 +339,87 @@ async def _(args: Message = CommandArg()):
             msg.append("".join(line))
         
     await platsearch.send("\n".join(msg))
+ 
+platrandom = on_command("platrandom")
+@platrandom.handle()
+async def _(search_args: Message = CommandArg()):
+    text0=search_args.extract_plain_text()
+    try:
+        parser=ArgParser()
+        parser.add_argument('-t',help="Tier",type=int,default=-1)
+        parser.add_argument('-s',help="Skills",type=str,default=None)
+        parser.add_argument('-h',help="help",action='store_true',default=None)
+        parser.add_argument('text',nargs='*',type=str)
+        args=parser.parse_args(text0.split(" "))
+        
+        skills:list[str]=[t.strip().lower() for t in args.s.split(",")] if args.s else []
+        text=(" ".join(args.text)).replace("_","-")
+        tier:int=args.t
+    except Exception as e:
+        await platrandom.finish(str(e))
+        return
     
+    if args.h:
+        hint_tier=random.randint(1,12)
+        await platrandom.finish("\n".join([
+            "随机抽取关卡:",
+            "platrandom [-t Tier] [-s Skillsets] [名称]",
+            f"举例 抽取T{hint_tier}的关卡:",
+            f"platrandom -t {hint_tier}"
+        ]))
+        return
+        
+    def levelMatchesFilter(l:plat_sheets.PlatChartEntry):
+        # Filter Challenges
+        if "(" in l.name:
+            return False
+        # Filter by tier
+        if tier>=0 and str(l.tier)!=str(tier):
+            return False
+        # Filter by skillsets
+        if skills and not l.has_skills(skills):
+            return False
+        
+        if text and not l.matchesName(text,True):
+            return False
+        
+        return True
+    
+    levels=[l for l in PLAT_CHART_CACHE.get() if levelMatchesFilter(l)]
+    
+    if not levels:
+        await platrandom.finish("没有符合条件的关卡. 请调整参数重试.")
+    
+    l=random.choice(levels)
+    msg=[]
+    msg.append(f"总计 {levels.__len__()} 个符合条件的关卡, 抽取结果:")
+    line:list[str]=[l.name]
+    
+    if l.id>=0:
+        line.append(f" ({l.id})")
+    if l.tier:
+        line.append(f"(T{l.tier})")
+    if l.tags:
+        line.append(f"\nTags: {','.join(l.tags)}")
+        rankline=[]
+        if l.enj and l.enj!="/":
+            rankline.append(f"Enj: {l.enj}")
+        if l.tpl and l.weight and l.tpl==l.weight:
+            rankline.append(f"TPL/Weight: {l.tpl}")
+        else:
+            if l.tpl:
+                rankline.append(f"TPL: {l.tpl}")
+            if l.weight:
+                rankline.append(f"Weight: {l.weight}")
+        if l.pemon:
+            rankline.append(f"Pemonlist: {l.pemon}")
+            
+        if rankline:
+            line.append("\n"+",".join(rankline))
+    msg.append(''.join(line))
+    await platrandom.finish("\n".join(msg))
+    
+
     
 def level_in_three_sheets(search:str):
     result:list[plat_sheets.TheListsEntry]=[]
@@ -379,7 +459,8 @@ def get_help(bot:Bot,event:Event):
     help_lines=[
             "platsearch 搜索Plat关卡",
             "platweight 计算Plat关卡的Weight之和",
-            "plathelp 显示Plat搜索功能相关帮助"
+            "plathelp 显示Plat搜索功能相关帮助",
+            "platrandom 随机抽取Plat关卡"
             ]
     help_lines.extend(gd_extras.get_help(bot,event))
     return help_lines
