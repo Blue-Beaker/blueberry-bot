@@ -271,6 +271,7 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
         "gdguess -start [list IDs] 开始猜GD关卡",
         "使用list ID指定关卡池, 多个list用,分割",
         "也可加入-pemonlist参数使用Pemonlist作为关卡池",
+        "-weekly -daily则使用Weekly/Daily作为关卡池(可指定关卡池大小 默认最近30个)",
         "将-start替换为-hard,-insane或-extreme可开始更高难度(截取范围更小)的猜图",
         "不输入list或使用-last参数则沿用上次的关卡池",
         "举例: '-gdguess -insane 83317' 使用该list开始insane难度的猜图",
