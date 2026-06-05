@@ -90,7 +90,7 @@ async def _(args: Message = CommandArg()):
         levels=levels[start:min(start+page_size,count)]
         
         l=lists[0]
-        lines.append(f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)")
+        lines.append(repr_list(l,False))
         lines.append(f"{page}/{math.ceil(count/page_size)}页 ({start+1}-{min(start+page_size,count)} of {count})")
         lines.append(f"-gdlist -p <页数> <ListID> 以翻页.")
         
@@ -107,11 +107,11 @@ async def _(args: Message = CommandArg()):
         elif lists.__len__()>1:
             lines.append(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
             for l in lists:
-                lines.append(f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)")
+                lines.append(repr_list(l,fromuser))
             await gdlist.finish("\n".join(lines))
             return
         l=lists[0]
-        lines.append(f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)")
+        lines.append(repr_list(l,fromuser))
         lines.append(f"-gdlist {l.id} 以查看list内容.")
         
         await gdlist.finish("\n".join(lines))
@@ -274,8 +274,11 @@ def get_help(bot:Bot,event:Event):
     else:
         return ["gduser [用户名/ID] 展示玩家信息"]
     
-def repr_level(l:gd.Level):
-    return f"{l.id} = {l.name} by {l.creator} ({l.repr_difficulty()})"
+def repr_level(l:gd.Level,fromuser:bool=False):
+    return f"{l.id} = {l.name} by {l.creator} ({l.repr_difficulty()})" if not fromuser else f"{l.id} = {l.name} ({l.repr_difficulty()})"
+
+def repr_list(l:gd.LevelList,fromuser:bool=False):
+    return f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)" if not fromuser else f"{l.name} ({l.id}) ({l.levels.__len__()} 个关卡)"
     
 async def render_nondemons(req_id:str,classic:gd.PlayerLevels,plat:gd.PlayerLevels):
     return await render_api.render_nondemons(req_id,classic.auto,classic.easy,classic.normal,classic.hard,classic.harder,classic.insane,classic.sum(),plat.auto,plat.easy,plat.normal,plat.hard,plat.harder,plat.insane,plat.sum(),classic.daily,classic.gauntlet)
