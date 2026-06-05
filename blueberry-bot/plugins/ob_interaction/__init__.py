@@ -45,14 +45,14 @@ async def _():
 onMsg=on_message()
 @onMsg.handle()
 async def _(bot:OBBot,event:OBMessageEvent):
+    group_id:int|None = getattr(event,"group_id",None)
+    user_id:int|None = getattr(event,"user_id",None)
+    
     text=event.message.extract_plain_text().strip()
     if text.__len__()<5 or text[0] not in get_driver().config.command_start:
-        if isinstance(event,GroupMessageEvent) and random.random()<group_config.get(str(event.group_id)).msg_poke_chance:
-            await bot.call_api("group_poke",group_id=event.group_id,user_id=event.user_id)
+        if isinstance(event,GroupMessageEvent) and random.random()<group_config.get(str(group_id)).msg_poke_chance:
+            await try_poke(bot=bot,group_id=group_id,user_id=user_id)
         return
-    
-    group_id = getattr(event,"group_id",None)
-    user_id = getattr(event,"user_id",None)
     
     if not user_id:
         return
@@ -68,7 +68,7 @@ async def _(bot:OBBot,event:OBMessageEvent):
         await try_like(bot,user_id)
         
     if group_id and random.random()<poke_chance:
-        await bot.call_api("group_poke",group_id=group_id,user_id=user_id)
+        await try_poke(bot=bot,group_id=group_id,user_id=user_id)
     
     if group_id and random.random()<get_group_sign_chance(group_id):
         try:
@@ -82,10 +82,7 @@ onPoke=on_type(PokeNotifyEvent)
 async def _(bot: OBBot, event:PokeNotifyEvent):
     logger.info(event)
     if event.is_tome() and random.random()<plugin_config.ob_poke_back_chance:
-        if event.group_id:
-            await bot.call_api("group_poke",group_id=event.group_id,user_id=event.user_id)
-        else:
-            await bot.call_api("friend_poke",user_id=event.user_id)
+        await try_poke(bot=bot,group_id=getattr(event,"group_id"),user_id=getattr(event,"user_id"))
             
 # 注册可复用的配置指令
 from nonebot.permission import SUPERUSER
@@ -101,5 +98,20 @@ def get_group_sign_chance(group_id:int):
 async def try_like(bot:OBBot, user_id:int):
     try:
         await bot.send_like(user_id=user_id,times=10)
+    except:
+        pass
+
+last_poke_times:dict[int,float]={}
+async def try_poke(bot:OBBot, group_id:int|None, user_id:int|None):
+    try:
+        if not user_id:
+            return
+        if user_id in last_poke_times and time.time()-last_poke_times[user_id]<plugin_config.ob_poke_cooldown:
+            return
+        if group_id and user_id:
+            await bot.call_api("group_poke",group_id=group_id,user_id=user_id)
+        else:
+            await bot.call_api("friend_poke",user_id=user_id)
+        last_poke_times[user_id]=time.time()
     except:
         pass
