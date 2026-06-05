@@ -1,4 +1,5 @@
 from enum import Enum
+import math
 import os
 import random
 import time
@@ -23,7 +24,8 @@ from .config import Config
 from .guess_session import GuessSession,SessionManager,ConfigManager,ConfigEntry
 
 require("bbot_api")
-from ..bbot_api import getid,reaction_emoji,loadFile
+from ..bbot_api import getid,reaction_emoji,loadFile,safeInt
+from ..bbot_api.argparse import ArgParser
 require("gd_api")
 from ..gd_api.pemonlist import getPemonlistLevels
 from ..gd_api import thumbs
@@ -97,6 +99,8 @@ class GuessSource(Enum):
     LAST="last"
     LIST="list"
     PEMONLIST="pemonlist"
+    WEEKLY="weekly"
+    DAILY="daily"
 class Difficulty(Enum):
     EASY=("easy",(512,512))
     HARD=("hard",(256,256))
@@ -114,6 +118,7 @@ class GuessArgs:
         self.difficulty=Difficulty.EASY
         
         args=text.split(" ")
+        
         while args and args[0].startswith("-"):
             arg=args[0].removeprefix("-")
             args.pop(0)
@@ -125,36 +130,90 @@ class GuessArgs:
             self.source=GuessSource.LAST
             
     def applyArg(self,arg:str):
-            for i in GuessAction:
-                if arg==i.value:
-                    self.action=i
-                    return
-            for i in GuessSource:
-                if arg==i.value:
-                    self.source=i
-                    return
-            for i in Difficulty:
-                if arg==i.value[0]:
-                    self.difficulty=i
-                    self.action=GuessAction.START
-                    return
-            
+        if arg in GuessAction:
+            self.action=GuessAction(arg)
+            return
+        if arg in GuessSource:
+            self.source=GuessSource(arg)
         
-def get_levels_from_args(args:GuessArgs,session:Optional[GuessSession]):
-    levels:list[int]=[]
-    if args.source==GuessSource.PEMONLIST:
+        # for i in GuessAction:
+        #     if arg==i.value:
+        #         self.action=i
+        #         return
+        # for i in GuessSource:
+        #     if arg==i.value:
+        #         self.source=i
+        #         return
+        for i in Difficulty:
+            if arg==i.value[0]:
+                self.difficulty=i
+                self.action=GuessAction.START
+                return
+            
+# 用于获取Guess关卡池
+class LevelProvider:
+    '''获取关卡的方法. text为文本参数, 返回关卡list与信息.'''
+    def get_levels(self,text:str):
+        return [],None
+    
+class LevelProviderLast(LevelProvider):
+    def __init__(self,session:GuessSession) -> None:
+        self.session=session
+    def get_levels(self,text:str):
+        return self.session.level_pool,"继续使用上次的关卡池进行游戏!"
+    
+class LevelProviderPemonlist(LevelProvider):
+    def get_levels(self,text:str):
         pemonlist_levels=getPemonlistLevels()
         if not pemonlist_levels:
             return None,"无法获取Pemonlist的关卡数据."
-        levels.extend([l.level_id for l in pemonlist_levels])
-        return levels,"关卡池已设置为Pemonlist的关卡!"
-    elif args.source==GuessSource.LAST and session:
-        levels.extend(session.level_pool)
-        return levels,"继续使用上次的关卡池进行游戏!"
-    else:
-        args_text=[i.strip() for i in args.text.split(",")]
+        return [l.level_id for l in pemonlist_levels],"关卡池已设置为Pemonlist的关卡!"
+
+class LevelProviderSearch(LevelProvider):
+    def get_levels_in_page(self,page:int):
+        return []
+    def get_internal_levels(self,count:int):
+        levels:list[gd.Level]=[]
+        page=0
+        
+        while levels.__len__()<count:
+            new_levels=self.get_levels_in_page(page)
+            if not new_levels:
+                return levels
+            levels.extend(new_levels)
+            page+=1
+            
+        return levels[0:min(count,len(levels))]
+    
+class LevelProviderWeekly(LevelProviderSearch):
+    def get_levels_in_page(self,page:int):
+        return gd.getLevel(searchType=gd.LevelSearchType.WEEKLY,page=page) or []
+    
+    def get_levels(self,text:str):
+        count=safeInt(text,30)
+        levels=self.get_internal_levels(count)
+        
+        if not levels:
+            return None,"无法获取Weekly的关卡数据."
+        return [l.id for l in levels],f"关卡池已设置为近{levels.__len__()}个Weekly关卡!"
+    
+class LevelProviderDaily(LevelProviderSearch):
+    def get_levels_in_page(self,page:int):
+        return gd.getLevel(searchType=gd.LevelSearchType.WEEKLY,page=page) or []
+    def get_levels(self,text:str):
+        count=safeInt(text,30)
+        levels=self.get_internal_levels(count)
+        
+        if not levels:
+            return None,"无法获取Daily的关卡数据."
+        return [l.id for l in levels],f"关卡池已设置为近{levels.__len__()}个Daily关卡!"
+
+class LevelProviderList(LevelProvider):
+    def get_levels(self,text:str):
+        args_text=[i.strip() for i in text.split(",")]
         if not args_text or args_text==[""]:
             return None,"请输入至少一个List ID! 多个ID请用,分隔"
+        levels:list[int]=[]
         # Get levels from the provided lists
         for i in args_text:
             if not i:
@@ -172,7 +231,25 @@ def get_levels_from_args(args:GuessArgs,session:Optional[GuessSession]):
         if levels.__len__()==0:
             return None,"在你提供的List中没有找到任何关卡."
         return levels,"关卡池已设置为你提供的List中的关卡!"
-    return levels,None
+        
+def get_levels_from_args(args:GuessArgs,session:Optional[GuessSession]):
+    sources:dict[GuessSource,type[LevelProvider]]={
+        GuessSource.LAST:LevelProviderLast,
+        GuessSource.PEMONLIST:LevelProviderPemonlist,
+        GuessSource.WEEKLY:LevelProviderWeekly,
+        GuessSource.DAILY:LevelProviderDaily,
+        GuessSource.LIST:LevelProviderList,
+    }
+    
+    if args.source == GuessSource.LAST:
+        if session:
+            return LevelProviderLast(session).get_levels(args.text)
+        else:
+            return LevelProviderList().get_levels(args.text)
+        
+    provider_cls=sources.get(args.source,LevelProviderList)
+    
+    return provider_cls().get_levels(args.text)
     
 gdguess = on_command("gdguess")
 @gdguess.handle()
@@ -182,8 +259,12 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
         return
     
     args_text=raw_args.extract_plain_text().strip()
-    
-    args=GuessArgs(args_text)
+    try:
+        args=GuessArgs(args_text)
+    except Exception as e:
+        await gdguess.send(f"参数解析错误: {e}.")
+        await gdguess.finish()
+        return
     args_text=args.text
     if args.action == GuessAction.HELP:
         help=[
