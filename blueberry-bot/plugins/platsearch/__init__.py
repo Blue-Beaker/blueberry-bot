@@ -19,10 +19,13 @@ from .utils import select_page
 
 require('bbot_api')
 from ..bbot_api.argparse import ArgumentError,ArgParser
+require('gd_api')
+from ..gd_api import gd
 
 from . import underrated
 
 from . import gd_extras
+
 
 plugin_config = get_plugin_config(Config)
 
@@ -89,12 +92,19 @@ platweight = on_command("platweight")
 @platweight.handle()
 async def _(args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
+    if not raw_args:
+        await platweight.finish("\n".join([
+                "用法: -platweight [参数] <关名/ID>,<关名/ID>...",
+                "加入 -l<列表1,列表2...> 加入已完成关卡列表, 自动计算top10权重",
+                ]))
     try:
         parser=ArgParser()
         parser.add_argument('search', nargs='*', type=str, help='search string')
+        parser.add_argument('-l',help="List containing completed levels",type=str,default="")
         parsed=parser.parse_args(raw_args)
         
         text=" ".join(parsed.search)
+        lists_arg=[l.strip().lower() for l in parsed.l.split(",")] if parsed.l else []
     except Exception as e:
         await platweight.finish(str(e))
         return
@@ -104,7 +114,19 @@ async def _(args: Message = CommandArg()):
     msg=[]
     results:list[plat_sheets.PlatChartEntry]=[]
     errored:bool=False
+    
+    if lists_arg:
+        map={l.id:l for l in PLAT_CHART_CACHE.get()}
+        for l in lists_arg:
+            lists1=gd.getList(l)
+            if not lists1 or lists1.__len__()!=1:
+                continue
+            lists1=lists1[0]
+            results.extend([map[e] for e in lists1.levels if e in map and map[e].weight])
+            
     for s in search:
+        if not s:
+            continue
         levels=[l for l in PLAT_CHART_CACHE.get() if (l.exactMatch(s) or str(l.id)==s) and l.weight]
         if levels.__len__()==1:
             results.append(levels[0])
@@ -126,9 +148,21 @@ async def _(args: Message = CommandArg()):
     def sortWeight(l:plat_sheets.PlatChartEntry):
         return l.weight or float('inf')
     
+    # results.sort(key=sortWeight)
+    # 去重, 保留同关卡及其挑战中权重最低的那个
+    levels_added:dict[str,plat_sheets.PlatChartEntry]={}
+    for r in results:
+        # 关名去掉括号及其中内容, 以实现同关卡不同挑战间的去重
+        key=r.name.split("(")[0].strip().lower()
+        if key not in levels_added:
+            levels_added[key]=r
+        else:
+            levels_added[key]=r if (r.weight or 9999999)<(levels_added[key].weight or 9999999) else levels_added[key]
+    
+    results=list(levels_added.values())
     results.sort(key=sortWeight)
     
-    if results.__len__()==10:
+    if results.__len__()>=10:
         top10_weight=0
         total_weight=0
         weights:list[int]=[l.weight for l in results if l.weight]
