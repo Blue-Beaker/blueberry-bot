@@ -164,9 +164,12 @@ class LevelProviderLast(LevelProvider):
     
 class LevelProviderPemonlist(LevelProvider):
     def get_levels(self,text:str):
+        count=safeInt(text,None)
         pemonlist_levels=getPemonlistLevels()
         if not pemonlist_levels:
             return None,"无法获取Pemonlist的关卡数据."
+        if count:
+            pemonlist_levels=pemonlist_levels[0:min(count,pemonlist_levels.__len__())]
         return [l.level_id for l in pemonlist_levels],"关卡池已设置为Pemonlist的关卡!"
 
 class LevelProviderSearch(LevelProvider):
@@ -199,7 +202,7 @@ class LevelProviderWeekly(LevelProviderSearch):
     
 class LevelProviderDaily(LevelProviderSearch):
     def get_levels_in_page(self,page:int):
-        return gd.getLevel(searchType=gd.LevelSearchType.WEEKLY,page=page) or []
+        return gd.getLevel(searchType=gd.LevelSearchType.DAILY,page=page) or []
     def get_levels(self,text:str):
         count=safeInt(text,30)
         levels=self.get_internal_levels(count)
