@@ -4,7 +4,7 @@ import random
 import time
 from typing import Any
 from nonebot import get_plugin_config,logger,on_command,on_message,on_notice,on_type,require,get_driver
-from nonebot.adapters import Bot
+from nonebot.adapters import Bot,Event
 from nonebot.adapters.onebot.v11 import Bot as OBBot, MessageEvent as OBMessageEvent, GroupMessageEvent, PokeNotifyEvent
 from nonebot.adapters.onebot.v11.message import Message,MessageSegment
 from nonebot.message import run_postprocessor
@@ -42,14 +42,17 @@ async def _():
     group_config.save()
 
 
-@OBBot.on_called_api
-async def _(bot: Bot, exc: Exception|None, api:str, data:dict, result:Any):
-    
-    if not (isinstance(bot,OBBot) and api in ["send_group_msg","send_msg"]):
+@run_postprocessor
+async def _(bot: Bot, event: Event, matcher: Matcher):
+    if not isinstance(bot,OBBot) or not isinstance(event,OBMessageEvent):
         return
     
-    group_id = data.get("group_id")
-    user_id = data.get("user_id")
+    text=event.message.extract_plain_text().strip()
+    if text.__len__()<5 or text[0] not in get_driver().config.command_start:
+        return
+    
+    group_id = getattr(event,"group_id",None)
+    user_id = getattr(event,"user_id",None)
     
     if not user_id:
         return
