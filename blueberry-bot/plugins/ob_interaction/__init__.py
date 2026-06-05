@@ -41,14 +41,14 @@ async def _():
 async def _():
     group_config.save()
 
-
-@run_postprocessor
-async def _(bot: Bot, event: Event, matcher: Matcher):
-    if not isinstance(bot,OBBot) or not isinstance(event,OBMessageEvent):
-        return
-    
+        
+onMsg=on_message()
+@onMsg.handle()
+async def _(bot:OBBot,event:OBMessageEvent):
     text=event.message.extract_plain_text().strip()
     if text.__len__()<5 or text[0] not in get_driver().config.command_start:
+        if isinstance(event,GroupMessageEvent) and random.random()<group_config.get(str(event.group_id)).msg_poke_chance:
+            await bot.call_api("group_poke",group_id=event.group_id,user_id=event.user_id)
         return
     
     group_id = getattr(event,"group_id",None)
@@ -76,11 +76,6 @@ async def _(bot: Bot, event: Event, matcher: Matcher):
         except:
             pass
         
-onMsg=on_message()
-@onMsg.handle()
-async def _(bot:OBBot,event:GroupMessageEvent):
-    if random.random()<group_config.get(str(event.group_id)).msg_poke_chance:
-        await bot.call_api("group_poke",group_id=event.group_id,user_id=event.user_id)
         
 onPoke=on_type(PokeNotifyEvent)
 @onPoke.handle()
