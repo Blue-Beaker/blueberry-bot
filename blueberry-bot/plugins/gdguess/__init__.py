@@ -190,7 +190,7 @@ class LevelProviderSearch(LevelProvider):
     
 class LevelProviderWeekly(LevelProviderSearch):
     def get_levels_in_page(self,page:int):
-        return gd.getLevel(searchType=gd.LevelSearchType.WEEKLY,page=page) or []
+        return gd.getLevel(page=page,searchType=gd.LevelSearchType.WEEKLY.value) or []
     
     def get_levels(self,text:str):
         count=safeInt(text,30)
@@ -202,7 +202,7 @@ class LevelProviderWeekly(LevelProviderSearch):
     
 class LevelProviderDaily(LevelProviderSearch):
     def get_levels_in_page(self,page:int):
-        return gd.getLevel(searchType=gd.LevelSearchType.DAILY,page=page) or []
+        return gd.getLevel(page=page,searchType=gd.LevelSearchType.DAILY.value) or []
     def get_levels(self,text:str):
         count=safeInt(text,30)
         levels=self.get_internal_levels(count)
