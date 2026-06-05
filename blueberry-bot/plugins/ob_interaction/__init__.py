@@ -35,7 +35,7 @@ driver=get_driver()
 
 @driver.on_startup
 async def _():
-    group_config.save()
+    group_config.load()
     
 @driver.on_shutdown
 async def _():
