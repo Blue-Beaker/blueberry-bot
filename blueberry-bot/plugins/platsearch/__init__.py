@@ -19,8 +19,9 @@ from .utils import select_page
 
 require('bbot_api')
 from ..bbot_api.argparse import ArgumentError,ArgParser
+from ..bbot_api import TextImageMessage,supportsImage
 require('gd_api')
-from ..gd_api import gd
+from ..gd_api import gd,thumbs
 
 from . import underrated
 
@@ -258,7 +259,7 @@ async def _(args: Message = CommandArg()):
 
 platsearch = on_command("platsearch")
 @platsearch.handle()
-async def _(args: Message = CommandArg()):
+async def _(bot:Bot, args: Message = CommandArg()):
     if not args.extract_plain_text().strip():
         await platsearch.finish("\n".join(
             [
@@ -337,12 +338,24 @@ async def _(args: Message = CommandArg()):
                 line.append(f" {tagstr}")
                 
             msg.append("".join(line))
+    
+    level_ids:list[int]=[l.id for l in results if l.id>0]
+    
+    if supportsImage(bot) and level_ids.__len__()==1:
+        id=level_ids[0]
+        img=thumbs.getThumbnail(id)
+        if img:
+            msg2=TextImageMessage.build(bot)
+            msg2.addText("\n".join(msg))
+            msg2.addImage(img,f"{id}.png")
+            await platrandom.finish(msg2.msg)
+            return
         
     await platsearch.send("\n".join(msg))
  
 platrandom = on_command("platrandom")
 @platrandom.handle()
-async def _(search_args: Message = CommandArg()):
+async def _(bot:Bot, search_args: Message = CommandArg()):
     text0=search_args.extract_plain_text()
     try:
         parser=ArgParser()
@@ -417,6 +430,16 @@ async def _(search_args: Message = CommandArg()):
         if rankline:
             line.append("\n"+",".join(rankline))
     msg.append(''.join(line))
+    
+    if supportsImage(bot):
+        img=thumbs.getThumbnail(l.id)
+        if img:
+            msg2=TextImageMessage.build(bot)
+            msg2.addText("\n".join(msg))
+            msg2.addImage(img,f"{l.id}.png")
+            await platrandom.finish(msg2.msg)
+            return
+        
     await platrandom.finish("\n".join(msg))
     
 

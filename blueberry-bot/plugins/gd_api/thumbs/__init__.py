@@ -5,12 +5,14 @@ import requests
 from cachetools import cached, TTLCache
 
 @cached(cache=TTLCache(maxsize=20,ttl=600))
-def getThumbnail(levelID:int,api_base:str="https://levelthumbs.prevter.me/thumbnail/"):
+def getThumbnail(levelID:int,api_base:str="https://levelthumbs.prevter.me/thumbnail/",small:bool=False):
     headers = {
         "User-Agent": ""
     }
-    
-    req = requests.get(url=api_base+str(levelID), headers=headers, timeout=10)
+    url=api_base+str(levelID)
+    if small:
+        url=url+"/small"
+    req = requests.get(url=url, headers=headers, timeout=10)
     if req.status_code!=200:
         return None
     return req.content

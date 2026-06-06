@@ -36,6 +36,9 @@ def safeInt(i:Any,fallback:_A=-1) -> int|_A:
     except:
         return fallback
     
+def supportsImage(bot:Bot):
+    return isinstance(bot,OBBot) or isinstance(bot,DCBot)
+    
 class TextImageMessage:
     msg:DCMessage|OBMessage|str
     def __init__(self,msg:DCMessage|OBMessage|str) -> None:
