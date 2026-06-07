@@ -122,15 +122,34 @@ gus_add=on_command("gus-add",permission=SUPERUSER)
 async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
     text=msg.extract_plain_text()
     
+    update=False
+    if text.startswith("-u"):
+        text=text.removeprefix("-u").strip()
+        update=True
+    
     spl=text.split(",",2)
     
     if spl.__len__()<3:
         await gus_add.finish("需要3个参数: key, name, desc 用,分隔")
     
     entry=GusEntry()
-    key=spl[0]
-    entry.name=spl[1]
-    entry.desc=spl[2]
+    key=spl[0].removesuffix("\n").lower().replace("-","_").strip()
+    entry.name=spl[1].removesuffix("\n").strip()
+    entry.desc=spl[2].removesuffix("\n").strip()
+    
+    existing_entry=gus__data.get_data(key)
+    if existing_entry:
+        if not update:
+            await gus_add.finish(f"ID '{key}' 已存在, 加入-u前缀以更新: {existing_entry.name}.")
+        else:
+            orig_name=existing_entry.name
+            orig_desc=existing_entry.desc
+            
+            existing_entry.name=entry.name
+            existing_entry.desc=entry.desc
+            await gus_add.finish(f"已更新 '{key}': {existing_entry.name}.")
+    elif update:
+        await gus_add.finish(f"未找到 ID '{key}'.")
     
     imgs=msg.get("image",1)
     if not imgs:
@@ -167,3 +186,50 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
     
     if not imgs:
         await gus_add.finish("添加失败.")
+        
+gus_get=on_command("gus-get",permission=SUPERUSER)
+@gus_get.handle()
+async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
+    text=msg.extract_plain_text()
+    reply=TextImageMessage.build(bot)
+    if not text:
+        for k,v in gus__data.get_entries().items():
+            reply.addLine(f"{k}:{v.name}")
+        await gus_get.finish(reply.getMessage())
+        
+    key=text.removesuffix("\n").lower().replace("-","_").strip()
+    
+    entry=gus__data.get_data(key)
+    img=gus__data.get_img(key)
+    if entry:
+        reply.addLine(key)
+        reply.addLine(entry.name)
+        reply.addLine(entry.desc)
+    else:
+        reply.addLine(f"未找到 ID '{key}'.")
+        
+    if img:
+        reply.addImage(img)
+    await gus_get.finish(reply.getMessage())
+
+gus_rm=on_command("gus-rm",permission=SUPERUSER)
+@gus_rm.handle()
+async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
+    text=msg.extract_plain_text()
+    reply=TextImageMessage.build(bot)
+    if not text:
+        for k,v in gus__data.get_entries().items():
+            reply.addLine(f"{k}:{v}")
+        await gus_rm.finish(reply.getMessage())
+        
+    key=text.removesuffix("\n").lower().replace("-","_").strip()
+    
+    entry=gus__data.remove_entry(key)
+    if entry:
+        reply.addLine(key)
+        reply.addLine(entry.name)
+        reply.addLine(entry.desc)
+        await gus_rm.finish(reply.getMessage())
+    else:
+        reply.addLine(f"未找到 ID '{key}'.")
+    await gus_rm.finish(reply.getMessage())

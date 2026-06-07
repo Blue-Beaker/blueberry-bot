@@ -79,3 +79,12 @@ class GusData:
         
         with open(filepath,"wb") as f:
             f.write(image)
+            
+    def remove_entry(self,key:str):
+        entry=self.get_data(key)
+        if not entry:
+            return False
+        filepath=self.entries_path/entry.file
+        os.remove(filepath)
+        self.entries.pop(key)
+        return entry
