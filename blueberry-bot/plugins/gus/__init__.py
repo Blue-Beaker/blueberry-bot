@@ -114,7 +114,7 @@ async def gus_logic(matcher:Type[Matcher],bot:Bot,event:Event,msg:Message=Comman
         
     cooldown.use(event_id)
     
-    await matcher.finish(reply.getMessage())
+    await matcher.finish(reply.getMessage(), at_sender=True)
     
     
 gus_add=on_command("gus-add",permission=SUPERUSER)
