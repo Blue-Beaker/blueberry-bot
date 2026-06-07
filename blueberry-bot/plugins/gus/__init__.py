@@ -1,3 +1,4 @@
+import math
 import time
 from nonebot import get_plugin_config,get_driver, logger
 from nonebot.plugin import PluginMetadata
@@ -60,19 +61,29 @@ async def _():
     
 class GusCooldown:
     last_gus_time:dict[str,int]={}
-    def getRemainingCooldown(self,id:str):
-        last_time=self.last_gus_time.get(id,0)
-        return group_config.get(id).cooldown-(int(time.time())-last_time)
+    def combine_id(self,gid:str,uid:str):
+        return gid+"_"+uid
+    
+    def getAvailableTime(self,gid:str,uid:str):
+        cid=self.combine_id(gid,uid)
+        last_time=self.last_gus_time.get(cid,0)
+        return group_config.get(gid).cooldown+last_time
         
-    def canUse(self,id:str):
-        if self.getRemainingCooldown(id)>0:
+    def getRemainingCooldown(self,gid:str,uid:str):
+        cid=self.combine_id(gid,uid)
+        last_time=self.last_gus_time.get(cid,0)
+        return last_time+group_config.get(gid).cooldown-int(math.floor(time.time()))
+        
+    def canUse(self,gid:str,uid:str):
+        if time.time() < self.getAvailableTime(gid,uid):
             return False
         return True
-    def use(self,id:str):
-        self.last_gus_time[id]=int(time.time())
-    def tryUse(self,id:str):
-        if self.canUse(id):
-            self.use(id)
+    def use(self,gid:str,uid:str):
+        cid=self.combine_id(gid,uid)
+        self.last_gus_time[cid]=int(math.floor(time.time()))
+    def tryUse(self,gid:str,uid:str):
+        if self.canUse(gid,uid):
+            self.use(gid,uid)
             return True
         return False
     
@@ -89,11 +100,11 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
     pass
 
 async def gus_logic(matcher:Type[Matcher],bot:Bot,event:Event,msg:Message=CommandArg()):
-    event_id=getid(event)
+    group_id=str(getattr(event,"group_id","private"))
     user_id=event.get_user_id()
     
-    if not cooldown.canUse(event_id+"_"+user_id):
-        cd=cooldown.getRemainingCooldown(event_id)
+    if not cooldown.canUse(group_id,user_id):
+        cd=cooldown.getRemainingCooldown(group_id,user_id)
         await matcher.finish(f"别Gu啦, {cd}秒后再来吧! 或者来猜猜关卡? (本指令可当作-gdguess)")
     
     entries=gus__data.get_entries()
@@ -114,7 +125,7 @@ async def gus_logic(matcher:Type[Matcher],bot:Bot,event:Event,msg:Message=Comman
     else:
         reply.addLine("呜呜, Gus溜走了! (图片不存在)")
         
-    cooldown.use(event_id+"_"+user_id)
+    cooldown.use(group_id,user_id)
     
     await matcher.finish(reply.getMessage(), at_sender=True)
     
@@ -238,3 +249,7 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
         reply.addLine(f"未找到 ID '{key}'.")
         await gus_rm.finish(reply.getMessage())
     await gus_rm.finish(reply.getMessage())
+    
+gus_cfg=on_command("gus-cfg",permission=SUPERUSER)
+config_handler=make_config_handler("gus-cfg",GusConfigItem,group_config)
+gus_cfg.handle()(config_handler)
