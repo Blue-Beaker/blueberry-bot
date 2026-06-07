@@ -85,6 +85,7 @@ class GusData:
         if not entry:
             return False
         filepath=self.entries_path/entry.file
-        os.remove(filepath)
+        if os.path.isfile(filepath):
+            os.remove(filepath)
         self.entries.pop(key)
         return entry
