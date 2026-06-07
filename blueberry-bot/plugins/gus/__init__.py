@@ -90,7 +90,9 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
 
 async def gus_logic(matcher:Type[Matcher],bot:Bot,event:Event,msg:Message=CommandArg()):
     event_id=getid(event)
-    if not cooldown.canUse(event_id):
+    user_id=event.get_user_id()
+    
+    if not cooldown.canUse(event_id+"_"+user_id):
         cd=cooldown.getRemainingCooldown(event_id)
         await matcher.finish(f"别Gu啦, {cd}秒后再来吧! 或者来猜猜关卡? (本指令可当作-gdguess)")
     
@@ -112,7 +114,7 @@ async def gus_logic(matcher:Type[Matcher],bot:Bot,event:Event,msg:Message=Comman
     else:
         reply.addLine("呜呜, Gus溜走了! (图片不存在)")
         
-    cooldown.use(event_id)
+    cooldown.use(event_id+"_"+user_id)
     
     await matcher.finish(reply.getMessage(), at_sender=True)
     
