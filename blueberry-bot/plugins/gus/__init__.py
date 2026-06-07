@@ -149,6 +149,7 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
             
             existing_entry.name=entry.name
             existing_entry.desc=entry.desc
+            gus__data.save()
             await gus_add.finish(f"已更新 '{key}': {existing_entry.name}.")
     elif update:
         await gus_add.finish(f"未找到 ID '{key}'.")
@@ -227,6 +228,7 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
     key=text.removesuffix("\n").lower().replace("-","_").strip()
     
     entry=gus__data.remove_entry(key)
+    gus__data.save()
     if entry:
         reply.addLine(key)
         reply.addLine(entry.name)
@@ -234,4 +236,5 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
         await gus_rm.finish(reply.getMessage())
     else:
         reply.addLine(f"未找到 ID '{key}'.")
+        await gus_rm.finish(reply.getMessage())
     await gus_rm.finish(reply.getMessage())
