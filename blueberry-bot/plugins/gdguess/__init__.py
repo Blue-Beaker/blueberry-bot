@@ -3,7 +3,7 @@ import math
 import os
 import random
 import time
-from typing import Optional
+from typing import Optional, Type
 import cv2
 from nonebot import on_command,logger,get_plugin_config, require
 from nonebot.adapters import Message,Event,Bot
@@ -254,9 +254,12 @@ def get_levels_from_args(args:GuessArgs,session:Optional[GuessSession]):
     
     return provider_cls().get_levels(args.text)
     
-gdguess = on_command("gdguess")
-@gdguess.handle()
+gdguess_cmd = on_command("gdguess")
+@gdguess_cmd.handle()
 async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
+    await gdguess_logic(gdguess_cmd,bot,event,raw_args)
+
+async def gdguess_logic(matcher:Type[Matcher],bot:Bot,event:Event,raw_args: Message = CommandArg()):
     # Only allow in Certain Adapters
     if not isSupportedAdapter(bot):
         return
@@ -265,8 +268,8 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
     try:
         args=GuessArgs(args_text)
     except Exception as e:
-        await gdguess.send(f"参数解析错误: {e}.")
-        await gdguess.finish()
+        await matcher.send(f"参数解析错误: {e}.")
+        await matcher.finish()
         return
     args_text=args.text
     if args.action == GuessAction.HELP:
@@ -282,8 +285,8 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
         "gdguess -hint 获取提示",
         "gdguess -giveup 放弃当前的猜图游戏并显示答案",
         "gdguess <图名> 进行猜图",]
-        await gdguess.send("\n".join(help))
-        await gdguess.finish()
+        await matcher.send("\n".join(help))
+        await matcher.finish()
         return
     
     id=getid(event)
@@ -292,18 +295,18 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
         recover_cache_img(id,session)
     
     if args.action == GuessAction.GIVEUP:
-        await giveup(bot,gdguess,event)
-        await gdguess.finish()
+        await giveup(bot,matcher,event)
+        await matcher.finish()
         return
     
     elif args.action == GuessAction.START:
-        await guess_start(bot,gdguess,event,args,crop_size=args.difficulty.value[1],test=False)
-        await gdguess.finish()
+        await guess_start(bot,matcher,event,args,crop_size=args.difficulty.value[1],test=False)
+        await matcher.finish()
         return
     
     elif args.action == GuessAction.HINT:
-        await hint(bot,gdguess,event)
-        await gdguess.finish()
+        await hint(bot,matcher,event)
+        await matcher.finish()
         return
     
     id=getid(event)
@@ -315,9 +318,9 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
             await reaction_emoji(bot,event.message_id,10068) # Questionmark
         # Dont send tips when it's just finished
         if time.time()-last_finish_time.get(id,0)>10:
-            await gdguess.send(msg)
+            await matcher.send(msg)
         
-        await gdguess.finish()
+        await matcher.finish()
         return
     guess=raw_args.extract_plain_text().strip()
     if session.guess(guess):
@@ -329,7 +332,7 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
         if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
             await reaction_emoji(bot,event.message_id,144) # Confetti emoji
         
-        await gdguess.send(buildMessageImage(bot,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{session.session_id}.webp",session.crop)),at_sender=True)
+        await matcher.send(buildMessageImage(bot,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{session.session_id}.webp",session.crop)),at_sender=True)
             
         last_finish_time[id]=int(time.time())
         
@@ -338,12 +341,12 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
         if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
             await reaction_emoji(bot,event.message_id,424) # Button emoji
         if session.guesses%5==0:
-            await sendMessageAndImage(bot,gdguess,f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!\n需要提示吗? -gdguess -hint 以获取提示",loadFile(IMAGES_PATH/f"{id}.png"))
+            await sendMessageAndImage(bot,matcher,f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!\n需要提示吗? -gdguess -hint 以获取提示",loadFile(IMAGES_PATH/f"{id}.png"))
         elif not isinstance(bot,OBBot):
-            await gdguess.send(f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!")
+            await matcher.send(f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!")
         
     SAVE_MANAGER.autosave()
-    await gdguess.finish()
+    await matcher.finish()
     
 
 async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,crop_size:tuple[int,int]=(256,256),test:bool=False):
@@ -358,7 +361,7 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     
     # When session is active
     if session and not session.completed:
-        await sendMessageAndImage(bot,gdguess,f"你已经有一个正在进行的游戏了! 继续猜图吧!",loadFile(IMAGES_PATH/f"{session.session_id}.png"))
+        await sendMessageAndImage(bot,matcher,f"你已经有一个正在进行的游戏了! 继续猜图吧!",loadFile(IMAGES_PATH/f"{session.session_id}.png"))
         return
     
     # When on cooldown

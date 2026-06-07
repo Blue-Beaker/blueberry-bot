@@ -54,9 +54,21 @@ class TextImageMessage:
     def addText(self,text:str):
         self.msg+=text
         return self
-    def addImage(self,image:bytes,image_name:str="image.png"):
+    def addLine(self,text:str):
+        if self.msg.__len__()>0 and (isinstance(self.msg,str) or self.msg[-1].is_text()):
+            self.addText("\n")
+        self.addText(text)
+        return self
+    def addImage(self,image:bytes,image_name:str="image.png",small:bool=False):
         if isinstance(self.msg,DCMessage):
             self.msg.append(DCMessageSegment.attachment(image_name,content=image))
         elif isinstance(self.msg,OBMessage):
-            self.msg.append(OBMessageSegment.image(image))
+            if small:
+                imgsegment=OBMessageSegment.image(image)
+                imgsegment.data["sub_type"]=1
+                self.msg.append(imgsegment)
+            else:
+                self.msg.append(OBMessageSegment.image(image))
         return self
+    def getMessage(self):
+        return self.msg
