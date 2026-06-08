@@ -167,7 +167,7 @@ from collections.abc import Awaitable, Callable
 def make_config_handler(
     cmd_name: str,
     config_class: type[_C],
-    config: GroupConfig[_C],
+    config: GroupConfig[_C]
 ):
     """创建一个配置指令的处理函数。
     
@@ -191,6 +191,7 @@ def make_config_handler(
     from nonebot.adapters.onebot.v11.message import Message
     from nonebot.matcher import Matcher
     from pydantic import TypeAdapter
+    from ...bbot_api import get_group_id
     help_text = (
         f"{cmd_name} get [-g <group>] <field>\n"
         f"{cmd_name} set [-g <group>] <field> <value>\n"
@@ -226,9 +227,8 @@ def make_config_handler(
 
         # 未指定 group 时尝试从事件获取当前群
         if group is None:
-            if isinstance(event, GroupMessageEvent):
-                group = str(event.group_id)
-            else:
+            group=get_group_id(event)
+            if group == "private":
                 await matcher.finish("私聊中必须用 -g 参数指定 group")
 
         # ── list-groups ────────────────────────────────

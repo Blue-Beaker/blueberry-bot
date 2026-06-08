@@ -23,7 +23,7 @@ from .config import Config
 from .gus_data import GusData,GusEntry
 
 require("bbot_api")
-from ..bbot_api import TextImageMessage,getid
+from ..bbot_api import TextImageMessage,getid,get_group_id
 from ..bbot_api.group_config import GroupConfig,ConfigItem,make_config_handler
 
 require("gdguess")
@@ -100,7 +100,7 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
     pass
 
 async def gus_logic(matcher:Type[Matcher],bot:Bot,event:Event,msg:Message=CommandArg()):
-    group_id=str(getattr(event,"group_id","private"))
+    group_id = get_group_id(event)
     user_id=event.get_user_id()
     
     if not cooldown.canUse(group_id,user_id):
