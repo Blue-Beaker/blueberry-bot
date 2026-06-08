@@ -74,10 +74,18 @@ class TextImageMessage:
         return self.msg
     
 def get_group_id(event):
-    if isinstance(event,GuildMessageCreateEvent):
-        group_id=event.guild_id.__str__()
+    print(event)
     if isinstance(event,MCBaseChatEvent):
         group_id=event.server_name
     else:
-        group_id=str(getattr(event,"group_id","private"))
+        for field in ["group_id","channel_id"]:
+            group_id=getattr(event,field,None)
+            if group_id:
+                break
+        
+    if group_id:
+        group_id=str(group_id)
+    else:
+        group_id="private"
+    print(group_id)
     return group_id
