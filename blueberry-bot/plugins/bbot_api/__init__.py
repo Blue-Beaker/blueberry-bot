@@ -75,7 +75,7 @@ class TextImageMessage:
     
 def get_group_id(event):
     if isinstance(event,GuildMessageCreateEvent):
-        group_id=GuildMessageCreateEvent.guild_id.__str__()
+        group_id=event.guild_id.__str__()
     if isinstance(event,MCBaseChatEvent):
         group_id=event.server_name
     else:
