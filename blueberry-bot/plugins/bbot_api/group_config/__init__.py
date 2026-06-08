@@ -186,9 +186,10 @@ def make_config_handler(
     返回:
         (handler, help_text) 元组
     """
+    from nonebot.internal.adapter import Bot,Event,Message
     from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent
     from nonebot.params import CommandArg
-    from nonebot.adapters.onebot.v11.message import Message
+    from nonebot.adapters.onebot.v11.message import Message as OBMessage
     from nonebot.matcher import Matcher
     from pydantic import TypeAdapter
     from ...bbot_api import get_group_id
@@ -202,8 +203,8 @@ def make_config_handler(
     )
 
     async def handler(
-        bot: OBBot,
-        event: GroupMessageEvent,
+        bot: Bot,
+        event: Event,
         matcher: Matcher,
         args: Message = CommandArg(),
     ):
