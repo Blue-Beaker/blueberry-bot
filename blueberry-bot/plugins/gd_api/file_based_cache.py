@@ -2,6 +2,7 @@ import json
 import os,sys
 from pathlib import Path
 import time
+import traceback
 from typing import Callable, Generic, Literal, TypeVar, cast
 from nonebot import logger
 
@@ -70,9 +71,12 @@ class FileBasedCache(Generic[_D]):
     def getOrUpdate(self):
         if self.shouldUpdate():
             logger.info(f"Updating {self.cache_name}...")
-            data=self.updateFunction()
-            if data:
-                self.update(data)
-            return cast(_D,data)
+            try:
+                data=self.updateFunction()
+                if data:
+                    self.update(data)
+                    return cast(_D,data)
+            except Exception as e:
+                logger.error(f"Error updating {self.cache_name}: {traceback.format_exc()}")
                 
         return cast(_D,self.get())

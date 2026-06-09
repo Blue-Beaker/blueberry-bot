@@ -41,7 +41,7 @@ def getPemonlistResponse():
         "User-Agent": ""
     }
     
-    req = requests.get(url, headers=headers)
+    req = requests.get(url, headers=headers,timeout=30)
     if req.status_code!=200:
         return None
     else:
