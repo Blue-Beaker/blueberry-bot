@@ -44,7 +44,11 @@ async def _(bot:Bot, event: Event, msg: Message=CommandArg()):
         if not args or args[0].lower()=="id":
             session_id=getid(event)
             group_id=get_group_id(event)
-            await debug_cmd.finish(f"当前Session ID: {session_id}, Group ID:{group_id}")
+            
+            is_listed=(session_id in debuglist)
+            
+            await debug_cmd.finish(f"当前 Debug {'on' if is_listed else 'off'}\nSession ID: {session_id}, Group ID:{group_id}")
+            
             return
         
         subcmd=args[0].lower()
