@@ -15,14 +15,20 @@ class FileBasedCache(Generic[_D]):
     updateFunction:Callable[[],_D]
     cache_name:str="cache"
     
+    failure_cooldown:float=300
+    fail_try_time:float=0
+    
     def __init__(self,data_type:type[_D],updateFunction:Callable[[],_D],cache_path:str|Path|None=None,expiration:float=3600,cache_name:str="cache") -> None:
         self.data_type=data_type
         self.updateFunction=updateFunction
         self.expiration=expiration
         self.cache_path=Path(os.path.abspath(cache_path)) if cache_path else cache_path
         self.cache_name=cache_name
+        self.fail_try_time:float=0
     
     def shouldUpdate(self) -> bool:
+        if time.time()<self.fail_try_time:
+            return False
         if not self.cache_path:
             return True
         if not self.cache_path.exists():
@@ -51,7 +57,7 @@ class FileBasedCache(Generic[_D]):
         else:
             with open(self.cache_path,"w") as f:
                 json.dump(data,f)
-                
+        self.fail_try_time=0
         return True
     
     def get(self) -> _D|None:
@@ -76,7 +82,10 @@ class FileBasedCache(Generic[_D]):
                 if data:
                     self.update(data)
                     return cast(_D,data)
+                else:
+                    self.fail_try_time=time.time()+self.failure_cooldown
             except Exception as e:
                 logger.error(f"Error updating {self.cache_name}: {traceback.format_exc()}")
+                self.fail_try_time=time.time()+self.failure_cooldown
                 
         return cast(_D,self.get())
