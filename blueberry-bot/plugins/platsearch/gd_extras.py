@@ -171,6 +171,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         parser.add_argument('-p',help='Show Platformer breakdown',action='store_true')
         parser.add_argument('-d',help='Show Demons breakdown',action='store_true')
         parser.add_argument('-v',help='Show Other Info',action='store_true')
+        parser.add_argument('-t',help='Plain Text',action='store_true')
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parsed=parser.parse_args(raw_args)
         search=" ".join(parsed.search)
@@ -178,6 +179,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         show_plat=bool(parsed.p)
         show_demons=bool(parsed.d)
         show_other=bool(parsed.v)
+        force_text=bool(parsed.t)
         
     except Exception as e:
         await gduser.finish(str(e))
@@ -189,7 +191,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     if not user:
         await gduser.finish("未找到玩家, 或发生错误.")
     
-    has_image=(isinstance(bot,OBBot) or isinstance(bot,DCBot))
+    has_image=(not force_text) and (isinstance(bot,OBBot) or isinstance(bot,DCBot))
     msg=bbot_api.TextImageMessage.build(bot)
     
     
