@@ -24,6 +24,8 @@ class LevelEntry:
     def exactMatch(self,search:str):
         return search.lower().replace("(","").replace(")","").strip() == self.name.lower().replace("(","").replace(")","").strip()
     def matchesName(self,search:str,fuzzy_match:bool=False):
+        if self.exactMatch(search):
+            return True
         if fuzzy_match:
             return search.lower() in self.name.lower()
         else:
