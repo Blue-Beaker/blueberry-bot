@@ -191,7 +191,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     lines:list[str]=[]
     
     user=getUser(search)
-    if not user:
+    if not user or not user.account_id:
         await gduser.finish("未找到玩家, 或发生错误.")
         
     supports_image=(isinstance(bot,OBBot) or isinstance(bot,DCBot))
