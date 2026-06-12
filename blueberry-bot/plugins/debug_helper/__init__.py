@@ -62,8 +62,8 @@ async def _(bot:Bot, event: Event, msg: Message=CommandArg()):
                 debuglist.add(session_id)
                 await debug_cmd.finish(f"已为 {session_id} 开启调试")
                 return
-            elif session_id in debuglist:
-                debuglist.remove(session_id)
+            else:
+                if session_id in debuglist: debuglist.remove(session_id)
                 await debug_cmd.finish(f"已为 {session_id} 关闭调试")
                 return
             
