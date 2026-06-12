@@ -159,6 +159,21 @@ class PlayerIcons:
     acc_spider:int
     acc_swing:int
     acc_jetpack:int
+    def __init__(self) -> None:
+        self.color=0
+        self.color2=0
+        self.icon_type=0
+        self.acc_icon=0
+        self.acc_ship=0
+        self.acc_ball=0
+        self.acc_ufo=0
+        self.acc_wave=0
+        self.acc_robot=0
+        self.glow_on=0
+        self.glow_color=-1
+        self.acc_spider=0
+        self.acc_swing=0
+        self.acc_jetpack=0
     def __repr__(self) -> str:
         return f"Icon: {self.__dict__}"
     def get_icon_for_type(self,icon_type:str):
@@ -249,65 +264,76 @@ class PlayerInfo:
     classic_demons:PlayerDemonLevels
     plat_demons:PlayerDemonLevels
     
+    def __init__(self) -> None:
+        self.user_name=""
+        self.user_id=0
+        self.stars=0
+        self.moons=0
+        self.demons=0
+        self.diamonds=0
+        self.mod_level=0
+        self.global_rank=-1
+        self.creator_points=0
+        self.secret_coins=0
+        self.account_id=0
+        self.user_coins=0
+        self.icon=PlayerIcons()
+        self.classic_levels=PlayerLevels()
+        self.plat_levels=PlayerLevels()
+        self.classic_demons=PlayerDemonLevels()
+        self.plat_demons=PlayerDemonLevels()
+    
     def load(self,data:dict[str,str]):
-        self.user_name=data.get("1","")
-        self.user_id=safeInt(data.get("2"))
-        self.stars=safeInt(data.get("3"),0)
-        self.demons=safeInt(data.get("4"),0)
-        self.creator_points=safeInt(data.get("8"),0)
-        self.secret_coins=safeInt(data.get("13"),0)
-        self.account_id=safeInt(data.get("16"),0)
-        self.user_coins=safeInt(data.get("17"),0)
-        self.global_rank=safeInt(data.get("30"),-1)
-        self.diamonds=safeInt(data.get("46"),0)
-        self.mod_level=safeInt(data.get("49"),0)
-        self.moons=safeInt(data.get("52"),0)
+        self.user_name = data.get("1", self.user_name)
+        self.user_id = safeInt(data.get("2"), self.user_id)
+        self.stars = safeInt(data.get("3"), self.stars)
+        self.demons = safeInt(data.get("4"), self.demons)
+        self.creator_points = safeInt(data.get("8"), self.creator_points)
+        self.secret_coins = safeInt(data.get("13"), self.secret_coins)
+        self.account_id = safeInt(data.get("16"), self.account_id)
+        self.user_coins = safeInt(data.get("17"), self.user_coins)
+        self.global_rank = safeInt(data.get("30"), self.global_rank)
+        self.diamonds = safeInt(data.get("46"), self.diamonds)
+        self.mod_level = safeInt(data.get("49"), self.mod_level)
+        self.moons = safeInt(data.get("52"), self.moons)
         
-        # Parse icon data
-        icon=PlayerIcons()
-        icon.color=safeInt(data.get("10"),0)
-        icon.color2=safeInt(data.get("11"),0)
-        icon.icon_type=safeInt(data.get("14"),0)
-        icon.acc_icon=safeInt(data.get("21"),0)
-        icon.acc_ship=safeInt(data.get("22"),0)
-        icon.acc_ball=safeInt(data.get("23"),0)
-        icon.acc_ufo=safeInt(data.get("24"),0)
-        icon.acc_wave=safeInt(data.get("25"),0)
-        icon.acc_robot=safeInt(data.get("26"),0)
-        icon.glow_on=safeInt(data.get("28"),0)
-        icon.acc_spider=safeInt(data.get("43"),0)
-        icon.glow_color=safeInt(data.get("51"),0)
-        icon.acc_swing=safeInt(data.get("53"),0)
-        icon.acc_jetpack=safeInt(data.get("54"),0)
+        # Parse icon data — only update keys present in data
+        icon=self.icon
+        icon.color = safeInt(data.get("10"), icon.color)
+        icon.color2 = safeInt(data.get("11"), icon.color2)
+        icon.icon_type = safeInt(data.get("14"), icon.icon_type)
+        icon.acc_icon = safeInt(data.get("21"), icon.acc_icon)
+        icon.acc_ship = safeInt(data.get("22"), icon.acc_ship)
+        icon.acc_ball = safeInt(data.get("23"), icon.acc_ball)
+        icon.acc_ufo = safeInt(data.get("24"), icon.acc_ufo)
+        icon.acc_wave = safeInt(data.get("25"), icon.acc_wave)
+        icon.acc_robot = safeInt(data.get("26"), icon.acc_robot)
+        icon.glow_on = safeInt(data.get("28"), icon.glow_on)
+        icon.acc_spider = safeInt(data.get("43"), icon.acc_spider)
+        icon.glow_color = safeInt(data.get("51"), icon.glow_color)
+        icon.acc_swing = safeInt(data.get("53"), icon.acc_swing)
+        icon.acc_jetpack = safeInt(data.get("54"), icon.acc_jetpack)
         
         if not icon.glow_on:
             icon.glow_color=-1
-        self.icon=icon
         
-        # Parse level breakdowns
-        classic_raw=data.get("56","")
+        # Parse level breakdowns — only if present
+        classic_raw=data.get("56")
         if classic_raw:
             self.classic_levels=PlayerLevels().load(classic_raw)
-        else:
-            self.classic_levels=PlayerLevels()
             
-        plat_raw=data.get("57","")
+        plat_raw=data.get("57")
         if plat_raw:
             self.plat_levels=PlayerLevels().load(plat_raw)
-        else:
-            self.plat_levels=PlayerLevels()
         
         # Demons breakdown (key 55): {easy},{medium},{hard},{insane},{extreme},{easyPlat},{mediumPlat},{hardPlat},{insanePlat},{extremePlat},{weekly},{gauntlet}
-        demons_raw=data.get("55","")
+        demons_raw=data.get("55")
         if demons_raw:
             self.classic_demons=PlayerDemonLevels().load(demons_raw)
             spl=demons_raw.split(",")
             if spl.__len__()>=10:
                 plat_demons_data=",".join(spl[5:10])
                 self.plat_demons=PlayerDemonLevels().load(plat_demons_data)
-        else:
-            self.classic_demons=PlayerDemonLevels()
-            self.plat_demons=PlayerDemonLevels()
         
         return self
         
@@ -451,21 +477,25 @@ def getUser(search:int|str):
         data2=data.copy()
         data2["str"]=str(search)
         req = requests.post('http://www.boomlings.com/database/getGJUsers20.php', data=data2, headers=headers)
+        # logger.debug(f"getGJUsers20.php raw response: {req.text}")
         spl=req.text.split("#")
         if spl.__len__()<2:
             return None
         user=spl[0]
         pages=spl[1]
+        # logger.debug(f"getGJUsers20.php parsed user dict: {parseDict(user)}")
         player_info.load(parseDict(user))
         userid=player_info.account_id
         
     data["targetAccountID"]=str(userid)
     req = requests.post("http://www.boomlings.com/database/getGJUserInfo20.php", data=data, headers=headers)
     
-    print(req.text)
+    # print(req.text)
     # print(parseDict(req.text))
     
-    return player_info.load(parseDict(req.text))
+    player_info.load(parseDict(req.text))
+    
+    return player_info
 
 
 _A = TypeVar(name="_A")
