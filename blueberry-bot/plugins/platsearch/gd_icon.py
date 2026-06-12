@@ -8,6 +8,8 @@ class Config(BaseModel):
     
 module_config=get_plugin_config(Config)
 
+
+    
 class IconType(Enum):
     CUBE="cube"
     SHIP="ship"
@@ -19,6 +21,16 @@ class IconType(Enum):
     SWING="swing"
     JETPACK="jetpack"
     
+ICON_TYPES=[
+        IconType.CUBE,
+        IconType.SHIP,
+        IconType.BALL,
+        IconType.UFO,
+        IconType.WAVE,
+        IconType.ROBOT,
+        IconType.SPIDER,
+        IconType.SWING,
+        IconType.JETPACK]
 
 def construct_icon_url(gamemode:IconType,id:int,col1:int,col2:int,glow:int=-1):
 

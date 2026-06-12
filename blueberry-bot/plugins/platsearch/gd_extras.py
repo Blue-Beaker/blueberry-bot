@@ -16,13 +16,13 @@ from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGro
 
 from . import godot_draw
 from .config import Config
-from .gd_icon import IconType, construct_icon_url,get_icon
+from .gd_icon import IconType, construct_icon_url,get_icon,ICON_TYPES
 
 require('bbot_api')
 from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType
+from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons
 from ..gd_api import gd
 from ..gd_api.thumbs import getThumbnail
 
@@ -208,10 +208,23 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     nondemon_image=False
     demon_image=False
     
+    icon=user.icon
+    
     # Image Sections
     if enable_image:
         req_id_base=bbot_api.getid(event)
-        img=await render_api.render_player_info(req_id_base+"_base",user.user_name,user.stars,user.moons,user.secret_coins,user.user_coins,user.demons,user.creator_points,c.sum(),p.sum(),c_demons.sum(),pemons.sum())
+        user_info_args:dict[str,str]={}
+        
+        player_icons=getIconIDs(user.icon)
+        icon_type=ICON_TYPES[icon.icon_type]
+        
+        user_info_args["player_icon"]=construct_icon_url(icon_type,player_icons.get(icon_type,0),icon.color,icon.color2,icon.glow_color)
+        
+        if show_icons:
+            for i,id in player_icons.items():
+                user_info_args["icon_"+i.value]=construct_icon_url(i,id,icon.color,icon.color2,icon.glow_color)
+        
+        img=await render_api.render_player_info(req_id_base+"_base",user.user_name,user.stars,user.moons,user.secret_coins,user.user_coins,user.demons,user.creator_points,c.sum(),p.sum(),c_demons.sum(),pemons.sum(),**user_info_args)
         if isinstance(img,bytes):
             msg.addImage(img)
             info_image=True
@@ -263,24 +276,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         lines.append(f"Account ID {user.account_id}")
         lines.append(f"Player ID {user.user_id}")
         
-    if show_icons and supports_image:
-        icon=user.icon
-        
-        ICON_TYPES=[
-            IconType.CUBE,
-            IconType.SHIP,
-            IconType.BALL,
-            IconType.UFO,
-            IconType.WAVE,
-            IconType.ROBOT,
-            IconType.SPIDER,
-            IconType.SWING,
-            IconType.JETPACK]
-        
+    if show_icons and supports_image and not enable_image:
         icon_type=ICON_TYPES[icon.icon_type]
         icon_id=icon.get_icon_for_type(icon_type.value) or 0
-        
         url=construct_icon_url(icon_type,icon_id,icon.color,icon.color2,icon.glow_color)
+        
         logger.info(url)
         icon=get_icon(icon_type,icon_id,icon.color,icon.color2,icon.glow_color)
         if icon:
@@ -289,6 +289,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     msg.addText("\n".join(lines))
     await gduser.finish(msg.msg)
     
+def getIconIDs(icon: PlayerIcons):
+    id_for_types:dict[IconType,int]={}
+    for i in IconType:
+        id_for_types[i]=icon.get_icon_for_type(i.value) or 0
+    return id_for_types
     
 def buildMessageImage(bot:Bot,message:str,image:bytes,image_name:str):
     if isinstance(bot,OBBot):

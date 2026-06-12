@@ -180,7 +180,10 @@ class PlayerIcons:
         field_name="acc_icon" if icon_type=="cube" else "acc_"+icon_type
         icon_id=getattr(self,field_name,None)
         return icon_id if isinstance(icon_id,int) else None
-        
+    def get_icon_type(self):
+        return icon_types[max(min(self.icon_type,icon_types.__len__()-1),0)]
+
+icon_types=["cube","ship","ball","ufo","wave","robot","spider","swing","jetpack"]
     
 class PlayerDemonLevels:
     ezd:int=-1

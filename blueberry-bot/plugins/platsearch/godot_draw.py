@@ -7,6 +7,8 @@ Connects to the Godot WebSocket server, sends a render request, and receives raw
 import json
 import asyncio
 
+from nonebot import logger
+
 try:
     import websockets
 except ImportError:
@@ -40,6 +42,7 @@ class RenderAPI:
             如果服务返回二进制数据，返回 bytes（PNG 图片）
             如果服务返回文本，解析为 dict 后返回（可能是错误信息）
         """
+        # logger.debug(params)
         try:
             request = {"scene": scene, "request_id": request_id}
             if params:
@@ -67,13 +70,14 @@ class RenderAPI:
                                  nondemons: int = 0,
                                  nonpemons: int = 0,
                                  c_demons: int = 0,
-                                 pemons: int = 0) -> bytes | dict | None:
+                                 pemons: int = 0,**kwargs) -> bytes | dict | None:
         """渲染 player_info 场景。
 
         参数说明参考 player_info_renderer.gd。
         """
         params = {k: v for k, v in locals().items()
                   if k not in ("self", "request_id") and v is not None}
+        params.update(kwargs)
         return await self._render("player_info", request_id, params)
 
     async def render_demons(self, request_id: str,
