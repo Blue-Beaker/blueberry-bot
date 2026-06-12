@@ -473,7 +473,7 @@ def getUser(search:int|str):
     }
     player_info=PlayerInfo()
     # Name search
-    if userid<0:
+    if True:
         data2=data.copy()
         data2["str"]=str(search)
         req = requests.post('http://www.boomlings.com/database/getGJUsers20.php', data=data2, headers=headers)
@@ -521,9 +521,9 @@ if __name__ == "__main__":
     
     # print(getLevel(searchType=LevelSearchType.WEEKLY))
     
-    print(getUser("BlueBeaker"))
+    # print(getUser("BlueBeaker"))
     
-    print(getUser("xioayang"))
+    # print(getUser("xioayang"))
     
-    print(getUser("lastcavespider"))
+    print(getUser("194268237"))
     
