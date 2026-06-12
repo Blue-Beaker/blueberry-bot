@@ -16,6 +16,7 @@ from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGro
 
 from . import godot_draw
 from .config import Config
+from .gd_icon import IconType, construct_icon_url,get_icon
 
 require('bbot_api')
 from .. import bbot_api
@@ -172,6 +173,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         parser.add_argument('-d',help='Show Demons breakdown',action='store_true')
         parser.add_argument('-v',help='Show Other Info',action='store_true')
         parser.add_argument('-t',help='Plain Text',action='store_true')
+        parser.add_argument('-i',help='Show Icons',action='store_true')
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parsed=parser.parse_args(raw_args)
         search=" ".join(parsed.search)
@@ -180,6 +182,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         show_demons=bool(parsed.d)
         show_other=bool(parsed.v)
         force_text=bool(parsed.t)
+        show_icons=bool(parsed.i)
         
     except Exception as e:
         await gduser.finish(str(e))
@@ -190,10 +193,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     user=getUser(search)
     if not user:
         await gduser.finish("未找到玩家, 或发生错误.")
+        
+    supports_image=(isinstance(bot,OBBot) or isinstance(bot,DCBot))
+    enable_image=(not force_text) and supports_image
     
-    has_image=(not force_text) and (isinstance(bot,OBBot) or isinstance(bot,DCBot))
     msg=bbot_api.TextImageMessage.build(bot)
-    
     
     c=user.classic_levels
     p=user.plat_levels
@@ -205,7 +209,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     demon_image=False
     
     # Image Sections
-    if has_image:
+    if enable_image:
         req_id_base=bbot_api.getid(event)
         img=await render_api.render_player_info(req_id_base+"_base",user.user_name,user.stars,user.moons,user.secret_coins,user.user_coins,user.demons,user.creator_points,c.sum(),p.sum(),c_demons.sum(),pemons.sum())
         if isinstance(img,bytes):
@@ -258,6 +262,29 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         lines.append(f"Global Rank {user.global_rank}")
         lines.append(f"Account ID {user.account_id}")
         lines.append(f"Player ID {user.user_id}")
+        
+    if show_icons and supports_image:
+        icon=user.icon
+        
+        ICON_TYPES=[
+            IconType.CUBE,
+            IconType.SHIP,
+            IconType.BALL,
+            IconType.UFO,
+            IconType.WAVE,
+            IconType.ROBOT,
+            IconType.SPIDER,
+            IconType.SWING,
+            IconType.JETPACK]
+        
+        icon_type=ICON_TYPES[icon.icon_type]
+        icon_id=icon.get_icon_for_type(icon_type.value) or 0
+        
+        url=construct_icon_url(icon_type,icon_id,icon.color,icon.color2,icon.glow_color)
+        logger.info(url)
+        icon=get_icon(icon_type,icon_id,icon.color,icon.color2,icon.glow_color)
+        if icon:
+            msg.addImage(icon,"icon.png",True)
         
     msg.addText("\n".join(lines))
     await gduser.finish(msg.msg)

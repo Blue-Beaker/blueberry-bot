@@ -154,11 +154,18 @@ class PlayerIcons:
     acc_ufo:int
     acc_wave:int
     acc_robot:int
-    acc_glow:int
+    glow_on:int
+    glow_color:int
+    acc_spider:int
     acc_swing:int
     acc_jetpack:int
     def __repr__(self) -> str:
         return f"Icon: {self.__dict__}"
+    def get_icon_for_type(self,icon_type:str):
+        field_name="acc_icon" if icon_type=="cube" else "acc_"+icon_type
+        icon_id=getattr(self,field_name,None)
+        return icon_id if isinstance(icon_id,int) else None
+        
     
 class PlayerDemonLevels:
     ezd:int=-1
@@ -267,9 +274,14 @@ class PlayerInfo:
         icon.acc_ufo=safeInt(data.get("24"),0)
         icon.acc_wave=safeInt(data.get("25"),0)
         icon.acc_robot=safeInt(data.get("26"),0)
-        icon.acc_glow=safeInt(data.get("28"),0)
+        icon.glow_on=safeInt(data.get("28"),0)
+        icon.acc_spider=safeInt(data.get("43"),0)
+        icon.glow_color=safeInt(data.get("51"),0)
         icon.acc_swing=safeInt(data.get("53"),0)
         icon.acc_jetpack=safeInt(data.get("54"),0)
+        
+        if not icon.glow_on:
+            icon.glow_color=-1
         self.icon=icon
         
         # Parse level breakdowns
@@ -450,7 +462,8 @@ def getUser(search:int|str):
     data["targetAccountID"]=str(userid)
     req = requests.post("http://www.boomlings.com/database/getGJUserInfo20.php", data=data, headers=headers)
     
-    # print(req.text)
+    print(req.text)
+    # print(parseDict(req.text))
     
     return player_info.load(parseDict(req.text))
 
@@ -476,8 +489,11 @@ if __name__ == "__main__":
     
     # print(getLevelsFromList(645883))
     
-    print(getLevel(searchType=LevelSearchType.WEEKLY))
+    # print(getLevel(searchType=LevelSearchType.WEEKLY))
     
-    # user=getUser("BlueBeaker")
-    # print(user)
+    print(getUser("BlueBeaker"))
+    
+    print(getUser("xioayang"))
+    
+    print(getUser("lastcavespider"))
     
