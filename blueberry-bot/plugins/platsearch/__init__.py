@@ -10,6 +10,7 @@ from nonebot.params import CommandArg
 from nonebot.permission import SUPERUSER
 import nonebot.config
 from nonebot import get_driver,require
+from nonebot.internal.matcher import Matcher
 
 from .config import Config
 
@@ -19,7 +20,7 @@ from .utils import select_page
 
 require('bbot_api')
 from ..bbot_api.argparse import ArgumentError,ArgParser
-from ..bbot_api import TextImageMessage,supportsImage
+from ..bbot_api import TextImageMessage,supportsImage,safeInt
 require('gd_api')
 from ..gd_api import gd,thumbs
 
@@ -89,6 +90,23 @@ def get_weight_factors():
     return weight_factors
 WEIGHT_FACTORS=get_weight_factors()
 
+def sortWeight(l:plat_sheets.PlatChartEntry):
+    return l.weight or float('inf')
+
+def sortTierWeight(l:plat_sheets.PlatChartEntry):
+    return safeInt(l.tier,0)*100000 + (99999-l.weight if l.weight else 0)
+
+def get_levels_from_lists(lists_arg:list[str]):
+    levels:set[int]=set()
+    for l in lists_arg:
+        lists1=gd.getList(l)
+        if not lists1 or lists1.__len__()!=1:
+            continue
+        lists1=lists1[0]
+        levels.update(lists1.levels)
+    return levels
+        
+
 platweight = on_command("platweight")
 @platweight.handle()
 async def _(args: Message = CommandArg()):
@@ -105,7 +123,7 @@ async def _(args: Message = CommandArg()):
         parsed=parser.parse_args(raw_args)
         
         text=" ".join(parsed.search)
-        lists_arg=[l.strip().lower() for l in parsed.l.split(",")] if parsed.l else []
+        lists_arg:list[str]=[l.strip().lower() for l in parsed.l.split(",")] if parsed.l else []
     except Exception as e:
         await platweight.finish(str(e))
         return
@@ -116,19 +134,16 @@ async def _(args: Message = CommandArg()):
     results:list[plat_sheets.PlatChartEntry]=[]
     errored:bool=False
     
+    all_levels=PLAT_CHART_CACHE.get()
+    
     if lists_arg:
-        map={l.id:l for l in PLAT_CHART_CACHE.get()}
-        for l in lists_arg:
-            lists1=gd.getList(l)
-            if not lists1 or lists1.__len__()!=1:
-                continue
-            lists1=lists1[0]
-            results.extend([map[e] for e in lists1.levels if e in map and map[e].weight])
+        levels_from_lists=get_levels_from_lists(lists_arg)
+        results.extend([l for l in all_levels if l.id in levels_from_lists])
             
     for s in search:
         if not s:
             continue
-        levels=[l for l in PLAT_CHART_CACHE.get() if (l.exactMatch(s) or str(l.id)==s) and l.weight]
+        levels=[l for l in all_levels if (l.exactMatch(s) or str(l.id)==s) and l.weight]
         if levels.__len__()==1:
             results.append(levels[0])
             continue
@@ -146,8 +161,6 @@ async def _(args: Message = CommandArg()):
         await platweight.finish("\n".join(msg))
         return
     
-    def sortWeight(l:plat_sheets.PlatChartEntry):
-        return l.weight or float('inf')
     
     # results.sort(key=sortWeight)
     # 去重, 保留同关卡及其挑战中权重最低的那个
@@ -191,6 +204,118 @@ async def _(args: Message = CommandArg()):
     
     await platweight.finish("\n".join(msg))
     
+
+platskill = on_command("platskill")
+@platskill.handle()
+async def _(args: Message = CommandArg()):
+    raw_args=args.extract_plain_text().split()
+    if not raw_args:
+        await platskill.finish("\n".join([
+                "用法: -platskill [参数] <关名/ID>,<关名/ID>...",
+                "加入 -l<列表1,列表2...> 加入已完成关卡列表",
+                ]))
+    try:
+        parser=ArgParser()
+        parser.add_argument('search', nargs='*', type=str, help='search string')
+        parser.add_argument('-l',help="List containing completed levels",type=str,default="")
+        parsed=parser.parse_args(raw_args)
+        
+        text=" ".join(parsed.search)
+        lists_arg:list[str]=[l.strip().lower() for l in parsed.l.split(",")] if parsed.l else []
+    except Exception as e:
+        await platskill.finish(str(e))
+        return
+    
+    search = [s.strip() for s in text.lower().split(",")]
+    
+    msg:list[str]=[]
+    results:list[plat_sheets.PlatChartEntry]=[]
+    errored:bool=False
+    
+    all_levels=PLAT_CHART_CACHE.get()
+    
+    if lists_arg:
+        levels_from_lists=get_levels_from_lists(lists_arg)
+        results.extend([l for l in all_levels if l.id in levels_from_lists])
+            
+    for sk in search:
+        if not sk:
+            continue
+        levels=[l for l in all_levels if (l.exactMatch(sk) or str(l.id)==sk)]
+        if levels.__len__()==1:
+            results.append(levels[0])
+            continue
+        elif levels.__len__()==0:
+            errored=True
+            msg.append(f"没有找到'{sk}', 请更正或移除.")
+        else:
+            errored=True
+            msg.append(f"'{sk}' 找到{levels.__len__()}个结果, 请改用关卡ID:")
+            for l in levels:
+                results.append(l)
+                msg.append(f"({l.id}) {l.name} by {l.creator} ({l.weight})")
+    if errored:
+        msg.append("请解决上述问题再重新运行本指令.")
+        await platskill.finish("\n".join(msg))
+        return
+    
+    
+    # results.sort(key=sortWeight)
+    # 去重, 保留同关卡及其挑战中权重最低的那个
+    levels_added:dict[str,plat_sheets.PlatChartEntry]={}
+    for l in results:
+        # 关名去掉括号及其中内容, 以实现同关卡不同挑战间的去重
+        key=l.name.split("(")[0].strip().lower()
+        if key not in levels_added:
+            levels_added[key]=l
+        else:
+            levels_added[key]=l if (l.weight or 9999999)<(levels_added[key].weight or 9999999) else levels_added[key]
+    
+    results=list(levels_added.values())
+    results.sort(key=sortWeight,reverse=True)
+    
+    skillsets_points:dict[str,int]={}
+    skillsets_best:dict[str,plat_sheets.PlatChartEntry]={}
+    
+    def isLevelBetter(level:plat_sheets.PlatChartEntry,comp:plat_sheets.PlatChartEntry|None):
+        if not comp:
+            return True
+        tierA=safeInt(level.tier,0)
+        tierB=safeInt(comp.tier,0)
+        
+        if level.weight and comp.weight and level.weight < comp.weight:
+            return True
+        if tierA>tierB:
+            return True
+        if tierA<tierB:
+            return False
+    
+    for l in results:
+        for sk in l.tags:
+            
+            skillsets_points[sk]=skillsets_points.get(sk,0)+safeInt(l.tier,0)
+            
+            best=skillsets_best.get(sk)
+            
+            if isLevelBetter(l,best):
+                skillsets_best[sk]=l
+                    
+    
+    sorted_skills=sorted(skillsets_points.items(), key=lambda i:i[1], reverse=True)
+    
+    msg.append("Most skills:")
+    
+    for i in range(0,min(len(sorted_skills)-1,10)):
+        sk,score=sorted_skills[i]
+        l=skillsets_best.get(sk)
+        line=f"{i+1}. {sk}: {score}"
+        if l:
+            line+=f" ({l.name} T{l.tier} W{l.weight})"
+        msg.append(line)
+        
+    await platskill.finish("\n".join(msg))
+    
+
 platsheet = on_command("platsheet")
 @platsheet.handle()
 async def _(args: Message = CommandArg()):
@@ -206,7 +331,7 @@ async def _(args: Message = CommandArg()):
         
     sa=SearchArgs().parse(args.extract_plain_text())
     if sa.error:
-        await platweight.finish(sa.error)
+        await platsheet.finish(sa.error)
         return
     text=sa.text
     page=sa.page
@@ -271,7 +396,7 @@ async def _(bot:Bot, args: Message = CommandArg()):
                 ]))
     sa=SearchArgs().parse(args.extract_plain_text())
     if sa.error:
-        await platweight.finish(sa.error)
+        await platsearch.finish(sa.error)
         return
     text=sa.text
     page=sa.page
@@ -481,7 +606,8 @@ async def _():
 def get_help(bot:Bot,event:Event):
     help_lines=[
             "platsearch 搜索Plat关卡",
-            "platweight 计算Plat关卡的Weight之和",
+            "platweight 根据提供关卡/list计算Plat Top10",
+            "platskill 根据提供关卡/list计算Plat Skillset分布",
             "plathelp 显示Plat搜索功能相关帮助",
             "platrandom 随机抽取Plat关卡"
             ]
