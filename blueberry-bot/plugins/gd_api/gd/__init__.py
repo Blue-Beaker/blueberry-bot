@@ -366,7 +366,8 @@ def parseLine(line:str):
 
 def getList(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs):
     return getList2(search,page,searchType=searchType,**kwargs)[0]
-    
+
+@cached(TTLCache(maxsize=100,ttl=60))
 def getList2(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs):
     headers = {
         "User-Agent": ""
@@ -383,7 +384,7 @@ def getList2(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs)
     url = "http://www.boomlings.com/database/getGJLevelLists.php"
 
     logger.info(f"Searching list {search}...")
-    req = requests.post(url=url, data=data, headers=headers)
+    req = requests.post(url=url, data=data, headers=headers, timeout=30)
     logger.debug(f"Raw response: {req.text}")
     
     result:list[LevelList]=[]
@@ -405,6 +406,8 @@ def getList2(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs)
 
 def getLevel(search:int|str|None=None,page:int=0,rated:bool=False,searchType:LevelSearchType|int=0,**kwargs):
     return getLevel2(search,page,rated,searchType=searchType,**kwargs)[0]
+
+@cached(TTLCache(maxsize=100,ttl=60))
 def getLevel2(search:int|str|None=None,page:int=0,rated:bool=False,searchType:LevelSearchType|int=0,**kwargs):
     headers = {
     "User-Agent": ""
@@ -423,7 +426,7 @@ def getLevel2(search:int|str|None=None,page:int=0,rated:bool=False,searchType:Le
     url = "http://www.boomlings.com/database/getGJLevels21.php"
 
     logger.info(f"Searching level {search}...")
-    req = requests.post(url=url, data=data, headers=headers)
+    req = requests.post(url=url, data=data, headers=headers, timeout=30)
     logger.debug(f"Raw response: {req.text}")
     
     result:list[Level]=[]
@@ -466,6 +469,7 @@ def getLevel2(search:int|str|None=None,page:int=0,rated:bool=False,searchType:Le
 def getLevelsFromList(listID:int):
     return getLevel(str(listID),searchType=LevelSearchType.LEVEL_FROM_LIST)
 
+@cached(TTLCache(maxsize=100,ttl=60))
 def getUser(search:int|str):
     headers = {
         "User-Agent": ""  # Empty User-Agent
@@ -479,7 +483,7 @@ def getUser(search:int|str):
     if True:
         data2=data.copy()
         data2["str"]=str(search)
-        req = requests.post('http://www.boomlings.com/database/getGJUsers20.php', data=data2, headers=headers)
+        req = requests.post('http://www.boomlings.com/database/getGJUsers20.php', data=data2, headers=headers, timeout=30)
         # logger.debug(f"getGJUsers20.php raw response: {req.text}")
         spl=req.text.split("#")
         if spl.__len__()<2:
@@ -491,7 +495,7 @@ def getUser(search:int|str):
         userid=player_info.account_id
         
     data["targetAccountID"]=str(userid)
-    req = requests.post("http://www.boomlings.com/database/getGJUserInfo20.php", data=data, headers=headers)
+    req = requests.post("http://www.boomlings.com/database/getGJUserInfo20.php", data=data, headers=headers, timeout=30)
     
     # print(req.text)
     # print(parseDict(req.text))
