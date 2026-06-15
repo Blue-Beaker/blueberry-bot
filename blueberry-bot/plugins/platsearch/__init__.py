@@ -225,7 +225,7 @@ async def _(args: Message = CommandArg()):
         text=" ".join(parsed.search)
         lists_arg:list[str]=[l.strip().lower() for l in parsed.l.split(",")] if parsed.l else []
         show_all=bool(parsed.a)
-        show_top=bool(parsed.a)
+        show_top=bool(parsed.t)
     except Exception as e:
         await platskill.finish(str(e))
         return
@@ -308,13 +308,16 @@ async def _(args: Message = CommandArg()):
     
                     
     if not show_top:
-        sorted_skills=sorted(merged_skills, key=lambda i:i[1], reverse=True)
+        def sortSkills(points:int,level:plat_sheets.PlatChartEntry):
+            return sortTierWeight(level)+points*100000000
+        sorted_skills=sorted(merged_skills, key=lambda i: sortSkills(i[1],i[2]), reverse=True)
+        msg.append("Most skills:")
     else:
         def sortSkills(points:int,level:plat_sheets.PlatChartEntry):
-            return sortTierWeight(level)+points*0.0001
+            return sortTierWeight(level)*1000000+points
         sorted_skills=sorted(merged_skills, key=lambda i: sortSkills(i[1],i[2]), reverse=True)
+        msg.append("Top skills:")
     
-    msg.append("Most skills:")
     for i in range(0, len(sorted_skills) if show_all else min(len(sorted_skills),10)):
         
         sk,score,l=sorted_skills[i]
