@@ -218,10 +218,14 @@ async def _(args: Message = CommandArg()):
         parser=ArgParser()
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parser.add_argument('-l',help="List containing completed levels",type=str,default="")
+        parser.add_argument('-a',help="Show all skills",action="store_true")
+        parser.add_argument('-t',help="Show top skills",action="store_true")
         parsed=parser.parse_args(raw_args)
         
         text=" ".join(parsed.search)
         lists_arg:list[str]=[l.strip().lower() for l in parsed.l.split(",")] if parsed.l else []
+        show_all=bool(parsed.a)
+        show_top=bool(parsed.a)
     except Exception as e:
         await platskill.finish(str(e))
         return
@@ -299,15 +303,21 @@ async def _(args: Message = CommandArg()):
             
             if isLevelBetter(l,best):
                 skillsets_best[sk]=l
-                    
+                
+    merged_skills=[(k,skillsets_points.get(k,0),v) for k,v in skillsets_best.items()]
     
-    sorted_skills=sorted(skillsets_points.items(), key=lambda i:i[1], reverse=True)
+                    
+    if not show_top:
+        sorted_skills=sorted(merged_skills, key=lambda i:i[1], reverse=True)
+    else:
+        def sortSkills(points:int,level:plat_sheets.PlatChartEntry):
+            return sortTierWeight(level)+points*0.0001
+        sorted_skills=sorted(merged_skills, key=lambda i: sortSkills(i[1],i[2]), reverse=True)
     
     msg.append("Most skills:")
-    
-    for i in range(0,min(len(sorted_skills)-1,10)):
-        sk,score=sorted_skills[i]
-        l=skillsets_best.get(sk)
+    for i in range(0, len(sorted_skills) if show_all else min(len(sorted_skills),10)):
+        
+        sk,score,l=sorted_skills[i]
         line=f"{i+1}. {sk}: {score}"
         if l:
             line+=f" ({l.name} T{l.tier} W{l.weight})"
