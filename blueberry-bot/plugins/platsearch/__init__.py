@@ -279,6 +279,14 @@ async def _(bot:Bot, args: Message = CommandArg()):
     results=list(levels_added.values())
     results.sort(key=sortWeight,reverse=True)
     
+    
+    levels_by_tiers:dict[int,int]={}
+    for l in results:
+        tier=safeInt(l.tier,-1)
+        levels_by_tiers[tier]=levels_by_tiers.get(tier,0)+1
+        
+    msg.append(f"Tier Spreading: {', '.join([f'T{t}*{n}' for t,n in sorted(levels_by_tiers.items(),reverse=True)])}")
+    
     skillsets_points:dict[str,int]={}
     skillsets_best:dict[str,plat_sheets.PlatChartEntry]={}
     
@@ -286,15 +294,6 @@ async def _(bot:Bot, args: Message = CommandArg()):
         if not comp:
             return True
         return sortTierWeight(level) > sortTierWeight(comp)
-        # tierA=safeInt(level.tier,0)
-        # tierB=safeInt(comp.tier,0)
-        
-        # if level.weight and comp.weight and level.weight < comp.weight:
-        #     return True
-        # if tierA>tierB:
-        #     return True
-        # if tierA<tierB:
-        #     return False
     
     for l in results:
         for sk in l.tags:
@@ -307,7 +306,6 @@ async def _(bot:Bot, args: Message = CommandArg()):
                 skillsets_best[sk]=l
                 
     merged_skills=[(k,skillsets_points.get(k,0),v) for k,v in skillsets_best.items()]
-    
                     
     if not show_top:
         def sortSkills(points:int,level:plat_sheets.PlatChartEntry):
