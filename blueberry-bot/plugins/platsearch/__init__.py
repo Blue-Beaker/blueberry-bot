@@ -21,6 +21,7 @@ from .utils import select_page
 require('bbot_api')
 from ..bbot_api.argparse import ArgumentError,ArgParser
 from ..bbot_api import TextImageMessage,supportsImage,safeInt
+from .. import bbot_api
 require('gd_api')
 from ..gd_api import gd,thumbs
 
@@ -207,7 +208,7 @@ async def _(args: Message = CommandArg()):
 
 platskill = on_command("platskill")
 @platskill.handle()
-async def _(args: Message = CommandArg()):
+async def _(bot:Bot, args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     if not raw_args:
         await platskill.finish("\n".join([
@@ -325,6 +326,11 @@ async def _(args: Message = CommandArg()):
         if l:
             line+=f" ({l.name} T{l.tier} W{l.weight})"
         msg.append(line)
+        
+    if show_all and bbot_api.can_pack_message(bot):
+        reply = await bbot_api.pack_message(bot,"\n".join(msg))
+        if reply:
+            await(platskill.finish(reply))
         
     await platskill.finish("\n".join(msg))
     

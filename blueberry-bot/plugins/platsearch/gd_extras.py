@@ -2,6 +2,7 @@ import math
 import os
 import random
 import threading
+import traceback
 import time
 from typing import Any, TypeVar
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
@@ -9,6 +10,7 @@ from nonebot.rule import is_type
 from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
 from nonebot.permission import SUPERUSER
+from nonebot.exception import FinishedException
 import nonebot.config
 from nonebot import get_driver,require
 from nonebot.adapters.discord import Message as DCMessage,Bot as DCBot,MessageSegment as DCMessageSegment,GuildMessageCreateEvent
@@ -34,7 +36,7 @@ render_api.uri=plugin_cfg.render_server_uri
 
 gdlist = on_command("gdlist")
 @gdlist.handle()
-async def _(args: Message = CommandArg()):
+async def _(bot:Bot, args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     try:
         parser=ArgParser()
@@ -44,78 +46,108 @@ async def _(args: Message = CommandArg()):
         parsed=parser.parse_args(raw_args)
         
         search=" ".join(parsed.search)
-        page=parsed.p or 1
+        page=int(parsed.p or 1)
         fromuser=bool(parsed.u)
         
     except Exception as e:
         await gdlist.finish(str(e))
         return
-    
-    lines:list[str]=[]
-    
-    searchType:gd.ListSearchType=gd.ListSearchType.SEARCH
-    
-    if fromuser:
-        searchType=gd.ListSearchType.FROM_USER
-        user=getUser(search)
-        if not user:
-            lines.append("未找到指定用户.")
-            await gdlist.finish("\n".join(lines))
-            return
-        search=str(user.account_id)
-    
-    listID = None
-    if searchType==gd.ListSearchType.SEARCH:
-        try:
-            listID = int(search)
-        except:
-            pass
-    
-    if listID is not None:
-        page_size=10
-        lists,pageinfo=getList2(search,page-1)
-        if not lists:
-            lines.append("没有查找到List.")
-            await gdlist.finish("\n".join(lines))
-        levels = getLevelsFromList(listID)
-        if not levels:
-            lines.append("List为空.")
-            await gdlist.finish("\n".join(lines))
+    try:
+        lines:list[str]=[]
         
-        count=levels.__len__()
-        max_page=math.ceil(count/page_size)
+        searchType:gd.ListSearchType=gd.ListSearchType.SEARCH
         
-        page=min(page,max_page)
-        start=(page-1)*page_size
+        if fromuser:
+            searchType=gd.ListSearchType.FROM_USER
+            user=getUser(search)
+            if not user:
+                lines.append("未找到指定用户.")
+                await gdlist.finish("\n".join(lines))
+                return
+            search=str(user.account_id)
         
-        levels=levels[start:min(start+page_size,count)]
+        listID = None
+        if searchType==gd.ListSearchType.SEARCH:
+            try:
+                listID = int(search)
+            except:
+                pass
         
-        l=lists[0]
-        lines.append(repr_list(l,False))
-        lines.append(f"{page}/{math.ceil(count/page_size)}页 ({start+1}-{min(start+page_size,count)} of {count})")
-        lines.append(f"-gdlist -p <页数> <ListID> 以翻页.")
-        
-        for l in levels:
-            lines.append(repr_level(l))
+        if listID is not None:
+            page_size=10
+            lists,pageinfo=getList2(search,page-1)
+                
+            if not lists:
+                lines.append("没有查找到List.")
+                await gdlist.finish("\n".join(lines))
+            levels = getLevelsFromList(listID)
+            if not levels:
+                lines.append("List为空.")
+                await gdlist.finish("\n".join(lines))
             
-        await gdlist.finish("\n".join(lines))
-        
-    else:   
-        lists,pageinfo=getList2(search,page-1,searchType=searchType)
-        
-        if lists.__len__()==0 or not pageinfo:
-            lines.append("没有查找到任何List.")
-        elif lists.__len__()>1:
-            lines.append(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
-            for l in lists:
-                lines.append(repr_list(l,fromuser))
+            count=levels.__len__()
+            
+            lines.append(repr_list(lists[0],False))
+            
+            max_page=math.ceil(count/page_size)
+            
+            page=min(page,max_page)
+            
+            def get_page(levels:list[gd.Level],page:int):
+                lines:list[str]=[]
+                start=(page-1)*page_size
+                
+                levels1=levels[start:min(start+page_size,count)]
+                
+                l=lists[0]
+                lines.append(f"{page}/{math.ceil(count/page_size)}页 ({start+1}-{min(start+page_size,count)} of {count})")
+                lines.append(f"-gdlist -p <页数> <ListID> 以翻页.")
+                
+                for i in range(levels1.__len__()):
+                    l=levels1[i]
+                    lines.append(f"{i+start:>2} "+repr_level(l))
+                return lines
+            
+            
+            # 用转发消息打包
+            if(bbot_api.can_pack_message(bot)):
+                reply=await bbot_api.pack_message(bot,"\n".join(lines))
+                assert reply
+                
+                for i in range(0,max_page):
+                    lines2=get_page(levels,i+1)
+                    reply2=await bbot_api.pack_message(bot,"\n".join(lines2))
+                    if reply2:
+                        reply+=reply2
+                        
+                await gdlist.finish(reply)
+                    
+            lines.extend(get_page(levels,page))
+                
             await gdlist.finish("\n".join(lines))
-            return
-        l=lists[0]
-        lines.append(repr_list(l,fromuser))
-        lines.append(f"-gdlist {l.id} 以查看list内容.")
-        
-        await gdlist.finish("\n".join(lines))
+            
+        else:   
+            lists,pageinfo=getList2(search,page-1,searchType=searchType)
+            
+            if lists.__len__()==0 or not pageinfo:
+                lines.append("没有查找到任何List.")
+            elif lists.__len__()>1:
+                lines.append(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
+                for l in lists:
+                    lines.append(repr_list(l,fromuser))
+                await gdlist.finish("\n".join(lines))
+                return
+            l=lists[0]
+            lines.append(repr_list(l,fromuser))
+            lines.append(f"-gdlist {l.id} 以查看list内容.")
+            
+            await gdlist.finish("\n".join(lines))
+            
+    except Exception as e:
+        if isinstance(e,FinishedException):
+            raise e
+        await gdlist.finish("查询出错.")
+        logger.error(traceback.format_exc())
     
 
 gdthumb = on_command("gdthumb")
@@ -309,7 +341,7 @@ def get_help(bot:Bot,event:Event):
         return ["gduser [用户名/ID] 展示玩家信息"]
     
 def repr_level(l:gd.Level,fromuser:bool=False):
-    return f"{l.id} = {l.name} by {l.creator} ({l.repr_difficulty()})" if not fromuser else f"{l.id} = {l.name} ({l.repr_difficulty()})"
+    return f"{l.name} by {l.creator} ({l.repr_difficulty()}) ({l.id})" if not fromuser else f"{l.name} ({l.repr_difficulty()}) ({l.id})"
 
 def repr_list(l:gd.LevelList,fromuser:bool=False):
     return f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)" if not fromuser else f"{l.name} ({l.id}) ({l.levels.__len__()} 个关卡)"

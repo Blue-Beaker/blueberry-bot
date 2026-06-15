@@ -1,4 +1,5 @@
 from pathlib import Path
+import time
 from typing import Any, TypeVar
 from nonebot.adapters import Event,Bot
 from nonebot.adapters.discord import GuildMessageCreateEvent,MessageEvent as DCMessageEvent,Message as DCMessage,MessageSegment as DCMessageSegment,Bot as DCBot
@@ -89,3 +90,27 @@ def get_group_id(event):
         group_id="private"
     print(group_id)
     return group_id
+
+def can_pack_message(bot:Bot):
+    return isinstance(bot,OBBot)
+
+class LoginInfo:
+    user_id:int=-1
+    nickname:str=""
+    expiration:int=0
+    
+    async def update(self,bot:OBBot):
+        if self.user_id>0 and self.nickname and time.time()<self.expiration:
+            return
+        
+        login_info = await bot.get_login_info()
+        self.user_id=login_info.get("user_id",-1)
+        self.nickname=login_info.get("nickname","")
+        self.expiration=int(time.time()+600)
+        
+_LOGIN_INFO=LoginInfo()
+
+async def pack_message(bot:Bot,message:Any):
+    if isinstance(bot,OBBot):
+        await _LOGIN_INFO.update(bot)
+    return OBMessageSegment.node_custom(_LOGIN_INFO.user_id,_LOGIN_INFO.nickname,message)
