@@ -285,15 +285,16 @@ async def _(bot:Bot, args: Message = CommandArg()):
     def isLevelBetter(level:plat_sheets.PlatChartEntry,comp:plat_sheets.PlatChartEntry|None):
         if not comp:
             return True
-        tierA=safeInt(level.tier,0)
-        tierB=safeInt(comp.tier,0)
+        return sortTierWeight(level) > sortTierWeight(comp)
+        # tierA=safeInt(level.tier,0)
+        # tierB=safeInt(comp.tier,0)
         
-        if level.weight and comp.weight and level.weight < comp.weight:
-            return True
-        if tierA>tierB:
-            return True
-        if tierA<tierB:
-            return False
+        # if level.weight and comp.weight and level.weight < comp.weight:
+        #     return True
+        # if tierA>tierB:
+        #     return True
+        # if tierA<tierB:
+        #     return False
     
     for l in results:
         for sk in l.tags:
