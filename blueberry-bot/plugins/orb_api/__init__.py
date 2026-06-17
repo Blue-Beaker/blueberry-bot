@@ -19,6 +19,10 @@ def save_sync():
     ORB_STORAGE.save()
     logger.info(f"Saved {len(ORB_STORAGE.balances.keys())} entries.")
     
+    global TIMER_THREAD
+    TIMER_THREAD = Timer(interval=300, function=save_sync)
+    TIMER_THREAD.start()
+    
 TIMER_THREAD=Timer(interval=300,function=save_sync)
 
 @driver.on_startup
