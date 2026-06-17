@@ -348,7 +348,12 @@ async def gdguess_logic(matcher:Type[Matcher],bot:Bot,event:Event,raw_args: Mess
                 
                 pool_size=session.level_pool.__len__()
                 
-                add_orbs=random.randint(max(0,(pool_size-5)//5),max(0,(pool_size-5)))
+                def get_gain_factor(crop:tuple[int,int,int,int]):
+                    return math.sqrt((128*128)/((crop[2]-crop[0])*(crop[3]-crop[1])))
+                
+                orbs_gain=math.ceil((max(0,pool_size-5))*get_gain_factor(session.crop))
+                
+                add_orbs=random.randint(orbs_gain//5,orbs_gain)
                 orb_api.add_balance(orb_id,add_orbs)
                 msg.addLine(f"你获得了 {add_orbs} Orbs")
         
