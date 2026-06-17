@@ -47,7 +47,7 @@ def add_balance(user:str,count:int,allow_negative:bool=False):
 def get_balance(user:str):
     return ORB_STORAGE.get_balance(user)
 
-orb_get=on_command("orb-get")
+orb_get=on_command("orb-get",aliases=set(["orb-get","orb-check"]))
 @orb_get.handle()
 async def _(bot:Bot,event:Event, args: Message = CommandArg()):
     cmd_args=args.extract_plain_text().split()

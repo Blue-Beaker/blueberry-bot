@@ -24,12 +24,18 @@ from .config import Config
 from .guess_session import GuessSession,SessionManager,ConfigManager,ConfigEntry
 
 require("bbot_api")
-from ..bbot_api import getid,reaction_emoji,loadFile,safeInt
+from ..bbot_api import getid,reaction_emoji,loadFile,safeInt,TextImageMessage
 from ..bbot_api.argparse import ArgParser
 require("gd_api")
 from ..gd_api.pemonlist import getPemonlistLevels
 from ..gd_api import thumbs
 from ..gd_api import gd
+
+try:
+    require("orb_api")
+    from .. import orb_api
+except:
+    orb_api=None
 
 plugin_config = get_plugin_config(Config)
 
@@ -325,14 +331,28 @@ async def gdguess_logic(matcher:Type[Matcher],bot:Bot,event:Event,raw_args: Mess
     guess=raw_args.extract_plain_text().strip()
     if session.guess(guess):
         session.completed=True
-        msg=f"恭喜你猜对了! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!"
+        msg=TextImageMessage.build(bot).addText(f"恭喜你猜对了! 关卡是 {session.level_name} by {session.level_creator}, 你总共猜了 {session.guesses} 次!")
+        
         if session.hints_used:
-            msg=msg+" (已使用提示)"
+            msg.addText(" (已使用提示)")
             
         if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
             await reaction_emoji(bot,event.message_id,144) # Confetti emoji
         
-        await matcher.send(buildMessageImage(bot,msg,guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{session.session_id}.webp",session.crop)),at_sender=True)
+        img=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{session.session_id}.webp",session.crop)
+        msg.addImage(img,"guess.png")
+        
+        if orb_api:
+            orb_id=orb_api.get_orb_owner_id(event)
+            if orb_id:
+                
+                pool_size=session.level_pool.__len__()
+                
+                add_orbs=random.randint(max(0,(pool_size-5)//5),max(0,(pool_size-5)))
+                orb_api.add_balance(orb_id,add_orbs)
+                msg.addLine(f"你获得了 {add_orbs} Orbs")
+        
+        await matcher.send(msg.msg,at_sender=True)
             
         last_finish_time[id]=int(time.time())
         

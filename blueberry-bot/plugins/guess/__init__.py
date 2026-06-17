@@ -2,7 +2,8 @@
 
 import json
 import os
-from nonebot import logger, on_command, get_driver
+import random
+from nonebot import logger, on_command, get_driver, require
 from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
 
@@ -17,6 +18,12 @@ from . import handler_mc
 from . import handler_dc
 from . import handler_base
 from .handler_base import INSTANCES,guess_command
+
+try:
+    require("orb_api")
+    from .. import orb_api
+except:
+    orb_api=None
 
 SESSIONS_FILE="guess_sessions.json"
 
@@ -67,6 +74,15 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     feedBackMessage = guess_command(message,manager)
     
     if(feedBackMessage):
+        
+        if "你猜对了" in feedBackMessage:
+            if orb_api:
+                orb_id=orb_api.get_orb_owner_id(event)
+                if orb_id:
+                    add_orbs=random.randint(100,500)
+                    orb_api.add_balance(orb_id,add_orbs)
+                    feedBackMessage=feedBackMessage+f"\n你获得了 {add_orbs} Orbs"
+                
         if isinstance(event,DCMessageEvent):
             split=feedBackMessage.split("{username}")
             msgseg=split[0]
@@ -88,7 +104,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
 
 def get_help(bot:Bot,event:Event)->str:
     help_lines=[
-        "guess <start|giveup> 开始/放弃猜图",
+        "guess <start|giveup> 开始/放弃猜图 (题库为蔚蓝草莓酱)",
         "guess <图名> 进行猜图"
     ]
     return "\n".join(help_lines)
