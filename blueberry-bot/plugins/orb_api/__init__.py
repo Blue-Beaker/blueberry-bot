@@ -103,3 +103,10 @@ async def _(bot:Bot,event:Event, args: Message = CommandArg()):
             raise e
         await orb_add.finish(f"错误: {e}")
         logger.error(f"Error: {traceback.format_exc()}")
+        
+
+def get_help(bot:Bot,event:Event):
+    help_lines=[
+            "orb-get 查看你持有的 Orbs"
+            ]
+    return help_lines

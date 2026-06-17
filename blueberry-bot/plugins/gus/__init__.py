@@ -29,6 +29,12 @@ from ..bbot_api.group_config import GroupConfig,ConfigItem,make_config_handler
 require("gdguess")
 from ..gdguess import gdguess_logic
 
+try:
+    require("orb_api")
+    from .. import orb_api
+except:
+    orb_api=None
+
 __plugin_meta__ = PluginMetadata(
     name="gus",
     description="",
@@ -126,6 +132,13 @@ async def gus_logic(matcher:Type[Matcher],bot:Bot,event:Event,msg:Message=Comman
         reply.addLine("呜呜, Gus溜走了! (图片不存在)")
         
     cooldown.use(group_id,user_id)
+    
+    if orb_api:
+        orb_id=orb_api.get_orb_owner_id(event)
+        if orb_id:
+            add_orbs=random.randint(1,10)
+            orb_api.add_balance(orb_id,add_orbs)
+            reply.addLine(f"你获得了 {add_orbs} Orbs")
     
     await matcher.finish(reply.getMessage(), at_sender=True)
     
@@ -253,3 +266,11 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
 gus_cfg=on_command("gus-cfg",permission=SUPERUSER)
 config_handler=make_config_handler("gus-cfg",GusConfigItem,group_config)
 gus_cfg.handle()(config_handler)
+
+
+def get_help(bot:Bot,event:Event):
+    help_lines=[
+            "gus 抓一只gus",
+            "gus [参数] 相当于gdguess"
+            ]
+    return help_lines
