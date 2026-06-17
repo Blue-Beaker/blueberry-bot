@@ -84,7 +84,7 @@ class GroupConfig(Generic[_C]):
         """设置 group 层的覆盖字段。
         
         group="global" 时等同于 set_global。
-        传入 None 的字段会被记录为"显式不覆盖"，get 时回退到 global。
+        传入 None 的字段会被直接删除（从 overrides 中移除），回退到 global 层。
         不传入的字段保持原有 group 覆盖值不变。
         """
         if group == "global":
@@ -92,13 +92,17 @@ class GroupConfig(Generic[_C]):
             return
         if group not in self.group_overrides:
             self.group_overrides[group] = {}
-        self.group_overrides[group].update(kwargs)
+        for key, value in kwargs.items():
+            if value is None:
+                self.group_overrides[group].pop(key, None)
+            else:
+                self.group_overrides[group][key] = value
     
     def override_with(self, group: str, config: _C) -> None:
         """用 Config 实例设置 group 覆盖字段（有 IDE 自动补全和类型提示）。
         
         所有显式赋值的字段都会存入 group_overrides，即使值与类默认值相同。
-        只有值为 None 的字段不会覆盖，回退到 global 层。
+        值为 None 的字段会被直接删除（从 overrides 中移除），回退到 global 层。
         
         用法:
             overrides = MyConfig()
