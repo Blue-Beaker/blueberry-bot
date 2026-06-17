@@ -349,7 +349,7 @@ async def gdguess_logic(matcher:Type[Matcher],bot:Bot,event:Event,raw_args: Mess
                 pool_size=session.level_pool.__len__()
                 
                 def get_gain_factor(crop:tuple[int,int,int,int]):
-                    return math.sqrt((128*128)/((crop[2]-crop[0])*(crop[3]-crop[1])))
+                    return math.sqrt((256*256)/((crop[2]-crop[0])*(crop[3]-crop[1])))
                 
                 orbs_gain=math.ceil((max(0,pool_size-5))*get_gain_factor(session.crop))
                 
