@@ -1,3 +1,5 @@
+import math
+import shutil
 from typing import Type
 from nonebot import get_plugin_config
 from nonebot.plugin import PluginMetadata
@@ -16,7 +18,20 @@ import os,json
 from .config import Config
 
 require("bbot_api")
-from ..bbot_api import getid
+from ..bbot_api import getid as getid_raw,get_group_id
+from ..bbot_api.group_config import GroupConfig,ConfigItem,make_config_handler
+
+def getid(event:Event):
+    id=getid_raw(event)
+    if id.startswith("u_"):
+        return get_group_id(event)
+    return id
+
+try:
+    require("orb_api")
+    from .. import orb_api
+except:
+    orb_api=None
 
 __plugin_meta__ = PluginMetadata(
     name="say",
@@ -51,21 +66,64 @@ say = on_command("say")
 say_on = on_command("say_on",permission=SUPERUSER)
 say_off = on_command("say_off",permission=SUPERUSER)
 
+class SayConfigItem(ConfigItem):
+    enabled:bool=False
+    cost_factor:float=1.0
+
+class SayConfig(GroupConfig[SayConfigItem]):
+    def __init__(self, config_path: str | None = None) -> None:
+        super().__init__(SayConfigItem, config_path)
+    
+    def is_enabled(self,id:str):
+        return self.get(id).enabled
+    
+    def set_enabled(self, id:str, enable:bool):
+        self.set(id,enabled=enable)
+        
+    def get_default_enabled(self):
+        return self.get("global").enabled
+    def set_default_enabled(self,enable:bool):
+        self.set("global",enabled=enable)
+        
+    default_enabled = property(fget=get_default_enabled,fset=set_default_enabled)
+        
+    
+CONFIG_PATH=Path("config/")
+CONFIG_PATH.mkdir(parents=True,exist_ok=True)
+
+say_config = SayConfig((CONFIG_PATH/"say_config.json").__str__())
+
 driver=get_driver()
 
 CONFIG_FILE="say_config.json"
 
+def migrate_config():
+    say_config_old.load()
+    say_config.load()
+    
+    for i in say_config_old.allowed_sessions:
+        say_config.set_enabled(i,True)
+        
+    say_config.set("global",enabled=say_config_old.default_enabled)
+    
+    say_config.save()
+
 @driver.on_startup
 async def load():
-    say_config.load()
-    logger.info(f"Loaded {say_config.allowed_sessions.keys().__len__()} say config entries")
+    if os.path.isfile(CONFIG_FILE):
+        migrate_config()
+        shutil.move(CONFIG_FILE,CONFIG_FILE+".bak")
+    
+    say_config.load()    
+    logger.info(f"Loaded {say_config.group_overrides.keys().__len__()} say config entries")
     
 @driver.on_shutdown
 async def save():
+    # say_config.save()
     say_config.save()
 
 
-class SayConfig:
+class SayConfigOld:
     allowed_sessions:dict[str,bool]={}
     default_enabled:bool=False
     config_path:str|None=None
@@ -92,23 +150,42 @@ class SayConfig:
                     self.allowed_sessions[migrate_id_key(k)] = v
                 self.default_enabled=data.get("default_enabled",self.default_enabled)
 
-say_config = SayConfig(CONFIG_FILE)
+say_config_old = SayConfigOld(CONFIG_FILE)
     
 @say.handle()
 async def _(bot:Bot,event: Event, arg: Message = CommandArg()):
-    if not say_config.is_enabled(getid(event)):
+    event_id=getid(event)
+    if not say_config.is_enabled(event_id):
         await say.finish("say功能目前不开放哦QAQ")
     text = str(arg)
     if len(text) == 0:
         await say.finish("你得在say后面加点东西……")
     if len(text) > 1000:
         await say.finish("请善待小小卒！")
+    
+    orb_cost=0
+    orb_id=None
+    if orb_api:
+        orb_cost=math.ceil(max(len(text),10)*say_config.get(event_id).cost_factor)
+        orb_id=orb_api.get_orb_owner_id(event)
+        if orb_id:
+            balance = orb_api.get_balance(orb_id)
+            if balance < orb_cost:
+                await say.finish(f"你的 Orbs 不足! 需要 {orb_cost}, 你只有 {balance}")
+                
+            orb_api.add_balance(orb_id,-orb_cost)
+    
     res = requests.get(plugin_config.say_request_url.replace("{$text}",text))
     if res.status_code != 200:
         logger.error(f"Request say failed: {res.status_code}")
+        
+        if orb_api and orb_id:
+            orb_api.add_balance(orb_id,-orb_cost)
+            await say.finish("发生错误. 已退还消耗的 Orbs.")
+            
         await say.finish("发生错误.")
         return
-        
+    
     content_disposition = res.headers.get('Content-Disposition')
 
     if content_disposition:
@@ -131,6 +208,10 @@ async def _(event:Event, arg: Message = CommandArg()):
 @say_off.handle()
 async def _(event:Event, arg: Message = CommandArg()):
     await set_say_state(False,arg.extract_plain_text().strip()=="-a",event,say_off)
+        
+gus_cfg=on_command("say-cfg",permission=SUPERUSER)
+config_handler=make_config_handler("say-cfg",SayConfigItem,say_config,getid)
+gus_cfg.handle()(config_handler)
         
 async def set_say_state(enable:bool, isall:bool, event:Event, matcher:Type[Matcher]):
     if isall:

@@ -167,7 +167,8 @@ from collections.abc import Awaitable, Callable
 def make_config_handler(
     cmd_name: str,
     config_class: type[_C],
-    config: GroupConfig[_C]
+    config: GroupConfig[_C],
+    get_groupid_function: Callable[[Any],str]|None=None
 ):
     """创建一个配置指令的处理函数。
     
@@ -228,7 +229,10 @@ def make_config_handler(
 
         # 未指定 group 时尝试从事件获取当前群
         if group is None:
-            group=get_group_id(event)
+            if get_groupid_function:
+                group=get_groupid_function(event)
+            else:
+                group=get_group_id(event)
             if group == "private":
                 await matcher.finish("私聊中必须用 -g 参数指定 group")
 
@@ -274,7 +278,11 @@ def make_config_handler(
                 await matcher.finish(f"无效字段: {field}")
             try:
                 field_type = config_class.model_fields[field].annotation
-                value = TypeAdapter(field_type).validate_python(raw_val)
+                if raw_val.lower() == "none":
+                    value = None
+                else:
+                    value = TypeAdapter(field_type).validate_python(raw_val)
+                    
             except Exception as e:
                 await matcher.finish(f"无效值: {raw_val}\n错误: {e}")
             config.set(group, **{field: value})

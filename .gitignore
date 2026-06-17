@@ -10,3 +10,4 @@ platsearch_cache/**
 say_config.json
 cache/**
 config/**
+say_config.json.bak
