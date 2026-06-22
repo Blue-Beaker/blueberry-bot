@@ -1,9 +1,10 @@
 import os
-from typing import TypeVar
+from typing import Callable, Sequence, TypeVar
 from nonebot import logger, require
 import yaml
 
 from .plat_sheets import TheListsEntry,PlatChartEntry
+from . import plat_sheets
 
 require('gd_api')
 from ..gd_api import gddl
@@ -57,11 +58,11 @@ class FillerMapping:
 FILLER_MAPPING=FillerMapping()
 FILLER_MAPPING.load()
             
-def fillIDsForEntries(results:list[ENTRY_TYPE]):
+def fillIDsForEntries(entries:Sequence[ENTRY_TYPE]):
     if NAMES_TO_LEVEL.__len__()==0:
         loadNamesToLevelMappings()
     levels_not_matched:list[ENTRY_TYPE]=[]
-    for i in results:
+    for i in entries:
         id=FILLER_MAPPING.fillIDForEntry(i)
         if not id:
             levels_not_matched.append(i)
@@ -83,3 +84,14 @@ def loadNamesToLevelMappings():
         if (level.Publisher,level.ID) in NAMES_TO_LEVEL[name]:
             continue
         NAMES_TO_LEVEL[name].append((level.Publisher,level.ID))
+
+
+def get_plat_chart():
+    results=plat_sheets.get_plat_chart()
+    fillIDsForEntries(results)
+    return results
+
+def get_3_lists():
+    results=plat_sheets.get_3_lists()
+    fillIDsForEntries(results)
+    return results

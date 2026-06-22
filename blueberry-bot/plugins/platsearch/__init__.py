@@ -37,12 +37,13 @@ plugin_config = get_plugin_config(Config)
 driver=get_driver()
 
 PLAT_CHART_CACHE=BaseCache(plat_sheets.PlatChartEntry,"platsearch_cache/plat_chart_cache.json",
-                           plugin_config.sheets_update_interval).set_update_function(plat_sheets.get_plat_chart)
+                           plugin_config.sheets_update_interval).set_update_function(levelid_filler.get_plat_chart)
 PLAT_SHEET_CACHE=BaseCache(plat_sheets.TheListsEntry,"platsearch_cache/plat_sheet_cache.json",
-                           plugin_config.sheets_update_interval).set_update_function(plat_sheets.get_3_lists)
+                           plugin_config.sheets_update_interval).set_update_function(levelid_filler.get_3_lists)
 
 @driver.on_startup
-async def load_cache():
+async def load():
+    levelid_filler.FILLER_MAPPING.load()
     os.makedirs("platsearch_cache",exist_ok=True)
     threading.Thread(target=threaded_update_cache2,args=[PLAT_CHART_CACHE,"Plat Chart cache"]).start()
     threading.Thread(target=threaded_update_cache1,args=[PLAT_SHEET_CACHE,"Plat Sheet cache"]).start()
