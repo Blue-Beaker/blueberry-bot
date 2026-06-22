@@ -59,6 +59,8 @@ FILLER_MAPPING=FillerMapping()
 FILLER_MAPPING.load()
             
 def fillIDsForEntries(entries:Sequence[ENTRY_TYPE]):
+    
+    FILLER_MAPPING.load()
     if NAMES_TO_LEVEL.__len__()==0:
         loadNamesToLevelMappings()
     levels_not_matched:list[ENTRY_TYPE]=[]
