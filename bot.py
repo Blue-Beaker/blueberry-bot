@@ -2,7 +2,8 @@ import nonebot
 from nonebot.adapters.minecraft import Adapter as MINECRAFTAdapter
 
 from nonebot.adapters.discord import Adapter as DISCORDAdapter
-from nonebot.adapters.onebot.v11 import Adapter as ONEBOTAdapter
+
+from nonebot.adapters.onebot.v11 import Adapter as ONEBOT_V11Adapter
 
 
 
@@ -12,7 +13,8 @@ driver = nonebot.get_driver()
 driver.register_adapter(MINECRAFTAdapter)
 
 driver.register_adapter(DISCORDAdapter)
-driver.register_adapter(ONEBOTAdapter)
+
+driver.register_adapter(ONEBOT_V11Adapter)
 
 
 nonebot.load_from_toml("pyproject.toml")
