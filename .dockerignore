@@ -2,9 +2,15 @@
 blueberry-bot/plugins/test
 bot_data/map_json
 bot_data/map_paths.json
-
+cache
+config
 data_process
+gdguess_data
+platsearch_cache
+config.json
+guess_sessions.json
 
+*.bak
 *.tar
 # .env.*
 .dockerignore
