@@ -29,7 +29,7 @@ from ..gd_api import gd,thumbs
 
 from . import underrated
 
-from . import gd_extras,gduser,platsearch
+from . import gd_extras,gduser,platsearch,gdmusic
 
 
 plugin_config = get_plugin_config(Config)
@@ -40,4 +40,5 @@ def get_help(bot:Bot,event:Event):
     help_lines=platsearch.get_help(bot,event)
     help_lines.extend(gd_extras.get_help(bot,event))
     help_lines.extend(gduser.get_help(bot,event))
+    help_lines.extend(gdmusic.get_help(bot,event))
     return help_lines

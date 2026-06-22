@@ -1,9 +1,5 @@
 import math
-import os
-import random
-import threading
 import traceback
-import time
 from typing import Any, TypeVar
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
 from nonebot.rule import is_type
@@ -11,14 +7,12 @@ from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
 from nonebot.permission import SUPERUSER
 from nonebot.exception import FinishedException
-import nonebot.config
 from nonebot import get_driver,require
 from nonebot.adapters.discord import Message as DCMessage,Bot as DCBot,MessageSegment as DCMessageSegment,GuildMessageCreateEvent
 from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGroupMessageEvent,MessageSegment as OBMessageSegment
 
 from . import godot_draw
 from .config import Config
-from .gd_icon import IconType, construct_icon_url,get_icon,ICON_TYPES
 
 require('bbot_api')
 from .. import bbot_api

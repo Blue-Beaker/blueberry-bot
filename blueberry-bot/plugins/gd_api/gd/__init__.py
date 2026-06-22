@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Any, TypeVar, override
 import requests
+from urllib.parse import unquote
 from cachetools import cached, TTLCache
 from nonebot import logger
 
@@ -344,16 +345,16 @@ class PlayerInfo:
         return f"{self.user_name}: {self.__dict__}"
 
 
-def parseDict(s:str):
-    spl=s.split(":")
+def parseDict(s:str,splitter:str=":"):
+    spl=s.split(splitter)
     data:dict[str,str]={}
     for i in range(0,spl.__len__()-1,2):
         data[spl[i]]=spl[i+1]
     return data
     
 
-def parseLine(line:str):
-    sublines=line.split("|")
+def parseLine(line:str,line_spl:str="|",dict_spl:str=":"):
+    sublines=line.split(line_spl)
     datas:list[dict[str,str]]=[]
     for subline in sublines:
         # spl=subline.split(":")
@@ -361,7 +362,7 @@ def parseLine(line:str):
         # for i in range(0,spl.__len__()-1,2):
         #     data[spl[i]]=spl[i+1]
         # datas.append(data)
-        datas.append(parseDict(subline))
+        datas.append(parseDict(subline,dict_spl))
     return datas
 
 def getList(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs):
@@ -504,7 +505,44 @@ def getUser(search:int|str):
     
     return player_info
 
+class Song:
+    id:int
+    name:str
+    artistID:int
+    artistName:str
+    size:float
+    link:str
+    def __init__(self) -> None:
+        pass
+    def load(self,data:dict[str,str]):
+        self.id=int(data.get('1','-1'))
+        self.name=data.get('2','')
+        self.artistID=int(data.get('3','-1'))
+        self.artistName=data.get('4','')
+        self.size=float(data.get('5','-1'))
+        self.link=unquote(data.get('10',''))
+        return self
+    def __repr__(self) -> str:
+        return f"{self.name} by {self.artistName}, id={self.id}, link={self.link}"
+    
+    
+def getSong(musicID:int):
+    headers = {
+        "User-Agent": ""  # Empty User-Agent
+    }
+    data = {
+        "secret": "Wmfd2893gb7",
+        "songID": musicID
+    }
 
+    req = requests.post("http://www.boomlings.com/database/getGJSongInfo.php", data=data, headers=headers)
+    if req.status_code!=200:
+        return None
+    
+    result=Song().load(parseDict(req.text,"~|~"))
+    return result
+    
+    
 _A = TypeVar(name="_A")
 def safeInt(i:Any,fallback:_A=-1) -> int|_A:
     try:
@@ -532,5 +570,9 @@ if __name__ == "__main__":
     
     # print(getUser("xioayang"))
     
-    print(getUser("194268237"))
+    # print(getUser("194268237"))
+    
+    
+    print(getSong(803223))
+    # print(getSong(10011122))
     
