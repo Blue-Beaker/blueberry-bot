@@ -11,6 +11,10 @@ from nonebot.permission import SUPERUSER
 from .orb_storage import OrbStorage
 from threading import Timer
 
+from nonebot import require
+require("nonebot_plugin_apscheduler")
+from nonebot_plugin_apscheduler import scheduler
+
 driver=get_driver()
 
 ORB_STORAGE=OrbStorage("config/orb_data.json")
@@ -19,11 +23,7 @@ def save_sync():
     ORB_STORAGE.save()
     logger.info(f"Saved {len(ORB_STORAGE.balances.keys())} entries.")
     
-    global TIMER_THREAD
-    TIMER_THREAD = Timer(interval=300, function=save_sync)
-    TIMER_THREAD.start()
-    
-TIMER_THREAD=Timer(interval=300,function=save_sync)
+scheduler.add_job(save_sync, "interval", minutes=5)
 
 @driver.on_startup
 async def load_sessions():
@@ -31,11 +31,8 @@ async def load_sessions():
     ORB_STORAGE.load()
     logger.info(f"Loaded {len(ORB_STORAGE.balances.keys())} entries.")
     
-    TIMER_THREAD.start()
-    
 @driver.on_shutdown
 async def save_sessions():
-    TIMER_THREAD.cancel()
     save_sync()
 
 def get_orb_owner_id(event:Event):

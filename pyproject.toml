@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.9, <4.0"
 dependencies = [
     "nonebot-adapter-onebot>=2.4.6",
+    "nonebot-plugin-apscheduler>=0.5.0",
 ]
 
 [tool.nonebot]
@@ -14,6 +15,6 @@ adapters = [
     { name = "Discord", module_name = "nonebot.adapters.discord" },
     {name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11"}
 ]
-plugins = []
+plugins = ["nonebot_plugin_apscheduler"]
 plugin_dirs = ["blueberry-bot/plugins"]
 builtin_plugins = []
