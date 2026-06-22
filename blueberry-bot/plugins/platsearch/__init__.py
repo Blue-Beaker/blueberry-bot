@@ -15,7 +15,7 @@ from nonebot.internal.matcher import Matcher
 
 from .config import Config
 
-from . import plat_sheets
+from . import plat_sheets,levelid_filler
 
 from .data_cache import BaseCache
 from .utils import select_page
@@ -44,22 +44,26 @@ PLAT_SHEET_CACHE=BaseCache(plat_sheets.TheListsEntry,"platsearch_cache/plat_shee
 @driver.on_startup
 async def load_cache():
     os.makedirs("platsearch_cache",exist_ok=True)
-    threading.Thread(target=threaded_update_cache,args=[PLAT_CHART_CACHE,"Plat Chart cache"]).start()
+    threading.Thread(target=threaded_update_cache2,args=[PLAT_CHART_CACHE,"Plat Chart cache"]).start()
     threading.Thread(target=threaded_update_cache1,args=[PLAT_SHEET_CACHE,"Plat Sheet cache"]).start()
 
-def match_ids_for_levels():
-    levels_not_matched=plat_sheets.fillIDsForEntries(PLAT_SHEET_CACHE.entries)
+def match_ids_for_levels(entries:list[levelid_filler.ENTRY_TYPE],logfile:str=""):
+    levels_not_matched=levelid_filler.fillIDsForEntries(entries)
     if levels_not_matched:
         jsondata=[]
         for l in levels_not_matched:
-            jsondata.append({"level":l.to_dict(),"matches":plat_sheets.NAMES_TO_LEVEL.get(l.name)})
+            jsondata.append({"level":l.to_dict(),"matches":levelid_filler.NAMES_TO_LEVEL.get(l.name)})
             
-        with open("cache/plat_sheet_unmatched.json","w") as f:
-            json.dump(jsondata,f,indent=2)
+        if logfile:
+            with open(logfile,"w") as f:
+                json.dump(jsondata,f,indent=2)
             
 def threaded_update_cache1(cache:BaseCache,name:str):
     threaded_update_cache(cache,name)
-    match_ids_for_levels()
+    match_ids_for_levels(PLAT_SHEET_CACHE.entries,"cache/plat_sheet_unmatched.json")
+def threaded_update_cache2(cache:BaseCache,name:str):
+    threaded_update_cache(cache,name)
+    match_ids_for_levels(PLAT_CHART_CACHE.entries,"cache/plat_chart_unmatched.json")
 
 def threaded_update_cache(cache:BaseCache,name:str):
     cache.get()

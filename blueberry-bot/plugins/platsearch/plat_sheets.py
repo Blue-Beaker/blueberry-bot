@@ -168,24 +168,6 @@ def get_3_lists():
     results.extend(get_nlw())
     return results
 
-def fillIDsForEntries(results:list[TheListsEntry]):
-    loadNamesToLevelMappings()
-    levels_not_matched:list[TheListsEntry]=[]
-    for i in results:
-        id=fillIDForTheListsEntry(i)
-        if not id:
-            levels_not_matched.append(i)
-            
-    return levels_not_matched
-
-def fillIDForTheListsEntry(e:TheListsEntry):
-    if e.name in NAMES_TO_LEVEL:
-        entries=NAMES_TO_LEVEL[e.name]
-        for creator,id in entries:
-            if e.creator==creator:
-                e.id=id
-                return id
-
 class PlatChartEntry(LevelEntry):
     id:int=0
     tpl:int|None
@@ -320,16 +302,3 @@ def safeInt(i:Any,fallback:_A=-1) -> int|_A:
         return int(i)
     except:
         return fallback
-
-# Name: (Publisher, ID)
-NAMES_TO_LEVEL:dict[str,list[tuple[str,int]]]={}
-
-def loadNamesToLevelMappings():
-    levels=gddl.getGDDLUntiered()
-    if not levels:
-        return
-    for id,level in levels.items():
-        name=level.Name
-        if name not in NAMES_TO_LEVEL:
-            NAMES_TO_LEVEL[name]=[]
-        NAMES_TO_LEVEL[name].append((level.Publisher,level.ID))
