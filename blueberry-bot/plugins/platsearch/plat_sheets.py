@@ -6,6 +6,9 @@ from nonebot import require
 
 require('bbot_api')
 from ..bbot_api.sheets_api import Sheet
+require('gd_api')
+from ..gd_api import gddl
+from ..gd_api.gddl import GDDLLevel 
 
 PLAT_RANK_ID = "1uicngbhpej4PEmtYYeGmYlFsA28PwTzzouWb4EWQkTY"
 
@@ -78,6 +81,7 @@ def plat_rank_weights():
     return results
 
 class TheListsEntry(LevelEntry):
+    id:int=0
     def update(self,sheet:str,section:str,name:str,creator:str|None=None,checkpoints:str|None=None,skillsets:list[str]=[],description:str|None=None):
         self.sheet=sheet
         self.section=section
@@ -164,7 +168,26 @@ def get_3_lists():
     results.extend(get_nlw())
     return results
 
+def fillIDsForEntries(results:list[TheListsEntry]):
+    loadNamesToLevelMappings()
+    levels_not_matched:list[TheListsEntry]=[]
+    for i in results:
+        id=fillIDForTheListsEntry(i)
+        if not id:
+            levels_not_matched.append(i)
+            
+    return levels_not_matched
+
+def fillIDForTheListsEntry(e:TheListsEntry):
+    if e.name in NAMES_TO_LEVEL:
+        entries=NAMES_TO_LEVEL[e.name]
+        for creator,id in entries:
+            if e.creator==creator:
+                e.id=id
+                return id
+
 class PlatChartEntry(LevelEntry):
+    id:int=0
     tpl:int|None
     pemon:int|None
     weight:int|None
@@ -297,3 +320,16 @@ def safeInt(i:Any,fallback:_A=-1) -> int|_A:
         return int(i)
     except:
         return fallback
+
+# Name: (Publisher, ID)
+NAMES_TO_LEVEL:dict[str,list[tuple[str,int]]]={}
+
+def loadNamesToLevelMappings():
+    levels=gddl.getGDDLUntiered()
+    if not levels:
+        return
+    for id,level in levels.items():
+        name=level.Name
+        if name not in NAMES_TO_LEVEL:
+            NAMES_TO_LEVEL[name]=[]
+        NAMES_TO_LEVEL[name].append((level.Publisher,level.ID))

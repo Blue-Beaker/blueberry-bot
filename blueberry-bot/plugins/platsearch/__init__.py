@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import threading
@@ -15,6 +16,7 @@ from nonebot.internal.matcher import Matcher
 from .config import Config
 
 from . import plat_sheets
+
 from .data_cache import BaseCache
 from .utils import select_page
 
@@ -43,7 +45,21 @@ PLAT_SHEET_CACHE=BaseCache(plat_sheets.TheListsEntry,"platsearch_cache/plat_shee
 async def load_cache():
     os.makedirs("platsearch_cache",exist_ok=True)
     threading.Thread(target=threaded_update_cache,args=[PLAT_CHART_CACHE,"Plat Chart cache"]).start()
-    threading.Thread(target=threaded_update_cache,args=[PLAT_SHEET_CACHE,"Plat Sheet cache"]).start()
+    threading.Thread(target=threaded_update_cache1,args=[PLAT_SHEET_CACHE,"Plat Sheet cache"]).start()
+
+def match_ids_for_levels():
+    levels_not_matched=plat_sheets.fillIDsForEntries(PLAT_SHEET_CACHE.entries)
+    if levels_not_matched:
+        jsondata=[]
+        for l in levels_not_matched:
+            jsondata.append({"level":l.to_dict(),"matches":plat_sheets.NAMES_TO_LEVEL.get(l.name)})
+            
+        with open("cache/plat_sheet_unmatched.json","w") as f:
+            json.dump(jsondata,f,indent=2)
+            
+def threaded_update_cache1(cache:BaseCache,name:str):
+    threaded_update_cache(cache,name)
+    match_ids_for_levels()
 
 def threaded_update_cache(cache:BaseCache,name:str):
     cache.get()
@@ -389,6 +405,8 @@ async def _(args: Message = CommandArg()):
         for level in results:
             if count<=3:
                 msg.append(f"{level.name} by {level.creator} ({level.sheet} {level.section}):")
+                if level.id:
+                    msg.append(f"ID ({level.id})")
                 msg.append(f"Checkpoints: {level.checkpoints}, Skillsets: {",".join(level.skillsets)}")
                 msg.append(f"Description: {level.description}")
             else:

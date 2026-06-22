@@ -73,7 +73,21 @@ class FileBasedCache(Generic[_D]):
         else:
             with open(self.cache_path,"r") as f:
                 return json.load(f)
-    
+            
+    def updateNow(self):
+        try:
+            data=self.updateFunction()
+            if data:
+                self.update(data)
+                return cast(_D,data)
+            else:
+                self.fail_try_time=time.time()+self.failure_cooldown
+        except Exception as e:
+            logger.error(f"Error updating {self.cache_name}: {traceback.format_exc()}")
+            self.fail_try_time=time.time()+self.failure_cooldown
+            
+        return cast(_D,self.get())
+        
     def getOrUpdate(self):
         if self.shouldUpdate():
             logger.info(f"Updating {self.cache_name}...")

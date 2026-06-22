@@ -1,6 +1,5 @@
 from pathlib import Path
 import sys
-from gddl_internal import GDDLSearchResult,getGDDLResponse,fetch_gddl_all_untiered,safeFloat,safeInt
 
 # 直接运行时将 blueberry-bot/ 加入 sys.path，使 plugins 包可导入
 if __name__ == "__main__" and __package__ is None:
@@ -8,8 +7,14 @@ if __name__ == "__main__" and __package__ is None:
     if str(_root) not in sys.path:
         sys.path.insert(0, str(_root))
     from plugins.gd_api.file_based_cache import FileBasedCache
+    from gddl_internal import GDDLSearchResult,getGDDLResponse,fetch_gddl_all_untiered,safeFloat,safeInt
 else:
     from ..file_based_cache import FileBasedCache
+    from .gddl_internal import GDDLSearchResult,getGDDLResponse,fetch_gddl_all_untiered,safeFloat,safeInt
+    
+    from nonebot import require
+    require("nonebot_plugin_apscheduler")
+    from nonebot_plugin_apscheduler import scheduler
 
 class GDDLLevel:
     ID:int=0
@@ -36,9 +41,9 @@ class GDDLLevel:
             self.Name=meta.get("Name","")
             self.Description=meta.get("Description","")
             
-        publ=data.get("Publisher")
-        if isinstance(publ,dict):
-            self.Publisher=publ.get("name","")
+            publ=meta.get("Publisher")
+            if isinstance(publ,dict):
+                self.Publisher=publ.get("name","")
             
         return self
     def __repr__(self) -> str:
@@ -57,4 +62,10 @@ def getGDDLUntiered():
     return levels
     
 if __name__ == "__main__":
-    print(getGDDLUntiered())
+    levels=getGDDLUntiered()
+    if levels:
+        print(levels)
+else:
+    def update():
+        CACHE.updateNow()
+    scheduler.add_job(update, "interval", days=1, id="GDDL_UPDATE")
