@@ -3,6 +3,7 @@ import os,sys
 from pathlib import Path
 import time
 import traceback
+import threading
 from typing import Callable, Generic, Literal, TypeVar, cast
 from nonebot import logger
 
@@ -18,6 +19,8 @@ class FileBasedCache(Generic[_D]):
     failure_cooldown:float=300
     fail_try_time:float=0
     
+    _lock:threading.Lock
+    
     def __init__(self,data_type:type[_D],updateFunction:Callable[[],_D],cache_path:str|Path|None=None,expiration:float=3600,cache_name:str="cache") -> None:
         self.data_type=data_type
         self.updateFunction=updateFunction
@@ -25,6 +28,7 @@ class FileBasedCache(Generic[_D]):
         self.cache_path=Path(os.path.abspath(cache_path)) if cache_path else cache_path
         self.cache_name=cache_name
         self.fail_try_time:float=0
+        self._lock=threading.Lock()
     
     def shouldUpdate(self) -> bool:
         if time.time()<self.fail_try_time:
@@ -75,22 +79,7 @@ class FileBasedCache(Generic[_D]):
                 return json.load(f)
             
     def updateNow(self):
-        try:
-            data=self.updateFunction()
-            if data:
-                self.update(data)
-                return cast(_D,data)
-            else:
-                self.fail_try_time=time.time()+self.failure_cooldown
-        except Exception as e:
-            logger.error(f"Error updating {self.cache_name}: {traceback.format_exc()}")
-            self.fail_try_time=time.time()+self.failure_cooldown
-            
-        return cast(_D,self.get())
-        
-    def getOrUpdate(self):
-        if self.shouldUpdate():
-            logger.info(f"Updating {self.cache_name}...")
+        with self._lock:
             try:
                 data=self.updateFunction()
                 if data:
@@ -102,4 +91,33 @@ class FileBasedCache(Generic[_D]):
                 logger.error(f"Error updating {self.cache_name}: {traceback.format_exc()}")
                 self.fail_try_time=time.time()+self.failure_cooldown
                 
-        return cast(_D,self.get())
+            return cast(_D,self.get())
+        
+    def getOrUpdate(self):
+        # 先尝试非阻塞获取锁——如果锁被占用，说明有别的线程正在更新
+        locked=self._lock.acquire(blocking=False)
+        if locked:
+            try:
+                if self.shouldUpdate():
+                    logger.info(f"Updating {self.cache_name}...")
+                    try:
+                        data=self.updateFunction()
+                        if data:
+                            self.update(data)
+                            return cast(_D,data)
+                        else:
+                            self.fail_try_time=time.time()+self.failure_cooldown
+                    except Exception as e:
+                        logger.error(f"Error updating {self.cache_name}: {traceback.format_exc()}")
+                        self.fail_try_time=time.time()+self.failure_cooldown
+                        
+                return cast(_D,self.get())
+            finally:
+                self._lock.release()
+        else:
+            # 锁被占用，不等待更新，直接尝试读缓存
+            if self.cache_path and self.cache_path.exists() and self.cache_path.stat().st_size > 0:
+                return cast(_D,self.get())
+            # 缓存不存在/为空 → 阻塞等待更新完成
+            with self._lock:
+                return cast(_D,self.get())
