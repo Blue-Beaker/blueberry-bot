@@ -66,7 +66,7 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
     
     async def on_error(error_msg:str=""):
         if orb_api and orb_id:
-            orb_api.add_balance(orb_id,-orb_cost)
+            orb_api.add_balance(orb_id,orb_cost)
             await gdmusic.finish(error_msg+"\n已退还消耗的 Orbs." if error_msg else "发生错误. 已退还消耗的 Orbs.")
         
         await gdmusic.finish(error_msg or "发生错误.")
