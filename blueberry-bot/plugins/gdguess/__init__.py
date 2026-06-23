@@ -509,14 +509,14 @@ async def hint(bot:Bot,matcher:type[Matcher],event:Event):
             c=session.level_name[i]
             if c not in " -":
                 charactors.append(i)
-                hint_text.append("_")
+                hint_text.append("*")
             else:
                 hint_text.append(c)
                 
         for i in random.choices(charactors,k=int((len(charactors)-1)/3)):
             hint_text[i]=session.level_name[i]
         
-        session.hint_text=" ".join(hint_text)
+        session.hint_text="".join(hint_text)
         session.hints_used=1
         
     await matcher.send(f"提示: {session.hint_text}")
