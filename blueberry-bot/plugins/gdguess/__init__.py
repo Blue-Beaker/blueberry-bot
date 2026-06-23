@@ -435,8 +435,13 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     # Set cooldown
     if not test:
         next_guess_time[id]=int(time.time())+config_manager.get_or_create(id,get_default_config(id)).cooldown
-    # Actually start the guess
         
+    # Error handling (reset cooldown)
+    def on_error():
+        if test: return
+        next_guess_time[id]=int(time.time())
+        
+    # Actually start the guess
     os.makedirs(IMAGES_PATH,exist_ok=True)
     
     # Choose a random level
@@ -447,9 +452,11 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     except requests.ConnectionError as e:
         logger.error(f"Error fetching level thumbnail: {e}")
         await matcher.send("获取关卡截图时发生错误.")
+        on_error()
         return
     if not levelID or not img:
         await matcher.send("错误:未找到有截图的关卡.")
+        on_error()
         return
         
     # Chosen level
@@ -457,6 +464,7 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     
     if not fetched_levels:
         await matcher.send("错误:未找到关卡信息")
+        on_error()
         return
     
     level=fetched_levels[0]
