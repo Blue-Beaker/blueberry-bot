@@ -3,7 +3,7 @@ import math
 import os
 import random
 import time
-from typing import Optional, Type
+from typing import Any, Callable, Optional, Type
 import cv2
 from nonebot import on_command,logger,get_plugin_config, require
 from nonebot.adapters import Message,Event,Bot
@@ -28,6 +28,7 @@ from ..bbot_api import getid,reaction_emoji,loadFile,safeInt,TextImageMessage
 from ..bbot_api.argparse import ArgParser
 require("gd_api")
 from ..gd_api.pemonlist import getPemonlistLevels
+from ..gd_api.aredl import getAREDLLevels
 from ..gd_api import thumbs
 from ..gd_api import gd
 
@@ -107,6 +108,8 @@ class GuessSource(Enum):
     PEMONLIST="pemonlist"
     WEEKLY="weekly"
     DAILY="daily"
+    AREDL="aredl"
+    AREPL="arepl"
 class Difficulty(Enum):
     EASY=("easy",(512,512))
     HARD=("hard",(256,256))
@@ -141,15 +144,7 @@ class GuessArgs:
             return
         if arg in GuessSource:
             self.source=GuessSource(arg)
-        
-        # for i in GuessAction:
-        #     if arg==i.value:
-        #         self.action=i
-        #         return
-        # for i in GuessSource:
-        #     if arg==i.value:
-        #         self.source=i
-        #         return
+            
         for i in Difficulty:
             if arg==i.value[0]:
                 self.difficulty=i
@@ -177,10 +172,38 @@ class LevelProviderPemonlist(LevelProvider):
         if count:
             pemonlist_levels=pemonlist_levels[0:min(count,pemonlist_levels.__len__())]
         return [l.level_id for l in pemonlist_levels],"关卡池已设置为Pemonlist的关卡!"
+    
+class LevelProviderAREDL(LevelProvider):
+    is_plat:bool
+    
+    def __init__(self,is_plat:bool) -> None:
+        super().__init__()
+        self.is_plat=is_plat
+    @classmethod
+    def plat(cls):
+        return cls(True)
+    @classmethod
+    def classic(cls):
+        return cls(False)
+    
+    def get_levels(self,text:str):
+        count=safeInt(text,None)
+        levels=getAREDLLevels(self.is_plat)
+        if not levels:
+            return None,"无法获取AREDL的关卡数据."
+        if count:
+            levels=levels[0:min(count,levels.__len__())]
+        return [l.level_id for l in levels],f"关卡池已设置为AREDL的{'Classic' if not self.is_plat else 'Platformer'}关卡!"
 
 class LevelProviderSearch(LevelProvider):
+    searchArgs:dict[str,Any]
+    def __init__(self,**searchArgs) -> None:
+        super().__init__()
+        self.searchArgs=searchArgs
+        
     def get_levels_in_page(self,page:int):
-        return []
+        return gd.getLevel(**self.searchArgs) or []
+    
     def get_internal_levels(self,count:int):
         levels:list[gd.Level]=[]
         page=0
@@ -242,12 +265,13 @@ class LevelProviderList(LevelProvider):
         return levels,"关卡池已设置为你提供的List中的关卡!"
         
 def get_levels_from_args(args:GuessArgs,session:Optional[GuessSession]):
-    sources:dict[GuessSource,type[LevelProvider]]={
-        GuessSource.LAST:LevelProviderLast,
+    sources:dict[GuessSource,Callable[[],LevelProvider]]={
         GuessSource.PEMONLIST:LevelProviderPemonlist,
         GuessSource.WEEKLY:LevelProviderWeekly,
         GuessSource.DAILY:LevelProviderDaily,
         GuessSource.LIST:LevelProviderList,
+        GuessSource.AREDL:LevelProviderAREDL.classic,
+        GuessSource.AREPL:LevelProviderAREDL.plat,
     }
     
     if args.source == GuessSource.LAST:
@@ -256,9 +280,9 @@ def get_levels_from_args(args:GuessArgs,session:Optional[GuessSession]):
         else:
             return LevelProviderList().get_levels(args.text)
         
-    provider_cls=sources.get(args.source,LevelProviderList)
+    provider=sources.get(args.source,LevelProviderList)
     
-    return provider_cls().get_levels(args.text)
+    return provider().get_levels(args.text)
     
 gdguess_cmd = on_command("gdguess")
 @gdguess_cmd.handle()
