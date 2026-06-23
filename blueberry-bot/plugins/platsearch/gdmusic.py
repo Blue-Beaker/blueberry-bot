@@ -41,8 +41,8 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
     link=None
     
     song_def=getSong(music_id)
-    if not song_def:
-        await gdmusic.finish(f"发生错误.")
+    if not song_def or song_def.id<0:
+        await gdmusic.finish(f"未找到曲目, 或发生错误. ")
         
     msg=f"{song_def.name}\nBy: {song_def.artistName}\nSongID: {song_def.id} Size:{song_def.size:.2f}MB"
     
