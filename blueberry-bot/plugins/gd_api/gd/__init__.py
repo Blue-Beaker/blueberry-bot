@@ -113,6 +113,12 @@ class Level(BaseLevel):
         self.length:int=0
         self.demon:bool=False
         self.auto:bool=False
+        self.creator_id:int=0
+        self.downloads:int=0
+        self.likes:int=0
+        self.songID:int=0
+        self.coins:int=0
+        self.verifiedCoins:bool=False
         
     def is_plat(self):
         return self.length==Length.PLAT.value
@@ -140,6 +146,11 @@ class Level(BaseLevel):
         self.demon=bool(data.get('17'))
         self.auto=bool(data.get('25'))
         self.creator_id=safeInt(data.get('6'))
+        self.downloads=safeInt(data.get('10'),0)
+        self.likes=safeInt(data.get('14'),0)
+        self.songID=safeInt(data.get('12'),None) or safeInt(data.get('35'),0)
+        self.coins=safeInt(data.get('37'),0)
+        self.verifiedCoins=bool(data.get('38'))
         
         return self
     def __repr__(self) -> str:

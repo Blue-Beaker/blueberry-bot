@@ -32,7 +32,7 @@ from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
 from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons
 from ..gd_api import gd
-from ..gd_api.thumbs import getThumbnail
+from ..gd_api.thumbs import getThumbnail,getThumbnailUrl
 
 driver=get_driver()
 plugin_cfg=get_plugin_config(Config)
@@ -52,7 +52,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         parser=ArgParser()
         parser.add_argument('--classic',help='Classic only',action='store_true')
         parser.add_argument('--plat',help='Classic only',action='store_true')
-        parser.add_argument('-d',help='Demon Difficulty',type=str,default=None)
+        parser.add_argument('-d',help='Demon Difficulty',type=str,default="")
         parser.add_argument('-v',help='Show Other Info',action='store_true')
         parser.add_argument('-t',help='Plain Text',action='store_true')
         parser.add_argument('-i',help='Show Thumbnail',action='store_true')
@@ -85,6 +85,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         kwargs["diff"]=-2
         if demon.lower()!='all':
             kwargs["demonFilter"]=demon
+            
+    print(demon,kwargs)
     
     levels,pageinfo=getLevel2(search,page=page,rated=not include_unrated,**kwargs)
     if not isinstance(levels,list):
@@ -111,48 +113,70 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     
     info_image=False
     
+    dc_entry=None
+    dc_entries=PLAT_CHART_BY_ID.get_for_id(level.id)
+    if dc_entries:
+        dc_entry=dc_entries[0]
+    
     # Image Sections
-    # if enable_image:
-    #     req_id_base=bbot_api.getid(event)
-    #     user_info_args:dict[str,str]={}
-        
-    #     player_icons=getIconIDs(user.icon)
-    #     icon_type=ICON_TYPES[icon.icon_type]
-        
-    #     user_info_args["player_icon"]=construct_icon_url(icon_type,player_icons.get(icon_type,0),icon.color,icon.color2,icon.glow_color)
-        
-    #     if show_thumbnail:
-    #         for i,id in player_icons.items():
-    #             user_info_args["icon_"+i.value]=construct_icon_url(i,id,icon.color,icon.color2,icon.glow_color)
-        
-    #     img=await render_api.render_player_info(req_id_base+"_base",user.user_name,user.stars,user.moons,user.secret_coins,user.user_coins,user.demons,user.creator_points,c.sum(),p.sum(),c_demons.sum(),pemons.sum(),**user_info_args)
-    #     if isinstance(img,bytes):
-    #         msg.addImage(img)
-    #         info_image=True
+    if enable_image:
+        req_id_base=bbot_api.getid(event)
+        user_info_args:dict[str,str]={}
+        if dc_entry:
+            img=await render_api.render_level(req_id_base+"_base",
+                            level_id=level.id,
+                            level_name=level.name,
+                            creator=level.creator,
+                            stars=level.stars,
+                            length=gd.Length(level.length).name,
+                            coins=level.coins,
+                            weight=str(dc_entry.weight or '-'),
+                            pemonlist=str(dc_entry.pemon or '-'),
+                            diffchart_icon=f"res://res/diffchart_icons/tier_moon_icon_{'T'+dc_entry.tier if dc_entry.tier else 'NA'}-uhd.png",
+                            scene_type="level_large",
+                            thumbnail=getThumbnailUrl(level.id)
+                            )
+        else:
+            img=await render_api.render_level(req_id_base+"_base",
+                            level_id=level.id,
+                            level_name=level.name,
+                            creator=level.creator,
+                            stars=level.stars,
+                            length=gd.Length(level.length).name,
+                            coins=level.coins,
+                            scene_type="level_large",
+                            thumbnail=getThumbnailUrl(level.id)
+                            )
+        if isinstance(img,bytes):
+            msg2=bbot_api.TextImageMessage.build(bot)
+            msg2.addLine(repr_level(level))
+            msg2.addImage(img)
+            info_image=True
+            await gdsearch.send(msg2.msg)
             
     # Basic Info (Text)
     if not info_image:
         lines.addLine(repr_level(level))
+    
+    if level.is_plat():
         
-        if level.is_plat():
+        dc_entries=PLAT_CHART_BY_ID.get_for_id(level.id)
+        if dc_entries:
+            lines.addLine("--Difficulty Chart--")
+        for e in dc_entries:
+            lines.addLine(formatters.formatDiffChart(e,False,True))
+        
+        lists_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
+        if lists_entries:
+            lines.addLine("--NLW/IDS/HDS--")
+        for e in lists_entries:
+            lines.addLine(formatters.formatListsLevel(e,False,True))
             
-            dc_entries=PLAT_CHART_BY_ID.get_for_id(level.id)
-            if dc_entries:
-                lines.addLine("--Difficulty Chart--")
-            for e in dc_entries:
-                lines.addLine(formatters.formatDiffChart(e,False,True))
-            
-            lists_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
-            if lists_entries:
-                lines.addLine("--NLW/IDS/HDS--")
-            for e in lists_entries:
-                lines.addLine(formatters.formatListsLevel(e,False,True))
-                
-            ur_entries=UNDERRATED_BY_ID.get_for_id(level.id)
-            if ur_entries:
-                lines.addLine("--Underrated Levels--")
-            for e in ur_entries:
-                lines.addLine(formatUnderrated(e,False,True))
+        ur_entries=UNDERRATED_BY_ID.get_for_id(level.id)
+        if ur_entries:
+            lines.addLine("--Underrated Levels--")
+        for e in ur_entries:
+            lines.addLine(formatUnderrated(e,False,True))
             
             
         

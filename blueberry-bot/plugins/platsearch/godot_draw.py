@@ -128,6 +128,31 @@ class RenderAPI:
                   if k not in ("self", "request_id") and v is not None}
         return await self._render("nondemons", request_id, params)
 
+    async def render_level(self,request_id:str,
+            level_name: str="",
+            creator: str="",
+            diff_name: str="",
+            song_name: str="",
+            weight: str="",
+            pemonlist: str="",
+            stars: int=0,
+            length: str="",
+            downloads: int=0,
+            orbs: int=0,
+            level_id: int=0,
+            # Texture resources
+            thumbnail: str="",
+            diff_icon: str="",
+            feature_icon: str="",
+            star_or_moon: str="",
+            diffchart_icon: str="",
+            # Coins
+            coins: int=0,scene_type: str="level") -> bytes | dict | None:
+        """渲染 level 场景（关卡信息）。
+        """
+        params = {k: v for k, v in locals().items()
+                  if k not in ("self", "request_id") and v is not None}
+        return await self._render(scene_type, request_id, params)
 
 async def _test_main():
     """测试功能：发送示例请求并保存结果"""

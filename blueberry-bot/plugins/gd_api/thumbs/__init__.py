@@ -9,13 +9,16 @@ def getThumbnail(levelID:int,api_base:str="https://levelthumbs.prevter.me/thumbn
     headers = {
         "User-Agent": ""
     }
-    url=api_base+str(levelID)
-    if small:
-        url=url+"/small"
-    req = requests.get(url=url, headers=headers, timeout=10)
+    req = requests.get(url=getThumbnailUrl(levelID,api_base,small), headers=headers, timeout=10)
     if req.status_code!=200:
         return None
     return req.content
+
+def getThumbnailUrl(levelID:int,api_base:str="https://levelthumbs.prevter.me/thumbnail/",small:bool=False):
+    url=api_base+str(levelID)
+    if small:
+        url=url+"/small"
+    return url
         
 if __name__ == "__main__":
     os.makedirs("gdguess_data/images",exist_ok=True)
