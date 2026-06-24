@@ -10,7 +10,8 @@ def formatDiffChart(l:PlatChartEntry,compact:bool=False,exclude_base_info:bool=F
             line.append(f"(T{l.tier})")
     if not compact:
         if l.tags:
-            line.append(f"\nTags: {','.join(l.tags)}")
+            if line: line.append("\n")
+            line.append(f"Tags: {','.join(l.tags)}")
         rankline=[]
         if l.enj and l.enj!="/":
             rankline.append(f"Enj: {l.enj}")
