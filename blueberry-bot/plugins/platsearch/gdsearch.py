@@ -121,40 +121,34 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     # Image Sections
     if enable_image:
         req_id_base=bbot_api.getid(event)
-        user_info_args:dict[str,str]={}
+        extra_render_args:dict[str,Any]={}
         if dc_entry:
-            img=await render_api.render_level(req_id_base+"_base",
-                            level_id=level.id,
-                            level_name=level.name,
-                            creator=level.creator,
-                            stars=level.stars,
-                            length=gd.Length(level.length).name,
-                            difficulty=level.get_difficulty().value,
-                            feature_level=level.epic+1 if level.featured>0 else 0,
-                            is_plat=level.is_plat(),
-                            coins=level.coins,
-                            downloads=level.downloads,
-                            weight=str(dc_entry.weight or '-'),
-                            pemonlist=str(dc_entry.pemon or '-'),
-                            diffchart_tier=dc_entry.tier or '',
-                            scene_type="level_large",
-                            thumbnail=getThumbnailUrl(level.id)
-                            )
-        else:
-            img=await render_api.render_level(req_id_base+"_base",
-                            level_id=level.id,
-                            level_name=level.name,
-                            creator=level.creator,
-                            stars=level.stars,
-                            length=gd.Length(level.length).name,
-                            difficulty=level.get_difficulty().value,
-                            feature_level=level.epic+1 if level.featured>0 else 0,
-                            is_plat=level.is_plat(),
-                            coins=level.coins,
-                            downloads=level.downloads,
-                            scene_type="level_large",
-                            thumbnail=getThumbnailUrl(level.id)
-                            )
+            extra_render_args.update({
+                "weight":str(dc_entry.weight or '-'),
+                "pemonlist":str(dc_entry.pemon or '-'),
+                "diffchart_tier":dc_entry.tier or '',
+            })
+        
+        song=gd.getSong(level.songID)
+        
+        img=await render_api.render_level(req_id_base+"_base",
+                        level_id=level.id,
+                        level_name=level.name,
+                        song_id=level.songID,
+                        song_author=song.artistName if song else "Unknown",
+                        song_name=song.name if song else "Unknown",
+                        creator=level.creator,
+                        stars=level.stars,
+                        length=gd.Length(level.length).name,
+                        difficulty=level.get_difficulty().value,
+                        feature_level=level.epic+1 if level.featured>0 else 0,
+                        is_plat=level.is_plat(),
+                        coins=level.coins,
+                        downloads=level.downloads,
+                        scene_type="level_large",
+                        thumbnail=getThumbnailUrl(level.id),
+                        **extra_render_args
+                        )
         if isinstance(img,bytes):
             msg2=bbot_api.TextImageMessage.build(bot)
             msg2.addLine(repr_level(level))
