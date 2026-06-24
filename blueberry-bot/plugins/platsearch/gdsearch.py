@@ -63,7 +63,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         search=" ".join(parsed.search)
         classic_only=bool(parsed.classic)
         plat_only=bool(parsed.plat)
-        demon=bool(parsed.d)
+        demon=str(parsed.d)
         show_other=bool(parsed.v)
         force_text=bool(parsed.t)
         show_thumbnail=bool(parsed.i)
@@ -81,6 +81,10 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         kwargs["len"]="0,1,2,3,4"
     if plat_only:
         kwargs["len"]="5"
+    if demon:
+        kwargs["diff"]=-2
+        if demon.lower()!='all':
+            kwargs["demonFilter"]=demon
     
     levels,pageinfo=getLevel2(search,page=page,rated=not include_unrated,**kwargs)
     if not isinstance(levels,list):
@@ -94,7 +98,10 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         lines.addLine(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
         for l in levels:
             lines.addLine(repr_level(l))
-        await gdsearch.finish(lines.msg)
+            if l.is_plat():
+                lines.addText("".join([f" E{l2.enj or '-'} W{l2.weight or '-'} P{l2.pemon or '-'}" for l2 in PLAT_CHART_BY_ID.get_for_id(l.id)]))
+            
+        await gdsearch.finish(await bbot_api.auto_pack_message(bot,lines.msg,6))
         return
     
     level=levels[0]
@@ -164,8 +171,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         # lines.append(f"Global Rank {user.global_rank}")
         # lines.append(f"Account ID {user.account_id}")
         # lines.append(f"Player ID {user.user_id}")
-        
-    await gdsearch.finish(lines.msg)
+    
+    await gdsearch.finish(await bbot_api.auto_pack_message(bot,lines.msg,6))
 
 def getIconIDs(icon: PlayerIcons):
     id_for_types:dict[IconType,int]={}

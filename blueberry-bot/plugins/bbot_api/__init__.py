@@ -1,7 +1,7 @@
 from pathlib import Path
 import time
 from typing import Any, TypeVar
-from nonebot.adapters import Event,Bot
+from nonebot.adapters import Event,Bot,Message
 from nonebot.adapters.discord import GuildMessageCreateEvent,MessageEvent as DCMessageEvent,Message as DCMessage,MessageSegment as DCMessageSegment,Bot as DCBot
 from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent,Bot as OBBot,Message as OBMessage,MessageSegment as OBMessageSegment,MessageEvent as OBMessageEvent
 from nonebot.adapters.minecraft import BaseChatEvent as MCBaseChatEvent
@@ -73,6 +73,11 @@ class TextImageMessage:
         return self
     def getMessage(self):
         return self.msg
+    def getPlainText(self):
+        if isinstance(self.msg,Message):
+            return self.msg.extract_plain_text()
+        else:
+            return self.msg
     
 def get_group_id(event):
     print(event)
@@ -114,3 +119,12 @@ async def pack_message(bot:Bot,message:Any):
     if isinstance(bot,OBBot):
         await _LOGIN_INFO.update(bot)
     return OBMessageSegment.node_custom(_LOGIN_INFO.user_id,_LOGIN_INFO.nickname,message)
+
+async def auto_pack_message(bot:Bot,message:Message|str,limit:int):
+    if isinstance(message,Message): lines=message.extract_plain_text()
+    else: lines=message
+    if(lines.split("\n").__len__()>limit and can_pack_message(bot)):
+        reply=await pack_message(bot,message)
+        assert reply
+        return reply
+    return message
