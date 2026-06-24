@@ -129,6 +129,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 "weight":str(dc_entry.weight or '-'),
                 "pemonlist":str(dc_entry.pemon or '-'),
                 "diffchart_tier":dc_entry.tier or '',
+                "diffchart_tags":','.join(dc_entry.tags)
             })
         if lists_entries:
             for l in lists_entries:
