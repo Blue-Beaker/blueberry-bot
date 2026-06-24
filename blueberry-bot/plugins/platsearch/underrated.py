@@ -144,9 +144,16 @@ async def _(args: Message = CommandArg()):
         reply.append(f"{count} found (Page {page}/{maxpages}):")
     
         for l in results:
-            if count<=3:
-                reply.append(f"{l.section}-{l.tier} {l.name} by {l.creator} ({l.id})\n{",".join(l.skillsets)}\n{l.desc}")
-            else:
-                reply.append(f"{l.section}-{l.tier} {l.name} by {l.creator} ({l.id}) {'🌙' if 'Platformer' in l.skillsets else ''}")
+            reply.append(formatUnderrated(l,count>3))
     
     await gdur.finish("\n".join(reply))
+    
+def formatUnderrated(l:UnderratedLevel,compact:bool=False,exclude_base_info:bool=False):
+    line=f"{l.section}-{l.tier}"
+    if not exclude_base_info:
+        line+=f"{l.name} by {l.creator} ({l.id})"
+    if not compact:
+        line+=f"\n{",".join(l.skillsets)}\n{l.desc}"
+    if not exclude_base_info and 'Platformer' in l.skillsets:
+        line+='🌙'
+    return line

@@ -21,6 +21,7 @@ from .config import Config
 from .gd_icon import IconType, construct_icon_url,get_icon,ICON_TYPES
 from .gd_extras import repr_level
 from .platsearch import PLAT_CHART_CACHE,PLAT_SHEET_CACHE
+from .underrated import UR_CACHE,formatUnderrated
 from .plat_sheets import LevelEntry,TheListsEntry,PlatChartEntry
 from .data_cache import ManagedIDMapCache
 from . import formatters
@@ -41,6 +42,7 @@ render_api.uri=plugin_cfg.render_server_uri
 
 PLAT_CHART_BY_ID=ManagedIDMapCache(PLAT_CHART_CACHE)
 PLAT_SHEET_BY_ID=ManagedIDMapCache(PLAT_SHEET_CACHE)
+UNDERRATED_BY_ID=ManagedIDMapCache(UR_CACHE)
 
 gdsearch = on_command("gdsearch")
 @gdsearch.handle()
@@ -128,12 +130,22 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         if level.is_plat():
             
             dc_entries=PLAT_CHART_BY_ID.get_for_id(level.id)
+            if dc_entries:
+                lines.addLine("--Difficulty Chart--")
             for e in dc_entries:
                 lines.addLine(formatters.formatDiffChart(e,False,True))
             
             lists_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
+            if lists_entries:
+                lines.addLine("--NLW/IDS/HDS--")
             for e in lists_entries:
                 lines.addLine(formatters.formatListsLevel(e,False,True))
+                
+            ur_entries=UNDERRATED_BY_ID.get_for_id(level.id)
+            if ur_entries:
+                lines.addLine("--Underrated Levels--")
+            for e in ur_entries:
+                lines.addLine(formatUnderrated(e,False,True))
             
             
         

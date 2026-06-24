@@ -43,7 +43,7 @@ def formatListsLevel(l:TheListsEntry,compact:bool=False,exclude_base_info:bool=F
     else:
         firstline=f"{l.sheet} {l.section}"
         
-    if compact:
+    if not compact:
         lines.append(firstline)
         if not exclude_base_info and l.id:
             lines.append(f"ID ({l.id})")
