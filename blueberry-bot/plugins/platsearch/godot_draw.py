@@ -147,6 +147,7 @@ class RenderAPI:
             feature_level: int=0,
             is_plat: bool=False,
             diffchart_tier: str='',
+            checkpoints: str='',
             # Coins
             coins: int=0,scene_type: str="level") -> bytes | dict | None:
         """渲染 level 场景（关卡信息）。

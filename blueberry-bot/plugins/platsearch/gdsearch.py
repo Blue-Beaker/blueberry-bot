@@ -117,6 +117,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     dc_entries=PLAT_CHART_BY_ID.get_for_id(level.id)
     if dc_entries:
         dc_entry=dc_entries[0]
+        
+    lists_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
     
     # Image Sections
     if enable_image:
@@ -128,6 +130,10 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 "pemonlist":str(dc_entry.pemon or '-'),
                 "diffchart_tier":dc_entry.tier or '',
             })
+        if lists_entries:
+            for l in lists_entries:
+                if l.checkpoints: extra_render_args["checkpoints"]=l.checkpoints.replace("∞","Infinite")
+                break
         
         song=gd.getSong(level.songID)
         
@@ -162,13 +168,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     
     if level.is_plat():
         
-        dc_entries=PLAT_CHART_BY_ID.get_for_id(level.id)
         if dc_entries:
             lines.addLine("--Difficulty Chart--")
         for e in dc_entries:
             lines.addLine(formatters.formatDiffChart(e,False,True))
         
-        lists_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
         if lists_entries:
             lines.addLine("--NLW/IDS/HDS--")
         for e in lists_entries:
