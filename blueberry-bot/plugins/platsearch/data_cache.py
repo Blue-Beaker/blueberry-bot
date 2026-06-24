@@ -1,6 +1,6 @@
 import time
 import traceback
-from typing import Callable, Generic, Type,TypeVar
+from typing import Callable, Generic, Sequence, Type,TypeVar
 from .plat_sheets import PlatWeight, TheListsEntry,LevelEntry
 import json
 from nonebot import logger
@@ -81,4 +81,30 @@ class BaseCache(Generic[_T]):
     def save(self,path:str):
         with open(path,"w") as f:
             json.dump(self.to_dict(),f)
-            
+
+class IDMapCache(Generic[_T]):
+    def __init__(self) -> None:
+        super().__init__()
+        self.id_map:dict[int,list[_T]]={}
+    def update_data(self,entries:Sequence[_T]):
+        self.id_map.clear()
+        for e in entries:
+            if e.id not in self.id_map:
+                self.id_map[e.id]=[]
+            self.id_map[e.id].append(e)
+    def get_for_id(self,id:int):
+        return self.id_map.get(id,[])
+    
+class ManagedIDMapCache(IDMapCache[_T]):
+    last_expiration_time:int=0
+    def __init__(self,parent_cache:BaseCache[_T]) -> None:
+        super().__init__()
+        self.parent=parent_cache
+    def try_update(self):
+        if (self.parent.should_update()
+            or self.last_expiration_time<self.parent.expiration_time):
+            self.update_data(self.parent.get())
+        self.last_expiration_time=self.parent.expiration_time
+    def get_for_id(self, id: int):
+        self.try_update()
+        return super().get_for_id(id)

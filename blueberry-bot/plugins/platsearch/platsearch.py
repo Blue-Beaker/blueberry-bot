@@ -30,6 +30,7 @@ from ..gd_api import gd,thumbs
 from . import underrated
 
 from . import gd_extras,gduser
+from . import formatters
 
 
 plugin_config = get_plugin_config(Config)
@@ -408,17 +409,7 @@ async def _(args: Message = CommandArg()):
         msg.append(f"{count} on sheets (Page {page}/{maxpages}):")
         
         for level in results:
-            if count<=3:
-                msg.append(f"{level.name} by {level.creator} ({level.sheet} {level.section}):")
-                if level.id:
-                    msg.append(f"ID ({level.id})")
-                msg.append(f"Checkpoints: {level.checkpoints}, Skillsets: {",".join(level.skillsets)}")
-                msg.append(f"Description: {level.description}")
-            else:
-                line=f"{level.name} by {level.creator} ({level.sheet} {level.section})"
-                if level.checkpoints:
-                    line+=f" ◆{level.checkpoints}"
-                msg.append(line)
+            msg.append(formatters.formatListsLevel(level,count>3))
         
     await platsheet.send("\n".join(msg))
 
@@ -473,37 +464,7 @@ async def _(bot:Bot, args: Message = CommandArg()):
     else:
         msg.append(f"{count} found (Page {page}/{maxpages}):")
         for l in results:
-            line:list[str]=[l.name]
-            if l.id>=0:
-                line.append(f" ({l.id})")
-            if l.tier:
-                line.append(f"(T{l.tier})")
-            if count<=3:
-                if l.tags:
-                    line.append(f"\nTags: {','.join(l.tags)}")
-                rankline=[]
-                if l.enj and l.enj!="/":
-                    rankline.append(f"Enj: {l.enj}")
-                if l.tpl and l.weight and l.tpl==l.weight:
-                    rankline.append(f"TPL/Weight: {l.tpl}")
-                else:
-                    if l.tpl:
-                        rankline.append(f"TPL: {l.tpl}")
-                    if l.weight:
-                        rankline.append(f"Weight: {l.weight}")
-                if l.pemon:
-                    rankline.append(f"Pemonlist: {l.pemon}")
-                    
-                if rankline:
-                    line.append("\n"+",".join(rankline))
-            else:
-                tagstr=','.join(l.tags) if l.tags else ""
-                if tagstr.__len__()>15:
-                    tagstr=tagstr[0:13]+"..."
-                line.append(f"\nE{l.enj or '-'},W{l.weight or l.tpl or '-'},P{l.pemon or '-'}")
-                line.append(f" {tagstr}")
-                
-            msg.append("".join(line))
+            msg.append(formatters.formatDiffChart(l,count>3))
     
     level_ids:list[int]=[l.id for l in results if l.id>0]
     
