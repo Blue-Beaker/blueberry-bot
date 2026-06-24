@@ -110,6 +110,8 @@ class Level(BaseLevel):
     def __init__(self) -> None:
         self.stars:int=0
         self.difficulty:int=0
+        self.featured:int=0
+        self.epic:int=0
         self.length:int=0
         self.demon:bool=False
         self.auto:bool=False
@@ -151,6 +153,8 @@ class Level(BaseLevel):
         self.songID=safeInt(data.get('12'),None) or safeInt(data.get('35'),0)
         self.coins=safeInt(data.get('37'),0)
         self.verifiedCoins=bool(data.get('38'))
+        self.featured=safeInt(data.get('19'),0)
+        self.epic=safeInt(data.get('42'),0)
         
         return self
     def __repr__(self) -> str:

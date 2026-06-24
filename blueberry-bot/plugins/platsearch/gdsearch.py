@@ -129,10 +129,14 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                             creator=level.creator,
                             stars=level.stars,
                             length=gd.Length(level.length).name,
+                            difficulty=level.get_difficulty().value,
+                            feature_level=level.epic+1 if level.featured>0 else 0,
+                            is_plat=level.is_plat(),
                             coins=level.coins,
+                            downloads=level.downloads,
                             weight=str(dc_entry.weight or '-'),
                             pemonlist=str(dc_entry.pemon or '-'),
-                            diffchart_icon=f"res://res/diffchart_icons/tier_moon_icon_{'T'+dc_entry.tier if dc_entry.tier else 'NA'}-uhd.png",
+                            diffchart_tier=dc_entry.tier or '',
                             scene_type="level_large",
                             thumbnail=getThumbnailUrl(level.id)
                             )
@@ -143,7 +147,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                             creator=level.creator,
                             stars=level.stars,
                             length=gd.Length(level.length).name,
+                            difficulty=level.get_difficulty().value,
+                            feature_level=level.epic+1 if level.featured>0 else 0,
+                            is_plat=level.is_plat(),
                             coins=level.coins,
+                            downloads=level.downloads,
                             scene_type="level_large",
                             thumbnail=getThumbnailUrl(level.id)
                             )
@@ -195,8 +203,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         # lines.append(f"Global Rank {user.global_rank}")
         # lines.append(f"Account ID {user.account_id}")
         # lines.append(f"Player ID {user.user_id}")
-    
-    await gdsearch.finish(await bbot_api.auto_pack_message(bot,lines.msg,6))
+    if lines.msg.__len__():
+        await gdsearch.finish(await bbot_api.auto_pack_message(bot,lines.msg,6))
 
 def getIconIDs(icon: PlayerIcons):
     id_for_types:dict[IconType,int]={}

@@ -131,7 +131,6 @@ class RenderAPI:
     async def render_level(self,request_id:str,
             level_name: str="",
             creator: str="",
-            diff_name: str="",
             song_name: str="",
             weight: str="",
             pemonlist: str="",
@@ -142,16 +141,18 @@ class RenderAPI:
             level_id: int=0,
             # Texture resources
             thumbnail: str="",
-            diff_icon: str="",
-            feature_icon: str="",
-            star_or_moon: str="",
-            diffchart_icon: str="",
+            difficulty: int=0,
+            feature_level: int=0,
+            is_plat: bool=False,
+            diffchart_tier: str='',
             # Coins
             coins: int=0,scene_type: str="level") -> bytes | dict | None:
         """渲染 level 场景（关卡信息）。
         """
         params = {k: v for k, v in locals().items()
-                  if k not in ("self", "request_id") and v is not None}
+                  if k not in ("self", "request_id", "scene_type") and v is not None}
+        
+        
         return await self._render(scene_type, request_id, params)
 
 async def _test_main():
