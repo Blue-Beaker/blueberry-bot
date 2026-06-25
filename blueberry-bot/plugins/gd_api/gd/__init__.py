@@ -1,3 +1,4 @@
+import base64
 from enum import Enum
 from typing import Any, TypeVar, override
 import requests
@@ -108,20 +109,63 @@ class PageInfo:
 class Level(BaseLevel):
     creator_id:int
     def __init__(self) -> None:
-        self.stars:int=0
-        self.difficulty:int=0
-        self.featured:int=0
-        self.epic:int=0
-        self.length:int=0
-        self.demon:bool=False
-        self.auto:bool=False
-        self.creator_id:int=0
-        self.downloads:int=0
-        self.likes:int=0
-        self.songID:int=0
-        self.coins:int=0
-        self.verifiedCoins:bool=False
+        # === 常用字段 ===
+        self.stars: int = 0             #: 18 — 星数
+        self.difficulty: int = 0        #: 9 — 难度分子。0=未评级，10=easy，20=normal，30=hard，40=harder，50=insane
+        self.featured: int = 0          #: 19 — 推荐分数。0=未推荐，正数越高在推荐列表越靠前
+        self.epic: int = 0              #: 42 — 史诗评级。0=无，1=epic，2=legendary，3=mythic
+        self.length: int = 0            #: 15 — 关卡长度。0=tiny，1=short，2=medium，3=long，4=XL，5=platformer
+        self.demon: bool = False        #: 17 — 是否为恶魔难度
+        self.auto: bool = False         #: 25 — 是否为自动关卡
+        self.creator_id: int = 0        #: 6 — 作者 Player ID
+        self.downloads: int = 0         #: 10 — 下载次数
+        self.likes: int = 0             #: 14 — 点赞数 - 点踩数
+        self.songID: int = 0            #: 12/35 — 歌曲 ID。优先取 12(official)，否则取 35(custom)
+        self.coins: int = 0             #: 37 — 用户硬币数量
+        self.verifiedCoins: bool = False  #: 38 — 用户硬币是否已验证(银色)
         
+        # === 元数据/存档字段 ===
+        self.description:str = ""       #: 3 — 关卡描述，Base64 编码
+        self.level_string: str | None = None  #: 4* — 关卡数据字符串，仅从 downloadGJLevel22 返回
+        self.version: int = 0           #: 5 — 关卡发布版本号
+        self.difficulty_denominator: int = 0  #: 8 — 难度分母。返回 0 表示 N/A，返回 10 表示已分配难度
+        self.set_completes: int = 0     #: 11 — 完成人数，2.1 更新中移除
+        self.game_version: int = 0      #: 13 — 上传时的 GD 版本号。1.0-1.6 为 1-7，1.7 为 10，后续除以 10
+        self.dislikes: int = 0          #: 16 — 点踩数
+        self.password: str | None = None  #: 27* — 复制关密码，XOR 加密（密钥 26364）
+        self.upload_date: str | None = None  #: 28* — 上传日期（近似）
+        self.update_date: str | None = None  #: 29* — 更新日期（近似）
+        self.copied_id: int = 0         #: 30 — 原关卡 ID（若为复制关）
+        self.two_player: bool = False   #: 31 — 是否启用双人模式
+        self.extra_string: str = ""     #: 36 — 上传时传入的额外字符串，用途未知
+        self.stars_requested: int = 0   #: 39 — 作者请求的星数
+        self.low_detail_mode: bool | None = None  #: 40* — 是否启用低细节模式
+        self.daily_number: int | None = None  #: 41* — 每日/每周编号。若为每周关卡需减 100000
+        self.demon_difficulty: int = 0  #: 43 — 恶魔难度细分：3=easy，4=medium，0=hard，5=insane，6=extreme
+        self.is_gauntlet: bool = False  #: 44 — 是否属于关卡包
+        self.objects: int = 0           #: 45 — 物体数量，上限 65535
+        self.editor_time: int = 0       #: 46 — 当前副本的编辑用时（秒），上限 24-bit
+        self.editor_time_copies: int = 0  #: 47 — 累计编辑用时（秒），上限 24-bit
+        self.song_ids: str | None = None  #: 52* — 所有歌曲 ID，逗号分隔
+        self.sfx_ids: str | None = None  #: 53* — 所有 SFX ID，逗号分隔
+        self.unknown: int = 0           #: 54 — 未知值，可能仅 RobTop 使用（对应存档中 k106）
+        self.verification_time: int | None = None  #: 57* — 验证用时（帧，假设 240 FPS），上限 24-bit
+        
+        # === 未使用字段 (文档标注) ===
+        self.record_string: str = ""    #: 26 — 记录字符串，出现在 GJGameLevel 解析器中但未使用
+        self.settings_string: str = ""  #: 48 — 设置字符串，2.1 早期出现后移除，无使用信息
+    def get_description(self) -> str:
+        """解码并返回关卡描述（Base64 url safe → 明文）。"""
+        if not self.description:
+            return ""
+        try:
+            # GD 使用 url safe base64: '-' 替代 '+', '_' 替代 '/'
+            padded = self.description.replace("-", "+").replace("_", "/")
+            # 补全填充
+            padded += "=" * (-len(padded) % 4)
+            return base64.b64decode(padded).decode("utf-8", errors="replace")
+        except Exception:
+            return ""
     def is_plat(self):
         return self.length==Length.PLAT.value
     def get_difficulty(self):
@@ -155,6 +199,55 @@ class Level(BaseLevel):
         self.verifiedCoins=bool(data.get('38'))
         self.featured=safeInt(data.get('19'),0)
         self.epic=safeInt(data.get('42'),0)
+        
+        # === 元数据字段加载 ===
+        self.description = data.get('3', '')         # 3 — 关卡描述(Base64)
+        raw_level_string = data.get('4')             # 4* — 关卡数据字符串
+        if raw_level_string:
+            self.level_string = raw_level_string
+        self.version = safeInt(data.get('5'), 0)     # 5 — 版本号
+        self.difficulty_denominator = safeInt(data.get('8'), 0)   # 8 — 难度分母
+        self.set_completes = safeInt(data.get('11'), 0)           # 11 — 完成人数
+        self.game_version = safeInt(data.get('13'), 0)            # 13 — GD 版本
+        self.dislikes = safeInt(data.get('16'), 0)   # 16 — 点踩数
+        raw_password = data.get('27')                # 27* — 复制密码
+        if raw_password:
+            self.password = raw_password
+        raw_upload = data.get('28')                  # 28* — 上传日期
+        if raw_upload:
+            self.upload_date = raw_upload
+        raw_update = data.get('29')                  # 29* — 更新日期
+        if raw_update:
+            self.update_date = raw_update
+        self.copied_id = safeInt(data.get('30'), 0)  # 30 — 原关卡 ID
+        self.two_player = bool(data.get('31'))       # 31 — 双人模式
+        self.extra_string = data.get('36', '')       # 36 — 额外字符串
+        self.stars_requested = safeInt(data.get('39'), 0)          # 39 — 请求星数
+        raw_ldm = data.get('40')                     # 40* — 低细节模式
+        if raw_ldm is not None:
+            self.low_detail_mode = bool(raw_ldm)
+        raw_daily = data.get('41')                   # 41* — 每日/每周编号
+        if raw_daily is not None:
+            self.daily_number = safeInt(raw_daily)
+        self.demon_difficulty = safeInt(data.get('43'), 0)        # 43 — 恶魔难度细分
+        self.is_gauntlet = bool(data.get('44'))      # 44 — 关卡包标记
+        self.objects = safeInt(data.get('45'), 0)    # 45 — 物体数量
+        self.editor_time = safeInt(data.get('46'), 0)              # 46 — 编辑用时
+        self.editor_time_copies = safeInt(data.get('47'), 0)       # 47 — 累计编辑用时
+        raw_song_ids = data.get('52')                # 52* — 歌曲 ID 列表
+        if raw_song_ids:
+            self.song_ids = raw_song_ids
+        raw_sfx_ids = data.get('53')                 # 53* — SFX ID 列表
+        if raw_sfx_ids:
+            self.sfx_ids = raw_sfx_ids
+        self.unknown = safeInt(data.get('54'), 0)    # 54 — 未知值
+        raw_verify = data.get('57')                  # 57* — 验证用时
+        if raw_verify is not None:
+            self.verification_time = safeInt(raw_verify)
+        
+        # === 未使用字段 (文档标注) ===
+        self.record_string = data.get('26', '')      # 26 — 记录字符串(未使用)
+        self.settings_string = data.get('48', '')    # 48 — 设置字符串(未使用)
         
         return self
     def __repr__(self) -> str:
@@ -485,6 +578,56 @@ def getLevel2(search:int|str|None=None,page:int=0,rated:bool=False,searchType:Le
 def getLevelsFromList(listID:int):
     return getLevel(str(listID),searchType=LevelSearchType.LEVEL_FROM_LIST)
 
+def downloadLevel(levelID:int, **kwargs):
+    """下载关卡完整数据（含关卡字符串）。
+
+    简写封装，直接返回 Level 对象或 None。
+    """
+    return downloadLevel2(levelID, **kwargs)
+
+@cached(TTLCache(maxsize=100, ttl=60))
+def downloadLevel2(levelID:int, **kwargs):
+    """下载关卡完整数据（含关卡字符串）。
+
+    对应端点 downloadGJLevel22.php，返回的响应包含关卡数据字符串（key 4）。
+    使用 -1 作为 levelID 可获取每日关卡，-2 获取每周关卡。
+
+    Args:
+        levelID: 关卡 ID。使用 -1 获取每日关卡，-2 获取每周关卡。
+        **kwargs: 传递给端点的额外参数（如 accountID, gjp, udid 等）。
+
+    Returns:
+        Level 对象（含 level_string），若解析失败则返回 None。
+    """
+    headers = {
+        "User-Agent": ""
+    }
+
+    data = {
+        "levelID": levelID,
+        "secret": "Wmfd2893gb7",
+    }
+    data.update(kwargs)
+
+    url = "http://www.boomlings.com/database/downloadGJLevel22.php"
+
+    logger.info(f"Downloading level {levelID}...")
+    req = requests.post(url=url, data=data, headers=headers, timeout=30)
+    logger.debug(f"Raw response: {req.text}")
+
+    spl = req.text.split("#")
+    if spl.__len__() < 3:
+        return None
+
+    rawLevel = spl[0]
+
+    level_data = parseDict(rawLevel)
+    level = Level().load(level_data)
+    if level.id == -1:
+        return None
+
+    return level
+
 @cached(TTLCache(maxsize=100,ttl=60))
 def getUser(search:int|str):
     headers = {
@@ -590,4 +733,22 @@ if __name__ == "__main__":
     
     print(getSong(803223))
     # print(getSong(10011122))
+    
+    # Test downloadLevel
+    print("\n=== Testing downloadLevel ===")
+    level = downloadLevel(126461421)
+    print(f"Level: {level}")
+    if level:
+        print(f"  description: {level.get_description()}")
+        print(f"  version: {level.version}")
+        print(f"  game_version: {level.game_version}")
+        print(f"  objects: {level.objects}")
+        print(f"  has level_string: {bool(level.level_string)}")
+        print(f"  level_string length: {len(level.level_string) if level.level_string else 0}")
+        print(f"  password: {level.password}")
+        print(f"  upload_date: {level.upload_date}")
+        print(f"  update_date: {level.update_date}")
+        print(f"  song_ids: {level.song_ids}")
+        print(f"  sfx_ids: {level.sfx_ids}")
+        print(f"  verification_time: {level.verification_time}")
     
