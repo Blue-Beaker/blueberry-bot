@@ -15,7 +15,7 @@ class ConfigItem(BaseModel):
     def to_dict(self) -> dict[str, Any]:
         return self.__dict__.copy()
     
-    def load_dict(self, data: dict[str, Any]) -> "ConfigItem":
+    def load_dict(self, data: dict[str, Any]):
         self.__dict__.update(data)
         return self
 
@@ -30,7 +30,7 @@ class GroupConfig(Generic[_C]):
     
     工作方式：
     - global_config: 全局默认配置实例
-    - group_overrides: 每个 group 的覆盖字段 dict（只存有差异的字段）
+    - group_overrides: 每个 group 的覆盖字段 ConfigItem 实例（只存有差异的字段）
     - get(group) 返回合并后的完整配置对象；group="global" 时返回 global 配置
     - set(group, **kwargs) 设置 group 层的覆盖字段
     - set_global(**kwargs) 设置 global 层默认值
@@ -40,7 +40,7 @@ class GroupConfig(Generic[_C]):
     
     config_class: type[_C]
     global_config: _C
-    group_overrides: dict[str, dict[str, Any]]
+    group_overrides: dict[str, _C]
     config_path: str | None = None
     
     def __init__(self, config_class: type[_C], config_path: str | None = None) -> None:
@@ -59,10 +59,10 @@ class GroupConfig(Generic[_C]):
         # 1) 先加载 global 默认值
         config.load_dict(self.global_config.to_dict())
         # 2) 再覆盖 group 层的非 None 字段
-        overrides = self.group_overrides.get(group, {})
-        # 只覆盖值不是 None 的字段
-        merged = {k: v for k, v in overrides.items() if v is not None}
-        config.load_dict(merged)
+        overrides = self.group_overrides.get(group)
+        if overrides is not None:
+            merged = {k: v for k, v in overrides.to_dict().items() if v is not None}
+            config.load_dict(merged)
         return config
     
     def get_global(self) -> _C:
@@ -70,15 +70,36 @@ class GroupConfig(Generic[_C]):
     
     def get_value(self, group: str, key: str) -> Any:
         """获取某个字段的值：group → global → 类默认值。"""
-        overrides = self.group_overrides.get(group, {}) if group != "global" else {}
-        if key in overrides and overrides[key] is not None:
-            return overrides[key]
+        overrides = self.group_overrides.get(group) if group != "global" else None
+        if overrides is not None:
+            val = getattr(overrides, key, _UNSET)
+            if val is not _UNSET and val is not None:
+                return val
         global_val = getattr(self.global_config, key, _UNSET)
         if global_val is not _UNSET:
             return global_val
         return getattr(self.config_class, key, None)
     
     # ── 写入 ─────────────────────────────────────────────
+    
+    def get_for_edit(self, group: str) -> _C:
+        """获取指定 override 层的可变引用，修改直接生效，无需额外保存。
+        
+        与 get() 不同，此方法返回的是 override 层自身的 ConfigItem 引用
+        （不合并 global 层），直接修改字段即同步到配置中。
+        
+        如果 group 没有 override 数据，自动创建一个空实例并注册。
+        group="global" 时返回 global 层的引用。
+        
+        典型用法:
+            cfg = config.get_for_edit("group1")
+            cfg.cooldown = 60  # 直接生效
+        """
+        if group == "global":
+            return self.global_config
+        if group not in self.group_overrides:
+            self.group_overrides[group] = self.config_class()
+        return self.group_overrides[group]
     
     def set(self, group: str, **kwargs: Any) -> None:
         """设置 group 层的覆盖字段。
@@ -91,12 +112,14 @@ class GroupConfig(Generic[_C]):
             self.set_global(**kwargs)
             return
         if group not in self.group_overrides:
-            self.group_overrides[group] = {}
+            self.group_overrides[group] = self.config_class()
         for key, value in kwargs.items():
             if value is None:
-                self.group_overrides[group].pop(key, None)
+                # 设为 None → 从 override 中移除该字段
+                if hasattr(self.group_overrides[group], key):
+                    setattr(self.group_overrides[group], key, None)
             else:
-                self.group_overrides[group][key] = value
+                setattr(self.group_overrides[group], key, value)
     
     def override_with(self, group: str, config: _C) -> None:
         """用 Config 实例设置 group 覆盖字段（有 IDE 自动补全和类型提示）。
@@ -121,10 +144,12 @@ class GroupConfig(Generic[_C]):
         """重置 group 的指定字段（从 overrides 中移除），使其回退到 global。"""
         if group == "global":
             return
-        if group not in self.group_overrides:
+        overrides = self.group_overrides.get(group)
+        if overrides is None:
             return
         for key in keys:
-            self.group_overrides[group].pop(key, None)
+            if hasattr(overrides, key):
+                setattr(overrides, key, None)
     
     def reset_all(self, group: str) -> None:
         """重置 group 的所有覆盖字段。"""
@@ -139,7 +164,10 @@ class GroupConfig(Generic[_C]):
             return
         data = {
             "global_config": self.global_config.to_dict(),
-            "group_overrides": self.group_overrides,
+            "group_overrides": {
+                g: ov.to_dict()
+                for g, ov in self.group_overrides.items()
+            },
         }
         with open(self.config_path, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
@@ -161,7 +189,11 @@ class GroupConfig(Generic[_C]):
         
         overrides = data.get("group_overrides")
         if isinstance(overrides, dict):
-            self.group_overrides.update(overrides)
+            for g, d in overrides.items():
+                if isinstance(d, dict):
+                    obj = self.config_class()
+                    obj.load_dict(d)
+                    self.group_overrides[g] = obj
 
 
 # ── 可复用的配置指令处理函数 ───────────────────────────
@@ -251,11 +283,11 @@ def make_config_handler(
         # ── list ────────────────────────────────────────
         if subcmd == "list":
             cfg = config.get(group)
-            overrides = config.group_overrides.get(group, {}) if group != "global" else {}
+            overrides_obj = config.group_overrides.get(group) if group != "global" else None
             lines = [f"配置项 ({group}):"]
             for field in config_class.model_fields:
                 val = getattr(cfg, field)
-                is_overridden = field in overrides
+                is_overridden = overrides_obj is not None and getattr(overrides_obj, field, None) is not None
                 marker = " *" if is_overridden else ""
                 source = "(group)" if is_overridden else "(global/class)"
                 lines.append(f"  {field}: {val!r}{marker}  {source}")
@@ -269,8 +301,9 @@ def make_config_handler(
             if field not in config_class.model_fields:
                 await matcher.finish(f"无效字段: {field}")
             val = config.get_value(group, field)
-            overrides = config.group_overrides.get(group, {}) if group != "global" else {}
-            source = "group" if field in overrides and overrides[field] is not None else "global/class"
+            overrides_obj = config.group_overrides.get(group) if group != "global" else None
+            ov_val = getattr(overrides_obj, field, None) if overrides_obj is not None else None
+            source = "group" if ov_val is not None else "global/class"
             await matcher.finish(f"{group} 的 {field} = {val!r} ({source})")
 
         # ── set ─────────────────────────────────────────

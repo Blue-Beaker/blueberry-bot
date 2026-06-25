@@ -2,6 +2,7 @@ from enum import Enum
 import math
 import os
 import random
+import shutil
 import time
 from typing import Any, Callable, Optional, Type
 import cv2
@@ -21,10 +22,11 @@ import requests
 
 from .guess_utils import random_crop,isnonsense_cv2
 from .config import Config
-from .guess_session import GuessSession,SessionManager,ConfigManager,ConfigEntry
+from .guess_session import GuessSession,SessionManager,ConfigManager as ConfigManagerLegacy,ConfigEntry
+from .guess_config import ConfigManager,GDGuessConfigItem
 
 require("bbot_api")
-from ..bbot_api import getid,reaction_emoji,loadFile,safeInt,TextImageMessage
+from ..bbot_api import getid,reaction_emoji,loadFile,safeInt,TextImageMessage,group_config
 from ..bbot_api.argparse import ArgParser
 require("gd_api")
 from ..gd_api.pemonlist import getPemonlistLevels
@@ -42,11 +44,23 @@ plugin_config = get_plugin_config(Config)
 
 DATA_PATH=Path()/"gdguess_data"
 SAVE_PATH=DATA_PATH/"sessions.json"
-CONFIG_PATH=DATA_PATH/"config.json"
+CONFIG_PATH=DATA_PATH/"config_v2.json"
 IMAGES_PATH=DATA_PATH/"images"
 
 session_manager:SessionManager=SessionManager(SAVE_PATH.as_posix())
 config_manager:ConfigManager=ConfigManager(CONFIG_PATH.as_posix())
+
+def migrate_config():
+    CONFIG_PATH_LEGACY=DATA_PATH/"config.json"
+    if CONFIG_PATH_LEGACY.exists():
+        logger.info("Migrating gdguess config...")
+        config_manager_legacy:ConfigManagerLegacy=ConfigManagerLegacy(CONFIG_PATH_LEGACY.as_posix())
+        config_manager_legacy.load()
+        config_manager.migrate(config_manager_legacy)
+        config_manager.save()
+        logger.info(f"Migration complete. {config_manager.group_overrides.__len__()} Entries for now.")
+        shutil.move(CONFIG_PATH_LEGACY,CONFIG_PATH_LEGACY.as_posix()+".bak")
+
 next_guess_time:dict[str,int]={}
 last_finish_time:dict[str,int]={}
 
@@ -55,6 +69,7 @@ driver=get_driver()
 @driver.on_startup
 async def load_sessions():
     os.makedirs(DATA_PATH,exist_ok=True)
+    migrate_config()
     session_manager.load()
     config_manager.load()
     logger.info(f"Loaded {len(session_manager.entries)} sessions.")
@@ -572,6 +587,11 @@ async def _(bot:Bot,event:Event,raw_args: Message = CommandArg()):
         await gdguess_config.finish(f"已更新本会话的guess配置:\n{cfg.__str__()}")
     else:
         await gdguess_config.finish(f"本会话的guess配置未改变:\n{cfg.__str__()}")
+ 
+
+gdguess_cfg=on_command("gdguess-cfg",permission=SUPERUSER)
+config_handler=group_config.make_config_handler("gdguess-cfg",GDGuessConfigItem,config_manager,getid)
+gdguess_cfg.handle()(config_handler)
  
 def roll_until_level(levels:list[int]):
     levels2=levels.copy()
