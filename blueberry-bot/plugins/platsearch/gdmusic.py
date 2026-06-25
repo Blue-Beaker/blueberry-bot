@@ -1,4 +1,4 @@
-import subprocess
+import asyncio
 from nonebot import logger, on_command
 from nonebot.adapters import Message
 from nonebot.params import CommandArg
@@ -7,7 +7,7 @@ from nonebot.adapters.discord import Bot as DCBot
 from nonebot.adapters.onebot.v11 import Bot as OBBot, MessageSegment as OBMessageSegment
 from nonebot.internal.adapter import Event,Bot
 from nonebot.exception import FinishedException
-import requests
+import httpx
 
 require("bbot_api")
 from ..bbot_api.argparse import ArgParser
@@ -78,16 +78,15 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
     if music_id<10000000:
         # Newgrounds
         link=song_def.link
-        music_ext = "." + link.split("?")[0].rsplit(".", 1)[-1] if "." in link.split("?")[0] else ""
     else:
         link=f"https://geometrydashfiles.b-cdn.net/music/{music_id}.ogg"
-        music_ext=".ogg"
         
     try:
         logger.info(f"Fetching music {music_id} from: {link}")
-        resp=requests.get(link,headers={},timeout=30)
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp=await client.get(link)
         if resp.status_code!=200:
-            logger.error(f"连接出错: {resp.status_code} {resp.json()}")
+            logger.error(f"连接出错: {resp.status_code}")
             await on_error(f"连接出错: {resp.status_code}")
         if not isinstance(resp.content,bytes):
             logger.error(f"resp.content is not bytes: {type(resp.content)}")
@@ -101,16 +100,23 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
             return
         
         if isinstance(bot,OBBot):
-            music = subprocess.run(
-                ["ffmpeg", "-i", "pipe:0", "-t", "120", "-c:a", "libvorbis", "-f", "ogg", "pipe:1"],
-                input=music,
-                capture_output=True,
-                check=True
-            ).stdout
+            ffmpeg_args=["ffmpeg", "-i", "pipe:0", "-t", "120", "-c:a", "libvorbis", "-f", "ogg", "pipe:1"]
+        else:
+            ffmpeg_args=["ffmpeg", "-i", "pipe:0", "-c:a", "libvorbis", "-f", "ogg", "pipe:1"]
         
+        proc=await asyncio.create_subprocess_exec(
+            *ffmpeg_args,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout,stderr=await proc.communicate(input=music)
+        if proc.returncode!=0:
+            logger.error(f"ffmpeg error: {stderr.decode(errors='ignore')}")
+            await on_error("音频处理失败.")
+        music=stdout
         
-        
-        await gdmusic.finish(message_compat.record(bot,music,f"{music_id}{music_ext}"))
+        await gdmusic.finish(message_compat.record(bot,music,f"{music_id}.ogg"))
         
     except Exception as e:
         if isinstance(e,FinishedException):
