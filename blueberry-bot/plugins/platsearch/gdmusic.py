@@ -11,6 +11,7 @@ import requests
 
 require("bbot_api")
 from ..bbot_api.argparse import ArgParser
+from ..bbot_api import message_compat
 require("gd_api")
 from ..gd_api.gd import getSong
 
@@ -49,7 +50,10 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
     orb_cost=round(song_def.size*5)
     
     if not download_music:
-        msg+=f"\n-d参数播放本音乐 (最多2分钟, 将消耗 {orb_cost} Orbs)"
+        if isinstance(bot,OBBot):
+            msg+=f"\n-d参数播放本音乐 (最多2分钟, 将消耗 {orb_cost} Orbs)"
+        else:
+            msg+=f"\n-d参数播放本音乐 (将消耗 {orb_cost} Orbs)"
         await gdmusic.finish(msg)
         
     orb_id=None
@@ -88,14 +92,15 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
         if not music:
             await on_error()
             return
-        music = subprocess.run(
-            ["ffmpeg", "-i", "pipe:0", "-t", "120", "-c:a", "libvorbis", "-f", "ogg", "pipe:1"],
-            input=music,
-            capture_output=True,
-            check=True
-        ).stdout
+        if isinstance(bot,OBBot):
+            music = subprocess.run(
+                ["ffmpeg", "-i", "pipe:0", "-t", "120", "-c:a", "libvorbis", "-f", "ogg", "pipe:1"],
+                input=music,
+                capture_output=True,
+                check=True
+            ).stdout
             
-        await gdmusic.finish(OBMessageSegment.record(music))
+        await gdmusic.finish(message_compat.record(bot,music))
         
     except Exception as e:
         if isinstance(e,FinishedException):

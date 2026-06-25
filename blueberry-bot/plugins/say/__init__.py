@@ -20,6 +20,7 @@ from .config import Config
 require("bbot_api")
 from ..bbot_api import getid as getid_raw,get_group_id
 from ..bbot_api.group_config import GroupConfig,ConfigItem,make_config_handler
+from ..bbot_api import message_compat
 
 def getid(event:Event):
     id=getid_raw(event)
@@ -194,10 +195,13 @@ async def _(bot:Bot,event: Event, arg: Message = CommandArg()):
         file_name = file_name.strip('\'"')
     else:
         file_name = "say.wav"
-    if isinstance(bot,OBBot):
-        await say.send(OBMessageSegment.record(res.content))
-    elif isinstance(bot,DCBot):
-        await say.send(DCMessageSegment.attachment(file_name,None,res.content))
+        
+    await say.send(message_compat.record(bot,res.content,file_name))
+    
+    # if isinstance(bot,OBBot):
+    #     await say.send(OBMessageSegment.record(res.content))
+    # elif isinstance(bot,DCBot):
+    #     await say.send(DCMessageSegment.attachment(file_name,None,res.content))
         
     await say.finish()
 
