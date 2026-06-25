@@ -78,8 +78,10 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
     if music_id<10000000:
         # Newgrounds
         link=song_def.link
+        music_ext = "." + link.split("?")[0].rsplit(".", 1)[-1] if "." in link.split("?")[0] else ""
     else:
         link=f"https://geometrydashfiles.b-cdn.net/music/{music_id}.ogg"
+        music_ext=".ogg"
         
     try:
         logger.info(f"Fetching music {music_id} from: {link}")
@@ -97,15 +99,17 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
             logger.error(f"music is empty.")
             await on_error()
             return
-        if isinstance(bot,OBBot):
-            music = subprocess.run(
-                ["ffmpeg", "-i", "pipe:0", "-t", "120", "-c:a", "libvorbis", "-f", "ogg", "pipe:1"],
-                input=music,
-                capture_output=True,
-                check=True
-            ).stdout
-            
-        await gdmusic.finish(message_compat.record(bot,music))
+        
+        music = subprocess.run(
+            ["ffmpeg", "-i", "pipe:0", "-t", "120", "-c:a", "libvorbis", "-f", "ogg", "pipe:1"],
+            input=music,
+            capture_output=True,
+            check=True
+        ).stdout
+        
+        
+        
+        await gdmusic.finish(message_compat.record(bot,music,f"{music_id}{music_ext}"))
         
     except Exception as e:
         if isinstance(e,FinishedException):
