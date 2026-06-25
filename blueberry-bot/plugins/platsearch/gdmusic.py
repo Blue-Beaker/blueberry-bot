@@ -100,12 +100,13 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
             await on_error()
             return
         
-        music = subprocess.run(
-            ["ffmpeg", "-i", "pipe:0", "-t", "120", "-c:a", "libvorbis", "-f", "ogg", "pipe:1"],
-            input=music,
-            capture_output=True,
-            check=True
-        ).stdout
+        if isinstance(bot,OBBot):
+            music = subprocess.run(
+                ["ffmpeg", "-i", "pipe:0", "-t", "120", "-c:a", "libvorbis", "-f", "ogg", "pipe:1"],
+                input=music,
+                capture_output=True,
+                check=True
+            ).stdout
         
         
         
