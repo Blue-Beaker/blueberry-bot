@@ -82,14 +82,19 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
         link=f"https://geometrydashfiles.b-cdn.net/music/{music_id}.ogg"
         
     try:
+        logger.info(f"Fetching music {music_id} from: {link}")
         resp=requests.get(link,headers={},timeout=30)
         if resp.status_code!=200:
+            logger.error(f"连接出错: {resp.status_code} {resp.json()}")
             await on_error(f"连接出错: {resp.status_code}")
         if not isinstance(resp.content,bytes):
+            logger.error(f"resp.content is not bytes: {type(resp.content)}")
             await on_error(f"发生错误.")
         music=resp.content
+        logger.info(f"Got music {music_id}")
             
         if not music:
+            logger.error(f"music is empty.")
             await on_error()
             return
         if isinstance(bot,OBBot):
