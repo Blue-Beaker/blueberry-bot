@@ -189,14 +189,14 @@ class Level(BaseLevel):
         self.stars=safeInt(data.get('18'),0)
         self.difficulty=safeInt(data.get('9'),0)//10
         self.length=safeInt(data.get('15'),0)
-        self.demon=bool(data.get('17'))
-        self.auto=bool(data.get('25'))
+        self.demon=safeBool(data.get('17'))
+        self.auto=safeBool(data.get('25'))
         self.creator_id=safeInt(data.get('6'))
         self.downloads=safeInt(data.get('10'),0)
         self.likes=safeInt(data.get('14'),0)
         self.songID=safeInt(data.get('12'),None) or safeInt(data.get('35'),0)
         self.coins=safeInt(data.get('37'),0)
-        self.verifiedCoins=bool(data.get('38'))
+        self.verifiedCoins=safeBool(data.get('38'))
         self.featured=safeInt(data.get('19'),0)
         self.epic=safeInt(data.get('42'),0)
         
@@ -220,17 +220,17 @@ class Level(BaseLevel):
         if raw_update:
             self.update_date = raw_update
         self.copied_id = safeInt(data.get('30'), 0)  # 30 — 原关卡 ID
-        self.two_player = bool(data.get('31'))       # 31 — 双人模式
+        self.two_player = safeBool(data.get('31'))       # 31 — 双人模式
         self.extra_string = data.get('36', '')       # 36 — 额外字符串
         self.stars_requested = safeInt(data.get('39'), 0)          # 39 — 请求星数
         raw_ldm = data.get('40')                     # 40* — 低细节模式
         if raw_ldm is not None:
-            self.low_detail_mode = bool(raw_ldm)
+            self.low_detail_mode = safeBool(raw_ldm)
         raw_daily = data.get('41')                   # 41* — 每日/每周编号
         if raw_daily is not None:
             self.daily_number = safeInt(raw_daily)
         self.demon_difficulty = safeInt(data.get('43'), 0)        # 43 — 恶魔难度细分
-        self.is_gauntlet = bool(data.get('44'))      # 44 — 关卡包标记
+        self.is_gauntlet = safeBool(data.get('44'))      # 44 — 关卡包标记
         self.objects = safeInt(data.get('45'), 0)    # 45 — 物体数量
         self.editor_time = safeInt(data.get('46'), 0)              # 46 — 编辑用时
         self.editor_time_copies = safeInt(data.get('47'), 0)       # 47 — 累计编辑用时
@@ -707,6 +707,10 @@ def safeInt(i:Any,fallback:_A=-1) -> int|_A:
         return int(i)
     except:
         return fallback
+
+def safeBool(v: Any) -> bool:
+    """GD 风格布尔值解析：空或 '0' 为 False，其他为 True。"""
+    return bool(v) and v != "0"
     
 # Test code
 if __name__ == "__main__":

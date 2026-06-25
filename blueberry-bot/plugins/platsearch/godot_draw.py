@@ -149,12 +149,16 @@ class RenderAPI:
             diffchart_tier: str='',
             checkpoints: str='',
             diffchart_tags: str='',
+            description: str='',
+            length2: str='',
             # Coins
-            coins: int=0,scene_type: str="level") -> bytes | dict | None:
+            coins: int=0,scene_type: str="level",**kwargs) -> bytes | dict | None:
         """渲染 level 场景（关卡信息）。
         """
+        
         params = {k: v for k, v in locals().items()
-                  if k not in ("self", "request_id", "scene_type") and v is not None}
+                  if k not in ("self", "request_id", "scene_type", "kwargs") and v is not None}
+        params.update(kwargs)
         
         
         return await self._render(scene_type, request_id, params)

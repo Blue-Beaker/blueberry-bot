@@ -5,6 +5,24 @@ import threading
 import traceback
 import time
 from typing import Any, Generic, Sequence, TypeVar
+
+
+def format_verify_time(frame_count: int | None, fps: int = 240) -> str:
+    """将验证用时（帧）格式化为 1h 1m 1s 形式，低于 1h/1m 时隐藏对应段落。"""
+    if frame_count is None:
+        return ""
+    total_sec = frame_count // fps
+    h = total_sec // 3600
+    m = (total_sec % 3600) // 60
+    s = total_sec % 60
+    parts = []
+    if h:
+        parts.append(f"{h}h")
+    if m:
+        parts.append(f"{m}m")
+    if s or not parts:
+        parts.append(f"{s}s")
+    return " ".join(parts)
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
 from nonebot.rule import is_type
 from nonebot.adapters import Message,Event,Bot
@@ -30,7 +48,7 @@ require('bbot_api')
 from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons
+from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons,downloadLevel2
 from ..gd_api import gd
 from ..gd_api.thumbs import getThumbnail,getThumbnailUrl
 
@@ -64,7 +82,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         classic_only=bool(parsed.classic)
         plat_only=bool(parsed.plat)
         demon=str(parsed.d)
-        show_other=bool(parsed.v)
+        verbose=bool(parsed.v)
         force_text=bool(parsed.t)
         show_thumbnail=bool(parsed.i)
         include_unrated=bool(parsed.a)
@@ -107,6 +125,10 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         return
     
     level=levels[0]
+    
+    level2=None
+    if verbose:
+        level2=downloadLevel2(level.id)
         
     supports_image=(isinstance(bot,OBBot) or isinstance(bot,DCBot))
     enable_image=(not force_text) and supports_image
@@ -135,6 +157,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             for l in lists_entries:
                 if l.checkpoints: extra_render_args["checkpoints"]=l.checkpoints.replace("∞","Infinite")
                 break
+        if level2:
+            extra_render_args.update({
+                "length2":format_verify_time(level2.verification_time),
+                "song_info": f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}"
+            })
         
         song=gd.getSong(level.songID)
         
@@ -154,6 +181,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                         downloads=level.downloads,
                         scene_type="level_large",
                         thumbnail=getThumbnailUrl(level.id),
+                        description=level.get_description(),
                         **extra_render_args
                         )
         if isinstance(img,bytes):
@@ -166,6 +194,12 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     # Basic Info (Text)
     if not info_image:
         lines.addLine(repr_level(level))
+    
+    lines.addLine(f"Version: {level.version} Game ver.: {level.game_version}")
+    lines.addLine(f"2P: {level.two_player}, Objects: {level.objects}")
+    if level2:
+        lines.addLine(f"Upload/update: {level2.upload_date}/{level2.update_date}")
+        lines.addLine(f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}")
     
     if level.is_plat():
         
@@ -197,7 +231,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             lines.addImage(thumb)
             
     # Others (Text)
-    if show_other:
+    if verbose:
         pass
         # lines.append(f"Global Rank {user.global_rank}")
         # lines.append(f"Account ID {user.account_id}")
