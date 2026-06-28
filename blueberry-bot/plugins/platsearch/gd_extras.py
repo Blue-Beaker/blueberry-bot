@@ -18,7 +18,7 @@ require('bbot_api')
 from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons
+from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons,PageInfo
 from ..gd_api import gd
 from ..gd_api.thumbs import getThumbnail
 
@@ -123,7 +123,9 @@ async def _(bot:Bot, args: Message = CommandArg()):
         else:   
             lists,pageinfo=getList2(search,page-1,searchType=searchType)
             
-            if lists.__len__()==0 or not pageinfo:
+            if not pageinfo.success():
+                lines.append("查找出错.")
+            elif lists.__len__()==0:
                 lines.append("没有查找到任何List.")
             elif lists.__len__()>1:
                 lines.append(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
@@ -165,13 +167,13 @@ async def _(bot:OBBot|DCBot,args: Message = CommandArg()):
     
     lines:list[str]=[]
     levels,pageinfo=getLevel2(search,page-1,rated)
-    if not isinstance(levels,list):
-        await gdthumb.finish("查找出错.")
+    if not isinstance(levels,list) or not pageinfo.success():
+        await gdthumb.finish("查找出错."+pageinfo.status.value)
         return
     if levels.__len__()==0:
         await gdthumb.finish("没有查找到任何关卡.")
         return
-    elif levels.__len__()>1 and pageinfo:
+    elif levels.__len__()>1:
         lines.append("找到多个关卡,请用id选择:")
         lines.append(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
         for l in levels:

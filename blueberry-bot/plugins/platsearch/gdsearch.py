@@ -31,7 +31,7 @@ require('bbot_api')
 from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2,getLevelSearch2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons,downloadLevel2,LevelSearchArgs,Difficulty,Length
+from ..gd_api.gd import getLevel2,getLevelSearch2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons,downloadLevel2,LevelSearchArgs,Difficulty,Length,getLevelsFromUser,PageInfo
 from ..gd_api import gd
 from ..gd_api.thumbs import getThumbnail,getThumbnailUrl
 
@@ -71,6 +71,24 @@ def update_diff_aliases():
         for key in keys:
             _DIFFICULTY_MAPPINGS[key]=diff
 
+class SearchTypeArg:
+    search_type:LevelSearchType
+    help_str:str
+    def __init__(self,search_type:LevelSearchType,help_str:str) -> None:
+        self.search_type=search_type
+        self.help_str=help_str
+        
+_SEARCH_TYPES:dict[str,SearchTypeArg]={
+    "-u":SearchTypeArg(LevelSearchType.FROM_USER,"User's Levels"),
+    "--downloads":SearchTypeArg(LevelSearchType.DOWNLOADS,"Most Downloaded"),
+    "--likes":SearchTypeArg(LevelSearchType.LIKES,"Most Liked"),
+    "--trending":SearchTypeArg(LevelSearchType.TRENDING,"Trending"),
+    "--awarded":SearchTypeArg(LevelSearchType.AWARDED,"Awarded"),
+    "--daily":SearchTypeArg(LevelSearchType.DAILY,"Daily Levels"),
+    "--weekly":SearchTypeArg(LevelSearchType.WEEKLY,"Weekly Levels"),
+    "--featured":SearchTypeArg(LevelSearchType.FEATURED,"Featured"),
+}
+
 update_diff_aliases()
 
 gdsearch = on_command("gdsearch")
@@ -82,11 +100,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
         parser=ArgParser("gdsearch")
         
-        _group_length=parser.add_mutually_exclusive_group()
-        _group_length.add_argument('--classic',help='Classic only',action='store_true')
-        _group_length.add_argument('--plat',help='Platformer only',action='store_true')
+        group_length=parser.add_mutually_exclusive_group()
+        group_length.add_argument('--classic',help='Classic only',action='store_true')
+        group_length.add_argument('--plat',help='Platformer only',action='store_true')
         
-        _group_length.add_argument('-l',help='length',type=str,default="")
+        group_length.add_argument('-l',help='length',type=str,default="")
         
         
         parser.add_argument('-d',help='Difficulty',type=str,default="")
@@ -95,6 +113,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         parser.add_argument('-i',help='Show Thumbnail',action='store_true')
         parser.add_argument('-a',help='Include Unrated',action='store_true')
         parser.add_argument('-p',help='Page',type=int,default=0)
+        
+        group_type=parser.add_mutually_exclusive_group()
+        for key,entry in _SEARCH_TYPES.items():
+            group_type.add_argument(key,help=entry.help_str,action='store_true')
+        
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parsed=parser.parse_args(raw_args)
         
@@ -104,6 +127,10 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         classic_only=bool(parsed.classic)
         plat_only=bool(parsed.plat)
         
+        for key,entry in _SEARCH_TYPES.items():
+            name=key.removeprefix("-").removeprefix("-")
+            if getattr(parsed,name):
+                searchArgs.setSearchType(entry.search_type)
         
         lengths:list[Length]=[]
         
@@ -148,16 +175,22 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     lines=bbot_api.TextImageMessage.build(bot)
     
     kwargs={}
-            
-    # print(demon,kwargs)
-    levels,pageinfo=getLevelSearch2(searchArgs)
+    
+    if searchArgs.getSearchType()==LevelSearchType.FROM_USER:
+        levels,pageinfo=getLevelsFromUser(searchArgs)
+    else:
+        levels,pageinfo=getLevelSearch2(searchArgs)
+    
+    if not pageinfo.success():
+        await gdsearch.finish("查找出错."+pageinfo.status.value)
+        
     if not isinstance(levels,list):
         await gdsearch.finish("查找出错.")
         return
     if levels.__len__()==0:
         await gdsearch.finish("没有查找到任何关卡.")
         return
-    elif levels.__len__()>1 and pageinfo:
+    elif levels.__len__()>1:
         lines.addLine("找到多个关卡,请用id选择:")
         lines.addLine(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
         for l in levels:

@@ -80,16 +80,31 @@ class LevelList(BaseLevel):
     def __repr__(self) -> str:
         return f"{self.name} by {self.creator}, id={self.id}, levels={self.levels}"
 
+class SearchStatus(Enum):
+    SUCCESS=""
+    PARSE_FAILED="解析失败"
+    EMPTY_RESULTS="无结果"
+    USER_NOT_FOUND="未找到用户"
+    NO_USER_ARG="未提供用户名/ID"
 
 class PageInfo:
-    total: int
-    offset: int
-    amount: int
+    status: SearchStatus
+    total: int=0
+    offset: int=0
+    amount: int=0
 
     def __init__(self) -> None:
+        self.status=SearchStatus.SUCCESS
         self.total = 0
         self.offset = 0
         self.amount = 10
+        
+    def success(self):
+        return self.status==SearchStatus.SUCCESS
+    
+    def setStatus(self,status:SearchStatus):
+        self.status=status
+        return self
 
     def parse(self, line: str) -> PageInfo:
         spl = line.split(":")

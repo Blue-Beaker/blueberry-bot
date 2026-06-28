@@ -154,8 +154,9 @@ class LevelSearchArgs:
     def setSearch(self, v: str) -> LevelSearchArgs:
         self.str = v
         return self
-
-    # search 没有 getter，直接读 self.str
+    
+    def getSearch(self) -> str|None:
+        return self.str
 
     def setDifficulty(self, v: list[Difficulty]) -> LevelSearchArgs:
         """设置难度过滤。空列表清除过滤。

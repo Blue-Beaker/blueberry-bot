@@ -11,11 +11,11 @@ if __name__ == "__main__" and __package__ is None:
     _root = Path(__file__).resolve().parents[3]  # blueberry-bot/
     if str(_root) not in sys.path:
         sys.path.insert(0, str(_root))
-    from plugins.gd_api.gd.models import BaseLevel, Difficulty, Length, Level, LevelList, PageInfo, PlayerDemonLevels, PlayerIcons, PlayerInfo, PlayerLevels, Song
+    from plugins.gd_api.gd.models import BaseLevel, Difficulty, Length, Level, LevelList, PageInfo, PlayerDemonLevels, PlayerIcons, PlayerInfo, PlayerLevels, Song, SearchStatus
     from plugins.gd_api.gd.search_args import LevelSearchArgs, LevelSearchType, ListSearchType
     from plugins.gd_api.gd.utils import safeBool, safeInt
 else:
-    from .models import BaseLevel, Difficulty, Length, Level, LevelList, PageInfo, PlayerDemonLevels, PlayerIcons, PlayerInfo, PlayerLevels, Song
+    from .models import BaseLevel, Difficulty, Length, Level, LevelList, PageInfo, PlayerDemonLevels, PlayerIcons, PlayerInfo, PlayerLevels, Song, SearchStatus
     from .search_args import LevelSearchArgs, LevelSearchType, ListSearchType
     from .utils import safeBool, safeInt
 
@@ -63,9 +63,14 @@ def getList2(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs)
     logger.debug(f"Raw response: {req.text}")
     
     result:list[LevelList]=[]
+    
+    if req.text=='-1':
+        return result,PageInfo().setStatus(SearchStatus.EMPTY_RESULTS)
+    
     spl=req.text.split("#")
     if spl.__len__()<4:
-        return [],None
+        logger.error(f"Parse Failed: {req.text}")
+        return [],PageInfo().setStatus(SearchStatus.PARSE_FAILED)
     rawLists=spl[0]
     rawCreators=spl[1]
     rawPageInfo=spl[2]
@@ -104,10 +109,16 @@ def getLevel2(search:int|str|None=None,page:int=0,rated:bool=False,searchType:Le
     req = requests.post(url=url, data=data, headers=headers, timeout=30)
     logger.debug(f"Raw response: {req.text}")
     
+    
     result:list[Level]=[]
+    
+    if req.text=='-1':
+        return result,PageInfo().setStatus(SearchStatus.EMPTY_RESULTS)
+        
     spl=req.text.split("#")
     if spl.__len__()<5:
-        return None,None
+        logger.error(f"Parse Failed: {req.text}")
+        return None,PageInfo().setStatus(SearchStatus.PARSE_FAILED)
     
     rawLevels=spl[0]
     rawCreators=spl[1]
@@ -157,6 +168,17 @@ def getLevelSearch2(args: LevelSearchArgs):
 
 def getLevelsFromList(listID: int):
     return getLevel(str(listID), searchType=LevelSearchType.LEVEL_FROM_LIST)
+
+def getLevelsFromUser(args: LevelSearchArgs):
+    args.setSearchType(LevelSearchType.FROM_USER)
+    if not args.getSearch():
+        return None,PageInfo().setStatus(SearchStatus.NO_USER_ARG)
+    user=getUser(args.getSearch() or "")
+    if not user or not user.user_id:
+        return None,PageInfo().setStatus(SearchStatus.USER_NOT_FOUND)
+    args.setSearch(str(user.user_id))
+    
+    return getLevelSearch2(args)
 
 
 def downloadLevel(levelID:int, **kwargs):
