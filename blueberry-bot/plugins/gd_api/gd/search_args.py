@@ -158,11 +158,37 @@ class LevelSearchArgs:
     # search 没有 getter，直接读 self.str
 
     def setDifficulty(self, v: list[Difficulty]) -> LevelSearchArgs:
-        """设置难度过滤。空列表清除过滤。"""
+        """设置难度过滤。空列表清除过滤。
+
+        当传入的难度中包含 Demon 时，自动将 diff 设为 ANY_DEMON(-2)，
+        并从中提取首个恶魔难度设置 demonFilter。
+        """
         if not v:
             self.diff = None
+            self.demonFilter = None
+            return self
+
+        # 分离恶魔和非恶魔难度
+        demons = [d for d in v if d.is_demon()]
+        nondemons = [d for d in v if not d.is_demon()]
+        
+        if demons and nondemons:
+            raise ValueError(f"Cannot mix demon and non-demon difficulties: {v}")
+        
+        if demons.__len__()>1:
+            raise ValueError(f"Cannot select multiple demon difficulties: {v}")
+
+        if demons:
+            # 有具体恶魔难度 → diff 设为 ANY_DEMON，取首个设 demonFilter
+            self.diff = str(_diff_to_raw(Difficulty.ANY_DEMON))
+            
+            selected_demon=demons[0]
+            if selected_demon!=Difficulty.ANY_DEMON:
+                self.demonFilter = _demon_to_raw(selected_demon)
         else:
-            self.diff = ",".join(str(_diff_to_raw(d)) for d in v)
+            # 无恶魔难度 → 按正常逻辑
+            self.diff = ",".join(str(_diff_to_raw(d)) for d in nondemons)
+            self.demonFilter = None
         return self
 
     def getDifficulty(self) -> list[Difficulty]:
@@ -247,10 +273,9 @@ class LevelSearchArgs:
 
 if __name__ == "__main__":
     args = (LevelSearchArgs()
-        .setSearchType(LevelSearchType.SEARCH)
+        .setSearchType(LevelSearchType.RECENT)
         .setSearch("")
-        .setDifficulty([Difficulty.HARD, Difficulty.HARDER, Difficulty.INSANE])
-        .setDemonDifficulty(Difficulty.EXTREME_DEMON)
+        .setDifficulty([Difficulty.ANY_DEMON])
         .setLength([Length.PLAT])
     )
     args.star = True

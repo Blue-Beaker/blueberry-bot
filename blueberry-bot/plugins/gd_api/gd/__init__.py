@@ -273,7 +273,7 @@ if __name__ == "__main__":
     
     # print(getLevel("CATHARSIS",True))
     
-    print(getLevel("",rated=True,diff="-3"))
+    print(getLevel("",rated=True,diff="-2"))
     
     # print(getLevel("645883",rated=True,type=25))
     

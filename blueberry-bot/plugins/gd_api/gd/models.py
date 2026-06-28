@@ -39,6 +39,9 @@ class Difficulty(Enum):
     EXTREME_DEMON = 10
     AUTO = 11
     ANY_DEMON = 12
+    
+    def is_demon(self):
+        return Difficulty.EASY_DEMON.value<=self.value<=Difficulty.EXTREME_DEMON.value or self==Difficulty.ANY_DEMON
 
 
 class BaseLevel:
