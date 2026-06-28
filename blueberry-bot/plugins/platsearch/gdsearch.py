@@ -1,3 +1,4 @@
+from enum import Enum
 import math
 import os
 import random
@@ -62,6 +63,15 @@ PLAT_CHART_BY_ID=ManagedIDMapCache(PLAT_CHART_CACHE)
 PLAT_SHEET_BY_ID=ManagedIDMapCache(PLAT_SHEET_CACHE)
 UNDERRATED_BY_ID=ManagedIDMapCache(UR_CACHE)
 
+class difficultyArg(Enum):
+    NA=-1
+    DEMON=-2
+    EASY=1
+    NORMAL=2
+    HARD=3
+    HARDER=4
+    INSANE=5
+
 gdsearch = on_command("gdsearch")
 @gdsearch.handle()
 async def _(bot:Bot, event:Event, args: Message = CommandArg()):
@@ -70,7 +80,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         parser=ArgParser("gdsearch")
         parser.add_argument('--classic',help='Classic only',action='store_true')
         parser.add_argument('--plat',help='Classic only',action='store_true')
-        parser.add_argument('-d',help='Demon Difficulty',type=str,default="")
+        parser.add_argument('-d',help='Difficulty',type=str,default="")
         parser.add_argument('-v',help='Show Other Info',action='store_true')
         parser.add_argument('-t',help='Plain Text',action='store_true')
         parser.add_argument('-i',help='Show Thumbnail',action='store_true')
