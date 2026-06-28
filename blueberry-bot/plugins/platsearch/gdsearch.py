@@ -239,8 +239,16 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     if not info_image:
         lines.addLine(repr_level(level))
     
+    if not verbose:
+        lines.addLine(f"-v 参数查询具体时长, 上传/更新日期, 及额外曲目.")
+        
+        
     lines.addLine(f"Version: {level.version} Game ver.: {level.game_version}")
     lines.addLine(f"2P: {level.two_player}, Objects: {level.objects}")
+    
+    if song:
+        lines.addLine(f"Song: {song.name} by {song.artistName} ({song.id})")
+        
     if level2:
         lines.addLine(f"Upload/update: {level2.upload_date}/{level2.update_date}")
         lines.addLine(f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}")

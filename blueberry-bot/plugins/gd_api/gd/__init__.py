@@ -166,7 +166,7 @@ def downloadLevel(levelID:int, **kwargs):
     """
     return downloadLevel2(levelID, **kwargs)
 
-@cached(TTLCache(maxsize=100, ttl=60))
+@cached(TTLCache(maxsize=100, ttl=180))
 def downloadLevel2(levelID:int, **kwargs):
     """下载关卡完整数据（含关卡字符串）。
 
