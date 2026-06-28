@@ -1,6 +1,7 @@
 from pathlib import Path
 import time
 from typing import Any, TypeVar
+import uuid
 from nonebot.adapters import Event,Bot,Message
 from nonebot.adapters.discord import GuildMessageCreateEvent,MessageEvent as DCMessageEvent,Message as DCMessage,MessageSegment as DCMessageSegment,Bot as DCBot
 from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent,Bot as OBBot,Message as OBMessage,MessageSegment as OBMessageSegment,MessageEvent as OBMessageEvent
@@ -60,8 +61,10 @@ class TextImageMessage:
             self.addText("\n")
         self.addText(text)
         return self
-    def addImage(self,image:bytes,image_name:str="image.png",small:bool=False):
+    def addImage(self,image:bytes,image_name:str="",small:bool=False):
         if isinstance(self.msg,DCMessage):
+            if not image_name:
+                image_name=uuid.uuid4().hex+".png"
             self.msg.append(DCMessageSegment.attachment(image_name,content=image))
         elif isinstance(self.msg,OBMessage):
             if small:

@@ -11,7 +11,6 @@ from nonebot import get_driver,require
 from nonebot.adapters.discord import Message as DCMessage,Bot as DCBot,MessageSegment as DCMessageSegment,GuildMessageCreateEvent
 from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGroupMessageEvent,MessageSegment as OBMessageSegment
 
-from . import godot_draw
 from .config import Config
 
 require('bbot_api')
@@ -25,7 +24,9 @@ from ..gd_api.thumbs import getThumbnail
 driver=get_driver()
 plugin_cfg=get_plugin_config(Config)
 
-render_api=godot_draw.RenderAPI()
+require('bbot_render')
+from ..bbot_render import RenderAPI
+render_api=RenderAPI()
 render_api.uri=plugin_cfg.render_server_uri
 
 gdlist = on_command("gdlist")

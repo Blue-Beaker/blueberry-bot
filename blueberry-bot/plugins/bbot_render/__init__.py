@@ -7,8 +7,6 @@ Connects to the Godot WebSocket server, sends a render request, and receives raw
 import json
 import asyncio
 
-from nonebot import logger
-
 try:
     import websockets
 except ImportError:
@@ -17,7 +15,6 @@ except ImportError:
 
 _DEFAULT_URI = "ws://localhost:9080"
 _DEFAULT_TIMEOUT = 30.0
-
 
 class RenderAPI:
     """BlueberryBot-Render WebSocket 客户端。
@@ -214,6 +211,12 @@ async def _test_main():
         daily=1,
     )
     _save_result(result, "render_nondemons.png")
+    
+    print("\n=== Testing text ===")
+    result = await api.render_text(
+        "test-004","a98u8912u38uj0c vnduiy39ru2043jr"
+    )
+    _save_result(result, "render_text.png")
 
 
 def _save_result(result: bytes | dict | None, filename: str):
