@@ -100,7 +100,7 @@ class PageInfo:
         self.amount = 10
         
     def success(self):
-        return self.status==SearchStatus.SUCCESS
+        return self.status==SearchStatus.SUCCESS or self.status==SearchStatus.EMPTY_RESULTS
     
     def setStatus(self,status:SearchStatus):
         self.status=status

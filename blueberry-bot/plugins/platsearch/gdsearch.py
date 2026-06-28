@@ -180,15 +180,17 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         levels,pageinfo=getLevelsFromUser(searchArgs)
     else:
         levels,pageinfo=getLevelSearch2(searchArgs)
-    
-    if not pageinfo.success():
-        await gdsearch.finish("查找出错."+pageinfo.status.value)
         
-    if not isinstance(levels,list):
-        await gdsearch.finish("查找出错.")
+    if not include_unrated:
+        lines.addLine("默认只搜索 Rated 关卡. -a 以搜索全部关卡.")
+    
+    if not isinstance(levels,list) or not pageinfo.success():
+        lines.addLine("查找出错."+pageinfo.status.value)
+        await gdsearch.finish(lines.msg)
         return
     if levels.__len__()==0:
-        await gdsearch.finish("没有查找到任何关卡.")
+        lines.addLine("没有查找到任何关卡.")
+        await gdsearch.finish(lines.msg)
         return
     elif levels.__len__()>1:
         lines.addLine("找到多个关卡,请用id选择:")
