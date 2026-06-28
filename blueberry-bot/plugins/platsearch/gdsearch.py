@@ -221,6 +221,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
     lists_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
     
+    song=gd.getSong(level.songID)
+    
     # Image Sections
     if enable_image:
         req_id_base=bbot_api.getid(event)
@@ -241,8 +243,6 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 "length2":format_verify_time(level2.verification_time),
                 "song_info": f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}"
             })
-        
-        song=gd.getSong(level.songID)
         
         img=await render_api.render_level(req_id_base+"_base",
                         level_id=level.id,

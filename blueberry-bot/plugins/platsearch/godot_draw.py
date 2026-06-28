@@ -165,6 +165,17 @@ class RenderAPI:
         
         return await self._render(scene_type, request_id, params)
 
+
+    async def render_text(self, request_id: str,
+                               description:str) -> bytes | dict | None:
+        """渲染 text 场景。
+        """
+        params = {k: v for k, v in locals().items()
+                  if k not in ("self", "request_id") and v is not None}
+        return await self._render("text_scene", request_id, params)
+
+
+
 async def _test_main():
     """测试功能：发送示例请求并保存结果"""
     api = RenderAPI()
