@@ -67,7 +67,7 @@ gdsearch = on_command("gdsearch")
 async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     try:
-        parser=ArgParser()
+        parser=ArgParser("gdsearch")
         parser.add_argument('--classic',help='Classic only',action='store_true')
         parser.add_argument('--plat',help='Classic only',action='store_true')
         parser.add_argument('-d',help='Demon Difficulty',type=str,default="")

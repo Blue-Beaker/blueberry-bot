@@ -140,7 +140,7 @@ async def _(args: Message = CommandArg()):
                 "加入 -l<列表1,列表2...> 加入已完成关卡列表, 自动计算top10权重",
                 ]))
     try:
-        parser=ArgParser()
+        parser=ArgParser("platweight")
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parser.add_argument('-l',help="List containing completed levels",type=str,default="")
         parsed=parser.parse_args(raw_args)
@@ -238,7 +238,7 @@ async def _(bot:Bot, args: Message = CommandArg()):
                 "加入 -l<列表1,列表2...> 加入已完成关卡列表",
                 ]))
     try:
-        parser=ArgParser()
+        parser=ArgParser("platskill")
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parser.add_argument('-l',help="List containing completed levels",type=str,default="")
         parser.add_argument('-a',help="Show all skills",action="store_true")
@@ -485,7 +485,7 @@ platrandom = on_command("platrandom")
 async def _(bot:Bot, search_args: Message = CommandArg()):
     text0=search_args.extract_plain_text()
     try:
-        parser=ArgParser()
+        parser=ArgParser("platrandom")
         parser.add_argument('-t',help="Tier",type=int,default=-1)
         parser.add_argument('-s',help="Skills",type=str,default=None)
         parser.add_argument('-h',help="help",action='store_true',default=None)

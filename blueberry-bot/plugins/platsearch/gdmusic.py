@@ -26,7 +26,7 @@ gdmusic = on_command("gdmusic")
 async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
     text_args=args.extract_plain_text().split()
     try:
-        parser=ArgParser()
+        parser=ArgParser("gdmusic")
         parser.add_argument("-d",action="store_true",help="Download music")
         parser.add_argument("music_id",type=int)
         

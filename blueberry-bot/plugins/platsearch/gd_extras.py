@@ -33,7 +33,7 @@ gdlist = on_command("gdlist")
 async def _(bot:Bot, args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     try:
-        parser=ArgParser()
+        parser=ArgParser("gdlist")
         parser.add_argument('-p',help='Page',type=int)
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parser.add_argument('-u',help="Search User's Lists",action='store_true')
@@ -149,7 +149,7 @@ gdthumb = on_command("gdthumb")
 async def _(bot:OBBot|DCBot,args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     try:
-        parser=ArgParser()
+        parser=ArgParser("gdthumb")
         parser.add_argument('-a',help='Include Unrated',action='store_true')
         parser.add_argument('-p',help='Page',type=int)
         parser.add_argument('search', nargs='*', type=str, help='search string')

@@ -39,7 +39,7 @@ gduser = on_command("gduser")
 async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     try:
-        parser=ArgParser()
+        parser=ArgParser("gduser")
         parser.add_argument('-c',help='Show Classic breakdown',action='store_true')
         parser.add_argument('-p',help='Show Platformer breakdown',action='store_true')
         parser.add_argument('-d',help='Show Demons breakdown',action='store_true')

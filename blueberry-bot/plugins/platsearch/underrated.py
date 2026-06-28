@@ -104,7 +104,7 @@ async def _(args: Message = CommandArg()):
     
     raw_args=args.extract_plain_text().split()
     try:
-        parser=ArgParser()
+        parser=ArgParser("gdur")
         parser.add_argument('-p',help='Page',type=int)
         parser.add_argument('-s',help='Section',type=str,choices=["","auto","easy","normal","hard","harder","insane"],default="")
         parser.add_argument('-t',help='Tier',type=int)
