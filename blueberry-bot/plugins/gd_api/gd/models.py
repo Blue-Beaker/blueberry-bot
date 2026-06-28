@@ -23,7 +23,9 @@ class Length(Enum):
     LONG = 3
     XL = 4
     PLAT = 5
-
+    
+    def is_plat(self):
+        return self==Length.PLAT
 
 class Difficulty(Enum):
     NA = 0

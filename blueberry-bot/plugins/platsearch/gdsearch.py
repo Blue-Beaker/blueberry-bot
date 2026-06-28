@@ -6,24 +6,6 @@ import threading
 import traceback
 import time
 from typing import Any, Generic, Sequence, TypeVar
-
-
-def format_verify_time(frame_count: int | None, fps: int = 240) -> str:
-    """将验证用时（帧）格式化为 1h 1m 1s 形式，低于 1h/1m 时隐藏对应段落。"""
-    if frame_count is None:
-        return ""
-    total_sec = frame_count // fps
-    h = total_sec // 3600
-    m = (total_sec % 3600) // 60
-    s = total_sec % 60
-    parts = []
-    if h:
-        parts.append(f"{h}h")
-    if m:
-        parts.append(f"{m}m")
-    if s or not parts:
-        parts.append(f"{s}s")
-    return " ".join(parts)
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
 from nonebot.rule import is_type
 from nonebot.adapters import Message,Event,Bot
@@ -49,7 +31,7 @@ require('bbot_api')
 from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons,downloadLevel2
+from ..gd_api.gd import getLevel2,getLevelSearch2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons,downloadLevel2,LevelSearchArgs,Difficulty,Length
 from ..gd_api import gd
 from ..gd_api.thumbs import getThumbnail,getThumbnailUrl
 
@@ -63,23 +45,50 @@ PLAT_CHART_BY_ID=ManagedIDMapCache(PLAT_CHART_CACHE)
 PLAT_SHEET_BY_ID=ManagedIDMapCache(PLAT_SHEET_CACHE)
 UNDERRATED_BY_ID=ManagedIDMapCache(UR_CACHE)
 
-class difficultyArg(Enum):
-    NA=-1
-    DEMON=-2
-    EASY=1
-    NORMAL=2
-    HARD=3
-    HARDER=4
-    INSANE=5
+
+_DIFFICULTY_MAPPINGS:dict[str,Difficulty]={
+}
+_LENGTH_MAPPINGS:dict[str,Length]={l.name.lower():l for l in Length}
+
+def update_diff_aliases():
+    _DIFFICULTY_MAPPINGS.update({k.name.lower():k for k in Difficulty})
+    
+    ALIASES={
+        Difficulty.EASY_DEMON:["ezd","ezp"],
+        Difficulty.MEDIUM_DEMON:["med","mep"],
+        Difficulty.HARD_DEMON:["hdd","hdp"],
+        Difficulty.INSANE_DEMON:["insd","insp"],
+        Difficulty.EXTREME_DEMON:["exd","exp"],
+        Difficulty.ANY_DEMON:["demon","pemon","d"],
+        Difficulty.AUTO:["at"],
+        Difficulty.EASY:["ez"],
+        Difficulty.NORMAL:["nm"],
+        Difficulty.HARD:["hd"],
+        Difficulty.HARDER:["hr"],
+        Difficulty.INSANE:["in"]
+    }
+    for diff,keys in ALIASES.items():
+        for key in keys:
+            _DIFFICULTY_MAPPINGS[key]=diff
+
+update_diff_aliases()
 
 gdsearch = on_command("gdsearch")
 @gdsearch.handle()
 async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     try:
+        searchArgs=LevelSearchArgs()
+        
         parser=ArgParser("gdsearch")
-        parser.add_argument('--classic',help='Classic only',action='store_true')
-        parser.add_argument('--plat',help='Classic only',action='store_true')
+        
+        _group_length=parser.add_mutually_exclusive_group()
+        _group_length.add_argument('--classic',help='Classic only',action='store_true')
+        _group_length.add_argument('--plat',help='Platformer only',action='store_true')
+        
+        _group_length.add_argument('-l',help='length',type=str,default="")
+        
+        
         parser.add_argument('-d',help='Difficulty',type=str,default="")
         parser.add_argument('-v',help='Show Other Info',action='store_true')
         parser.add_argument('-t',help='Plain Text',action='store_true')
@@ -88,15 +97,49 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         parser.add_argument('-p',help='Page',type=int,default=0)
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parsed=parser.parse_args(raw_args)
+        
         search=" ".join(parsed.search)
+        searchArgs.setSearch(search)
+        
         classic_only=bool(parsed.classic)
         plat_only=bool(parsed.plat)
-        demon=str(parsed.d)
+        
+        
+        lengths:list[Length]=[]
+        
+        for l in str(parsed.l).lower().split(","):
+            if l in _LENGTH_MAPPINGS:
+                lengths.append(_LENGTH_MAPPINGS[l])
+        
+        difficulty:list[Difficulty]=[]
+        
+        for diff in str(parsed.d).lower().split(","):
+            if diff in _DIFFICULTY_MAPPINGS:
+                difficulty.append(_DIFFICULTY_MAPPINGS[diff])
+                if diff.endswith("p") or diff=="pemon":
+                    plat_only=True
+        
+        logger.info(locals())
+        
+        include_unrated=bool(parsed.a)
+        page=int(parsed.p)
+        
+        if classic_only:
+            searchArgs.setLength([Length.TINY,Length.SHORT,Length.MEDIUM,Length.LONG,Length.XL])
+        elif plat_only:
+            searchArgs.setLength([Length.PLAT])
+        else:
+            searchArgs.setLength(lengths)
+            
+        searchArgs.setDifficulty(difficulty)
+        searchArgs.setStar(not include_unrated)
+        searchArgs.setPage(page)
+        
         verbose=bool(parsed.v)
         force_text=bool(parsed.t)
         show_thumbnail=bool(parsed.i)
-        include_unrated=bool(parsed.a)
-        page=int(parsed.p)
+        
+        logger.info(searchArgs.getData())
         
     except Exception as e:
         await gdsearch.finish(str(e))
@@ -105,18 +148,9 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     lines=bbot_api.TextImageMessage.build(bot)
     
     kwargs={}
-    if classic_only:
-        kwargs["len"]="0,1,2,3,4"
-    if plat_only:
-        kwargs["len"]="5"
-    if demon:
-        kwargs["diff"]=-2
-        if demon.lower()!='all':
-            kwargs["demonFilter"]=demon
             
-    print(demon,kwargs)
-    
-    levels,pageinfo=getLevel2(search,page=page,rated=not include_unrated,**kwargs)
+    # print(demon,kwargs)
+    levels,pageinfo=getLevelSearch2(searchArgs)
     if not isinstance(levels,list):
         await gdsearch.finish("查找出错.")
         return
@@ -263,3 +297,21 @@ async def render_demons(req_id:str,classic:gd.PlayerDemonLevels,plat:gd.PlayerDe
 
 def get_help(bot:Bot,event:Event):
     return ["gdsearch [参数] [关名/ID] 搜索关卡"]
+
+
+def format_verify_time(frame_count: int | None, fps: int = 240) -> str:
+    """将验证用时（帧）格式化为 1h 1m 1s 形式，低于 1h/1m 时隐藏对应段落。"""
+    if frame_count is None:
+        return ""
+    total_sec = frame_count // fps
+    h = total_sec // 3600
+    m = (total_sec % 3600) // 60
+    s = total_sec % 60
+    parts = []
+    if h:
+        parts.append(f"{h}h")
+    if m:
+        parts.append(f"{m}m")
+    if s or not parts:
+        parts.append(f"{s}s")
+    return " ".join(parts)

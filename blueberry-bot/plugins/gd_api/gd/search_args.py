@@ -233,6 +233,111 @@ class LevelSearchArgs:
             return []
         return [int(x) for x in self._completedLevels.strip("()").split(",") if x]
 
+    def setPage(self, v: int) -> LevelSearchArgs:
+        self.page = v
+        return self
+
+    def getPage(self) -> int:
+        return self.page
+
+    def setGauntlet(self, v: int) -> LevelSearchArgs:
+        self.gauntlet = v
+        return self
+
+    def getGauntlet(self) -> int | None:
+        return self.gauntlet
+
+    def setSong(self, v: int, custom: bool = False) -> LevelSearchArgs:
+        """设置歌曲。custom=True 时同时启用 customSong。"""
+        self.song = v
+        self.customSong = custom
+        return self
+
+    def getSong(self) -> int | None:
+        return self.song
+
+    def isCustomSong(self) -> bool:
+        return self.customSong
+
+    # --- 布尔开关 setter（全部返回 self 支持链式调用） ---
+
+    def setFeatured(self, v: bool = True) -> LevelSearchArgs:
+        self.featured = v
+        return self
+
+    def isFeatured(self) -> bool:
+        return self.featured
+
+    def setOriginal(self, v: bool = True) -> LevelSearchArgs:
+        self.original = v
+        return self
+
+    def isOriginal(self) -> bool:
+        return self.original
+
+    def setTwoPlayer(self, v: bool = True) -> LevelSearchArgs:
+        self.twoPlayer = v
+        return self
+
+    def isTwoPlayer(self) -> bool:
+        return self.twoPlayer
+
+    def setCoins(self, v: bool = True) -> LevelSearchArgs:
+        self.coins = v
+        return self
+
+    def hasCoins(self) -> bool:
+        return self.coins
+
+    def setEpic(self, v: bool = True) -> LevelSearchArgs:
+        self.epic = v
+        return self
+
+    def isEpic(self) -> bool:
+        return self.epic
+
+    def setLegendary(self, v: bool = True) -> LevelSearchArgs:
+        self.legendary = v
+        return self
+
+    def isLegendary(self) -> bool:
+        return self.legendary
+
+    def setMythic(self, v: bool = True) -> LevelSearchArgs:
+        self.mythic = v
+        return self
+
+    def isMythic(self) -> bool:
+        return self.mythic
+
+    def setNoStar(self, v: bool = True) -> LevelSearchArgs:
+        self.noStar = v
+        return self
+
+    def isNoStar(self) -> bool:
+        return self.noStar
+
+    def setStar(self, v: bool = True) -> LevelSearchArgs:
+        self.star = v
+        return self
+
+    def isStar(self) -> bool:
+        return self.star
+
+    def setUncompleted(self, v: bool = True) -> LevelSearchArgs:
+        self.uncompleted = v
+        return self
+
+    def isUncompleted(self) -> bool:
+        return self.uncompleted
+
+    def setOnlyCompleted(self, v: bool = True) -> LevelSearchArgs:
+        self.onlyCompleted = v
+        return self
+
+    def isOnlyCompleted(self) -> bool:
+        return self.onlyCompleted
+
     # --- 构建请求数据 ---
 
     def getData(self) -> dict[str, str]:
