@@ -151,6 +151,8 @@ class RenderAPI:
             diffchart_tags: str='',
             description: str='',
             length2: str='',
+            bronze_coins: bool=False,
+            likes: int=0,
             # Coins
             coins: int=0,scene_type: str="level",**kwargs) -> bytes | dict | None:
         """渲染 level 场景（关卡信息）。
