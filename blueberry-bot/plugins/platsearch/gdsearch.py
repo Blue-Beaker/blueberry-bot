@@ -283,12 +283,22 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     lines.addLine(f"Version: {level.version} Game ver.: {level.game_version}")
     lines.addLine(f"2P: {level.two_player}, Objects: {level.objects}")
     
-    if song:
-        lines.addLine(f"Song: {song.name} by {song.artistName} ({song.id})")
+    if not info_image:
+        lines.addLine(f"Length: {gd.Length(level.length).name}")
+        if level2:
+            lines.addText(f" ({format_verify_time(level2.verification_time)})")
+            
+        lines.addLine(f"Coins: {level.coins}")
+        if not level.verifiedCoins:
+            lines.addText(" (Bronze)")
+        if song:
+            lines.addLine(f"Song: {song.name} by {song.artistName} ({song.id})")
+            
+        if level2:
+            lines.addLine(f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}")
         
     if level2:
         lines.addLine(f"Upload/update: {level2.upload_date}/{level2.update_date}")
-        lines.addLine(f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}")
     
     if level.is_plat():
         
