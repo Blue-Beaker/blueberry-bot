@@ -3,7 +3,8 @@ import time
 from nonebot import get_plugin_config,get_driver, logger
 from nonebot.plugin import PluginMetadata
 from nonebot.adapters.discord import Message as DCMessage,Bot as DCBot,MessageSegment as DCMessageSegment,GuildMessageCreateEvent
-from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGroupMessageEvent,MessageSegment as OBMessageSegment
+from nonebot.adapters.discord.api.model import Attachment
+from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGroupMessageEvent,MessageSegment as OBMessageSegment,Message as OBMessage
 
 from nonebot.internal.adapter import Bot,Event,Message
 from nonebot.internal.matcher import Matcher
@@ -177,39 +178,53 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
             await gus_add.finish(f"已更新 '{key}': {existing_entry.name}.")
     elif update:
         await gus_add.finish(f"未找到 ID '{key}'.")
-    
-    imgs=msg.get("image",1)
+        
+    imgs=None
+    if isinstance(msg,OBMessage):
+        imgs=msg.get("image",1)
+    elif isinstance(event,GuildMessageCreateEvent):
+        imgs=[atta for atta in event.attachments if atta.content_type.startswith('image')]
     if not imgs:
         await gus_add.finish("请包含一张图片用于添加.")
     
     img=imgs[0]
     
+    filename=None
+    imageFile=None
+    
     if isinstance(img,OBMessageSegment) and isinstance(bot,OBBot):
-        file=img.data.get("file")
-        if file:
-            imgdata = await bot.get_image(file=file)
+        filename=img.data.get("file")
+        if filename:
+            imgdata = await bot.get_image(file=filename)
             url=imgdata.get('url')
             if not url:
                 await gus_add.finish("内部错误: 找不到URL.")
                 
             resp=requests.get(url)
-            img=resp.content
+            imageFile=resp.content
+            entry.file=filename
+            
+    elif isinstance(img,Attachment) and isinstance(bot,DCBot):
+        resp=requests.get(img.url)
+        
+        filename=img.filename
+        imageFile=resp.content
+        entry.file=img.filename
             
             # logger.info(repr(type(img))+repr(img))
-            entry.file=file
-            if isinstance(img,bytes):
-                gus__data.add_entry(key,entry,img)
-                logger.info(f"Adding gus entry: {entry}")
-                gus__data.save()
-                
-                reply=TextImageMessage.build(bot)
-                reply.addLine("添加成功!")
-                reply.addLine(entry.name)
-                reply.addLine(entry.desc)
-                reply.addLine(entry.file)
-                reply.addImage(img,file,small=True)
-                
-                await gus_add.finish(reply.getMessage())
+    if filename and isinstance(imageFile,bytes):
+        gus__data.add_entry(key,entry,imageFile)
+        logger.info(f"Adding gus entry: {entry}")
+        gus__data.save()
+        
+        reply=TextImageMessage.build(bot)
+        reply.addLine("添加成功!")
+        reply.addLine(entry.name)
+        reply.addLine(entry.desc)
+        reply.addLine(entry.file)
+        reply.addImage(imageFile,filename,small=True)
+        
+        await gus_add.finish(reply.getMessage())
     
     if not imgs:
         await gus_add.finish("添加失败.")
