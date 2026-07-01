@@ -221,9 +221,9 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         dc_entry=dc_entries[0]
     
     nlwlike_entry=None
-    lists_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
-    if lists_entries:
-        lists_entries2=[e for e in lists_entries if e.is_main()]
+    nlwlike_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
+    if nlwlike_entries:
+        lists_entries2=[e for e in nlwlike_entries if e.is_main()]
         if lists_entries2:
             nlwlike_entry=lists_entries2[0]
     
@@ -259,10 +259,13 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 "nlw_tags": ", ".join(nlwlike_entry.skillsets)
             })
             
-        if lists_entries:
-            for l in lists_entries:
+        if nlwlike_entry and nlwlike_entry.checkpoints:
+            extra_render_args["checkpoints"]=nlwlike_entry.checkpoints.replace("∞","Infinite")
+        elif nlwlike_entries:
+            for l in nlwlike_entries:
                 if l.checkpoints: extra_render_args["checkpoints"]=l.checkpoints.replace("∞","Infinite")
                 break
+            
         if level2:
             extra_render_args.update({
                 "length2":format_verify_time(level2.verification_time),
@@ -337,9 +340,9 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         for e in dc_entries:
             lines.addLine(formatters.formatDiffChart(e,False,True))
         
-        if lists_entries:
+        if nlwlike_entries:
             lines.addLine("--NLW/IDS/HDS--")
-        for e in lists_entries:
+        for e in nlwlike_entries:
             lines.addLine(formatters.formatListsLevel(e,False,True))
             
             
