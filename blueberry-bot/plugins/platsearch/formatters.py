@@ -1,17 +1,23 @@
 from .plat_sheets import PlatChartEntry,TheListsEntry,LevelEntry
 
 def formatDiffChart(l:PlatChartEntry,compact:bool=False,exclude_base_info:bool=False):
-    line:list[str]=[]
+    lines:list[str]=[]
+    l1=""
     if not exclude_base_info:
-        line.append(l.name)
+        l1+=l.name
         if l.id>=0:
-            line.append(f" ({l.id})")
-        if l.tier:
-            line.append(f"(T{l.tier})")
+            l1+=(f" ({l.id})")
+    if l.tier:
+        if exclude_base_info:
+            l1+=f"Tier {l.tier}"
+        else:
+            l1+=(f"(T{l.tier})")
+    
+    lines.append(l1)
     if not compact:
         if l.tags:
-            if line: line.append("\n")
-            line.append(f"Tags: {','.join(l.tags)}")
+            lines.append(f"Tags: {','.join(l.tags)}")
+            
         rankline=[]
         if l.enj and l.enj!="/":
             rankline.append(f"Enj: {l.enj}")
@@ -26,15 +32,16 @@ def formatDiffChart(l:PlatChartEntry,compact:bool=False,exclude_base_info:bool=F
             rankline.append(f"Pemonlist: {l.pemon}")
             
         if rankline:
-            line.append("\n"+",".join(rankline))
+            lines.append(",".join(rankline))
     else:
         tagstr=','.join(l.tags) if l.tags else ""
         if tagstr.__len__()>15:
             tagstr=tagstr[0:13]+"..."
-        line.append(f"\nE{l.enj or '-'},W{l.weight or l.tpl or '-'},P{l.pemon or '-'}")
-        line.append(f" {tagstr}")
+        lines.append(f"E{l.enj or '-'},W{l.weight or l.tpl or '-'},P{l.pemon or '-'}")
+        lines.append(f" {tagstr}")
+        return "".join(lines)
     
-    return "".join(line)
+    return "\n".join(lines)
 
 def formatListsLevel(l:TheListsEntry,compact:bool=False,exclude_base_info:bool=False):
     lines:list[str]=[]
