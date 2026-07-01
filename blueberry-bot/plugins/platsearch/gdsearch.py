@@ -219,10 +219,18 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     dc_entries=PLAT_CHART_BY_ID.get_for_id(level.id)
     if dc_entries:
         dc_entry=dc_entries[0]
-        
-    lists_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
     
+    nlwlike_entry=None
+    lists_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
+    if lists_entries:
+        lists_entries2=[e for e in lists_entries if e.is_main()]
+        if lists_entries2:
+            nlwlike_entry=lists_entries2[0]
+    
+    underrated_entry=None
     underrated_entries=UNDERRATED_BY_ID.get_for_id(level.id)
+    if underrated_entries:
+        underrated_entry=underrated_entries[0]
     
     song=gd.getSong(level.songID)
     
@@ -237,6 +245,17 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 "diffchart_tier":dc_entry.tier or '',
                 "diffchart_tags":','.join(dc_entry.tags)
             })
+        if underrated_entry:
+            extra_render_args.update({
+                "underrated_tier":f"{underrated_entry.tier} ({underrated_entry.get_tier_reference()})"
+            })
+            
+        if nlwlike_entry:
+            extra_render_args.update({
+                "nlw_type": nlwlike_entry.sheet,
+                "nlw_tier": nlwlike_entry.section
+            })
+            
         if lists_entries:
             for l in lists_entries:
                 if l.checkpoints: extra_render_args["checkpoints"]=l.checkpoints.replace("∞","Infinite")

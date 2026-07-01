@@ -98,6 +98,14 @@ class TheListsEntry(LevelEntry):
         return "Level:"+", ".join([f"{k}:{v}"for k,v in self.__dict__.items()])
     def __str__(self):
         return f"{self.name} by {self.creator} in {self.section}"
+    def is_legacy(self):
+        sect=self.section.lower()
+        return ("rerates" in sect) or ("legacy" in sect)
+    def is_pending(self):
+        sect=self.section.lower()
+        return sect in ["plending","pending"]
+    def is_main(self):
+        return not (self.is_legacy() or self.is_pending())
         
 @cached(cache=TTLCache(maxsize=20,ttl=30))
 def get_hds():
@@ -150,7 +158,7 @@ def get_nlw():
                 line.append("")
             level=line[0]
             if level.startswith("|"):
-                current_section=level.removeprefix("|").strip()
+                current_section=level.removeprefix("|").strip().removesuffix(" Tier")
                 continue
             creator=line[1]
             if not level and not creator:
