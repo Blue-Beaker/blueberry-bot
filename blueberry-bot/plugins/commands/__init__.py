@@ -18,7 +18,7 @@ def get_system_info()->str:
     
     sysinfo.append(f"CPU: {psutil.cpu_count(False)}c{psutil.cpu_count()}t {psutil.cpu_freq().current:.0f}Mhz {psutil.cpu_percent():.1f}%, RAM: {(memory.total-memory.available)/(2<<29):.1f}/{memory.total/(2<<29):.1f}GiB")
     
-    print(platform)
+    # print(platform)
     return "\n".join(sysinfo)
 
 def get_all_help(bot:Bot,event:Event)->str:

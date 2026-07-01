@@ -71,7 +71,7 @@ async def convertMessageSegment(seg:MessageSegment|str):
         
     imgid=uuid.uuid4().hex
     img=await RENDERER.render_text(imgid,text)
-    print(type(img))
+    # print(type(img))
     if isinstance(img,bytes):
         return MessageSegment.image(img)
                     

@@ -30,8 +30,11 @@ class FillerMapping:
         self.author_names=data.get("author_names",{})
         self.fixed_levels=data.get("fixed_levels",{})
         
-        logger.info(self.author_names)
-        logger.info(self.fixed_levels)
+        logger.info(f"Loaded {self.author_names.__len__()} author name overrides.")
+        logger.debug(self.author_names)
+        
+        logger.info(f"Loaded {self.fixed_levels.__len__()} level overrides.")
+        logger.debug(self.fixed_levels)
         
         return self
         
