@@ -1,3 +1,4 @@
+from argparse import Namespace
 from enum import Enum
 import math
 import os
@@ -87,7 +88,27 @@ _SEARCH_TYPES:dict[str,SearchTypeArg]={
     "--awarded":SearchTypeArg(LevelSearchType.AWARDED,"Awarded"),
     "--daily":SearchTypeArg(LevelSearchType.DAILY,"Daily Levels"),
     "--weekly":SearchTypeArg(LevelSearchType.WEEKLY,"Weekly Levels"),
-    "--featured":SearchTypeArg(LevelSearchType.FEATURED,"Featured"),
+    "--featured-levels":SearchTypeArg(LevelSearchType.FEATURED,"Featured Levels"),
+}
+
+class BoolFlagArg:
+    attr_name:str
+    help_str:str
+    def __init__(self,attr_name:str,help_str:str) -> None:
+        self.attr_name=attr_name
+        self.help_str=help_str
+    def apply(self,searchArgs:LevelSearchArgs,value:bool):
+        setattr(searchArgs,self.attr_name,bool(value))
+
+_BOOL_FLAGS:dict[str,BoolFlagArg]={
+    "--2-player":BoolFlagArg("twoPlayer","2-Player"),
+    "--coins":BoolFlagArg("coins","Has Coins"),
+    "--featured":BoolFlagArg("featured","Featured"),
+    "--epic":BoolFlagArg("epic","Epic"),
+    "--legendary":BoolFlagArg("legendary","Legendary"),
+    "--mythic":BoolFlagArg("mythic","Mythic"),
+    "--nostar":BoolFlagArg("nostar","No Star (Unrated)"),
+    "--original":BoolFlagArg("original","Original")
 }
 
 update_diff_aliases()
@@ -118,6 +139,9 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         group_type=parser.add_mutually_exclusive_group()
         for key,entry in _SEARCH_TYPES.items():
             group_type.add_argument(key,help=entry.help_str,action='store_true')
+            
+        for key,entry in _BOOL_FLAGS.items():
+            group_type.add_argument(key,help=entry.help_str,action='store_true')
         
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parsed=parser.parse_args(raw_args)
@@ -129,9 +153,14 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         plat_only=bool(parsed.plat)
         
         for key,entry in _SEARCH_TYPES.items():
-            name=key.removeprefix("-").removeprefix("-")
+            name=key.removeprefix("-").removeprefix("-").replace("-","_")
             if getattr(parsed,name):
                 searchArgs.setSearchType(entry.search_type)
+                
+        for key,entry in _BOOL_FLAGS.items():
+            name=key.removeprefix("-").removeprefix("-").replace("-","_")
+            if getattr(parsed,name):
+                entry.apply(searchArgs,True)
         
         lengths:list[Length]=[]
         
@@ -149,7 +178,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
         logger.info(locals())
         
-        include_unrated=bool(parsed.a)
+        include_unrated=bool(parsed.a or parsed.nostar)
         page=int(parsed.p)
         
         if classic_only:

@@ -368,7 +368,13 @@ class LevelSearchArgs:
                      "epic", "legendary", "mythic", "noStar", "star",
                      "uncompleted", "onlyCompleted"):
             if getattr(self, key):
-                data[key] = "1"
+                # Legendary and mythic are swapped on the endpoint
+                if key=="legendary":
+                    data["mythic"] = "1"
+                elif key=="mythic":
+                    data["legendary"] = "1"
+                else:
+                    data[key] = "1"
 
         if self._completedLevels is not None:
             data["completedLevels"] = self._completedLevels
