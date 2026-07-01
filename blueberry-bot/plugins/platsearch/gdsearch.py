@@ -222,6 +222,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
     lists_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
     
+    underrated_entries=UNDERRATED_BY_ID.get_for_id(level.id)
+    
     song=gd.getSong(level.songID)
     
     # Image Sections
@@ -300,6 +302,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
     if level2:
         lines.addLine(f"Upload/update: {level2.upload_date}/{level2.update_date}")
+        
+    if underrated_entries:
+        lines.addLine("--Underrated Levels--")
+        for e in underrated_entries:
+            lines.addLine(formatUnderrated(e,False,True))
     
     if level.is_plat():
         
