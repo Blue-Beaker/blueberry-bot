@@ -82,6 +82,7 @@ class SearchTypeArg:
         
 _SEARCH_TYPES:dict[str,SearchTypeArg]={
     "-u":SearchTypeArg(LevelSearchType.FROM_USER,"User's Levels"),
+    "--recent":SearchTypeArg(LevelSearchType.RECENT,"Recent"),
     "--downloads":SearchTypeArg(LevelSearchType.DOWNLOADS,"Most Downloaded"),
     "--likes":SearchTypeArg(LevelSearchType.LIKES,"Most Liked"),
     "--trending":SearchTypeArg(LevelSearchType.TRENDING,"Trending"),
@@ -136,12 +137,14 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         parser.add_argument('-a',help='Include Unrated',action='store_true')
         parser.add_argument('-p',help='Page',type=int,default=0)
         
-        group_type=parser.add_mutually_exclusive_group()
+        group_type0=parser.add_argument_group("Search Type")
+        group_type=group_type0.add_mutually_exclusive_group()
         for key,entry in _SEARCH_TYPES.items():
             group_type.add_argument(key,help=entry.help_str,action='store_true')
-            
+        
+        filters=parser.add_argument_group("Search Filters")
         for key,entry in _BOOL_FLAGS.items():
-            group_type.add_argument(key,help=entry.help_str,action='store_true')
+            filters.add_argument(key,help=entry.help_str,action='store_true')
         
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parsed=parser.parse_args(raw_args)
