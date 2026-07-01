@@ -245,15 +245,18 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 "diffchart_tier":dc_entry.tier or '',
                 "diffchart_tags":','.join(dc_entry.tags)
             })
+            
         if underrated_entry:
             extra_render_args.update({
-                "underrated_tier":f"{underrated_entry.tier} ({underrated_entry.get_tier_reference()})"
+                "underrated_tier":f"{underrated_entry.tier} ({underrated_entry.get_tier_reference()})",
+                "underrated_tags": ", ".join(underrated_entry.skillsets)
             })
             
         if nlwlike_entry:
             extra_render_args.update({
                 "nlw_type": nlwlike_entry.sheet,
-                "nlw_tier": nlwlike_entry.section
+                "nlw_tier": nlwlike_entry.section,
+                "nlw_tags": ", ".join(nlwlike_entry.skillsets)
             })
             
         if lists_entries:
@@ -338,12 +341,6 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             lines.addLine("--NLW/IDS/HDS--")
         for e in lists_entries:
             lines.addLine(formatters.formatListsLevel(e,False,True))
-            
-        ur_entries=UNDERRATED_BY_ID.get_for_id(level.id)
-        if ur_entries:
-            lines.addLine("--Underrated Levels--")
-        for e in ur_entries:
-            lines.addLine(formatUnderrated(e,False,True))
             
             
         
