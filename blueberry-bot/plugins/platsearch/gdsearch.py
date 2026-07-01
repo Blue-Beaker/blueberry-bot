@@ -175,8 +175,6 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     
     lines=bbot_api.TextImageMessage.build(bot)
     
-    kwargs={}
-    
     if searchArgs.getSearchType()==LevelSearchType.FROM_USER:
         levels,pageinfo=getLevelsFromUser(searchArgs)
     else:
@@ -222,10 +220,10 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     
     nlwlike_entry=None
     nlwlike_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
+    nlwlike_entries.sort(key=lambda x: 1 if x.is_legacy() else 0)
+    
     if nlwlike_entries:
-        lists_entries2=[e for e in nlwlike_entries if e.is_main()]
-        if lists_entries2:
-            nlwlike_entry=lists_entries2[0]
+        nlwlike_entry=nlwlike_entries[0]
     
     underrated_entry=None
     underrated_entries=UNDERRATED_BY_ID.get_for_id(level.id)
@@ -259,12 +257,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 "nlw_tags": ", ".join(nlwlike_entry.skillsets)
             })
             
-        if nlwlike_entry and nlwlike_entry.checkpoints:
-            extra_render_args["checkpoints"]=nlwlike_entry.checkpoints.replace("∞","Infinite")
-        elif nlwlike_entries:
+        if nlwlike_entries:
             for l in nlwlike_entries:
-                if l.checkpoints: extra_render_args["checkpoints"]=l.checkpoints.replace("∞","Infinite")
-                break
+                if l.checkpoints: 
+                    extra_render_args["checkpoints"]=l.checkpoints.replace("∞","Infinite")
+                    break
             
         if level2:
             extra_render_args.update({
