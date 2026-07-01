@@ -1,3 +1,4 @@
+from enum import Enum
 import os
 import threading
 import time
@@ -42,6 +43,8 @@ class UnderratedLevel(LevelEntry):
         self.skillsets=[s.strip() for s in line[4].split(",")]
         self.desc=line[5]
         return self
+    def get_tier_reference(self):
+        return get_tier_reference(self.section,self.tier)
 
 UNDERRATED_ID="1-Abvx7zXRAqpGFVbdTXpn6g1TRYp9WuZqW2pHWE7Dr4"
 UR_AUTO = Sheet(UNDERRATED_ID,"Auto 1*!A2:G")
@@ -51,12 +54,30 @@ UR_HARD = Sheet(UNDERRATED_ID,"Hard 4-5*!A2:G")
 UR_HARDER = Sheet(UNDERRATED_ID,"Harder 6-7*!A2:G")
 UR_INSANE = Sheet(UNDERRATED_ID,"Insane 8-9*!A2:G")
 
-# logger.info(UR_AUTO.get())
-# logger.info(UR_EASY.get())
-# logger.info(UR_NORMAL.get())
-# logger.info(UR_HARD.get())
-# logger.info(UR_HARDER.get())
-# logger.info(UR_INSANE.get())
+class Sections(Enum):
+    AUTO="Auto"
+    EASY="Easy"
+    NORMAL="Normal"
+    HARD="Hard"
+    HARDER="Harder"
+    INSANE="Insane"
+    
+TIERS_MAPPING={
+    Sections.EASY:("Easy+","Normal","Normal+","Hard","Hard+"),
+    Sections.NORMAL:("Normal+","Hard","Hard+","Harder","Harder+"),
+    Sections.HARD:("Harder","Harder-Insane","Insane","Insane-EZD","EZD+"),
+    Sections.HARDER:("Insane","EZD","EZD-MED","MED","MED+"),
+    Sections.INSANE:("EZD","EZD-MED","MED","MED-HDD","HDD+")
+}
+
+def get_tier_reference(section:str,tier:int):
+    tier=max(min(tier,5),1)
+    if section not in Sections:
+        return ""
+    mapping=TIERS_MAPPING.get(Sections(section))
+    if not mapping:
+        return ""
+    return mapping[tier-1]
 
 def parse_underrated_sheet(table:list[list[str]],section:str|None=None):
     entries:list[UnderratedLevel]=[]
@@ -73,16 +94,16 @@ def parse_underrated_sheet(table:list[list[str]],section:str|None=None):
 
 def get_all_underrated():
     entries:list[UnderratedLevel]=[]
-    mappings={"Auto":UR_AUTO,
-                "Easy":UR_EASY,
-                "Normal":UR_NORMAL,
-                "Hard":UR_HARD,
-                "Harder":UR_HARDER,
-                "Insane":UR_INSANE}
-    for name,sheet in mappings.items():
+    mappings={Sections.AUTO:UR_AUTO,
+                Sections.EASY:UR_EASY,
+                Sections.NORMAL:UR_NORMAL,
+                Sections.HARD:UR_HARD,
+                Sections.HARDER:UR_HARDER,
+                Sections.INSANE:UR_INSANE}
+    for section,sheet in mappings.items():
         table=sheet.get()
         if table:
-            entries.extend(parse_underrated_sheet(table,name))
+            entries.extend(parse_underrated_sheet(table,section.value))
     return entries
         
 UR_CACHE = BaseCache(UnderratedLevel,"platsearch_cache/underrated_cache.json",
@@ -150,6 +171,9 @@ async def _(args: Message = CommandArg()):
     
 def formatUnderrated(l:UnderratedLevel,compact:bool=False,exclude_base_info:bool=False):
     line=f"{l.section}-{l.tier}"
+    tier_ref=l.get_tier_reference()
+    if tier_ref:
+        line+=f" ({tier_ref})"
     if not exclude_base_info:
         line+=f"{l.name} by {l.creator} ({l.id})"
     if not compact:
