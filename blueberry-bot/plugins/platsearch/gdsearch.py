@@ -81,15 +81,16 @@ class SearchTypeArg:
         self.help_str=help_str
         
 _SEARCH_TYPES:dict[str,SearchTypeArg]={
-    "-u":SearchTypeArg(LevelSearchType.FROM_USER,"User's Levels"),
-    "--recent":SearchTypeArg(LevelSearchType.RECENT,"Recent"),
-    "--downloads":SearchTypeArg(LevelSearchType.DOWNLOADS,"Most Downloaded"),
-    "--likes":SearchTypeArg(LevelSearchType.LIKES,"Most Liked"),
-    "--trending":SearchTypeArg(LevelSearchType.TRENDING,"Trending"),
-    "--awarded":SearchTypeArg(LevelSearchType.AWARDED,"Awarded"),
-    "--daily":SearchTypeArg(LevelSearchType.DAILY,"Daily Levels"),
-    "--weekly":SearchTypeArg(LevelSearchType.WEEKLY,"Weekly Levels"),
-    "--featured-levels":SearchTypeArg(LevelSearchType.FEATURED,"Featured Levels"),
+    "search":SearchTypeArg(LevelSearchType.SEARCH,"Search (Default)"),
+    "user":SearchTypeArg(LevelSearchType.FROM_USER,"User's Levels"),
+    "recent":SearchTypeArg(LevelSearchType.RECENT,"Recent"),
+    "downloads":SearchTypeArg(LevelSearchType.DOWNLOADS,"Most Downloaded"),
+    "likes":SearchTypeArg(LevelSearchType.LIKES,"Most Liked"),
+    "trending":SearchTypeArg(LevelSearchType.TRENDING,"Trending"),
+    "awarded":SearchTypeArg(LevelSearchType.AWARDED,"Awarded"),
+    "daily":SearchTypeArg(LevelSearchType.DAILY,"Daily Levels"),
+    "weekly":SearchTypeArg(LevelSearchType.WEEKLY,"Weekly Levels"),
+    "featured":SearchTypeArg(LevelSearchType.FEATURED,"Featured Levels"),
 }
 
 class BoolFlagArg:
@@ -108,7 +109,7 @@ _BOOL_FLAGS:dict[str,BoolFlagArg]={
     "--epic":BoolFlagArg("epic","Epic"),
     "--legendary":BoolFlagArg("legendary","Legendary"),
     "--mythic":BoolFlagArg("mythic","Mythic"),
-    "--nostar":BoolFlagArg("nostar","No Star (Unrated)"),
+    "--nostar":BoolFlagArg("noStar","No Star (Unrated)"),
     "--original":BoolFlagArg("original","Original")
 }
 
@@ -129,18 +130,18 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
         group_length.add_argument('-l',help='length',type=str,default="")
         
+        parser.add_argument('--song',help='Song ID (prefix _ for official songs)',type=str,default=0)
         
         parser.add_argument('-d',help='Difficulty',type=str,default="")
         parser.add_argument('-v',help='Show Other Info',action='store_true')
-        parser.add_argument('-t',help='Plain Text',action='store_true')
+        parser.add_argument('--text',help='Plain Text',action='store_true')
         parser.add_argument('-i',help='Show Thumbnail',action='store_true')
         parser.add_argument('-a',help='Include Unrated',action='store_true')
+        parser.add_argument('-u',help="User's Levels",action='store_true')
+        
         parser.add_argument('-p',help='Page',type=int,default=0)
         
-        group_type0=parser.add_argument_group("Search Type")
-        group_type=group_type0.add_mutually_exclusive_group()
-        for key,entry in _SEARCH_TYPES.items():
-            group_type.add_argument(key,help=entry.help_str,action='store_true')
+        parser.add_argument('-t', type=str, help=f"search type ({' | '.join(_SEARCH_TYPES)})", default='search')
         
         filters=parser.add_argument_group("Search Filters")
         for key,entry in _BOOL_FLAGS.items():
@@ -155,10 +156,22 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         classic_only=bool(parsed.classic)
         plat_only=bool(parsed.plat)
         
-        for key,entry in _SEARCH_TYPES.items():
-            name=key.removeprefix("-").removeprefix("-").replace("-","_")
-            if getattr(parsed,name):
-                searchArgs.setSearchType(entry.search_type)
+        song_arg=str(parsed.song)
+        if song_arg:
+            song_id=int(song_arg.removeprefix("_"))
+            searchArgs.setSong(song_id,not song_arg.startswith("_"))
+        
+        if parsed.u:
+            search_type_str="user"
+        else:
+            search_type_str=str(parsed.t).lower()
+            
+        search_type=_SEARCH_TYPES.get(search_type_str)
+            
+        if not search_type:
+            raise ValueError(f"未知搜索类型 {search_type_str}. 可用类型: {','.join(_SEARCH_TYPES.keys())}")
+        
+        searchArgs.setSearchType(search_type.search_type)
                 
         for key,entry in _BOOL_FLAGS.items():
             name=key.removeprefix("-").removeprefix("-").replace("-","_")
