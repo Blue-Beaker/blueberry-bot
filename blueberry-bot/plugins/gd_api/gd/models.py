@@ -24,6 +24,14 @@ class Length(Enum):
     XL = 4
     PLAT = 5
     
+    def get_name(self):
+        if self.value<Length.XL.value:
+            return self.name.capitalize()
+        elif self==Length.PLAT:
+            return "Plat."
+        else:
+            return self.name
+        
     def is_plat(self):
         return self==Length.PLAT
 
@@ -181,7 +189,8 @@ class Level(BaseLevel):
 
     def is_plat(self) -> bool:
         return self.length == Length.PLAT.value
-
+    def get_length(self):
+        return Length(self.length)
     def get_difficulty(self) -> Difficulty:
         if self.auto:
             return Difficulty.AUTO
