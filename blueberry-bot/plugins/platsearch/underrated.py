@@ -63,11 +63,11 @@ class Sections(Enum):
     INSANE="Insane"
     
 TIERS_MAPPING={
-    Sections.EASY:("Easy+","Normal","Normal+","Hard","Hard+"),
-    Sections.NORMAL:("Normal+","Hard","Hard+","Harder","Harder+"),
-    Sections.HARD:("Harder","Harder-Insane","Insane","Insane-EZD","EZD+"),
-    Sections.HARDER:("Insane","EZD","EZD-MED","MED","MED+"),
-    Sections.INSANE:("EZD","EZD-MED","MED","MED-HDD","HDD+")
+    Sections.EASY:("Easy+","Normal","Normal+","Hard",">Hard"),
+    Sections.NORMAL:("Normal+","Hard","Hard+","Harder",">Harder"),
+    Sections.HARD:("Harder","Harder-Insane","Insane","Insane-EZD",">EZD"),
+    Sections.HARDER:("Insane","EZD","EZD-MED","MED",">MED"),
+    Sections.INSANE:("EZD","EZD-MED","MED","MED-HDD",">HDD")
 }
 
 def get_tier_reference(section:str,tier:int):
