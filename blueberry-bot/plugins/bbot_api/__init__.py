@@ -27,6 +27,9 @@ async def reaction_emoji(bot:OBBot,msg:int,emoji:int):
     }
     await bot.call_api("set_msg_emoji_like",**data)
     
+async def reaction_emoji_dc(bot:DCBot,event:DCMessageEvent,emoji:str):
+    await bot.create_reaction(channel_id=event.channel_id,message_id=event.message_id,emoji=emoji)
+    
 def loadFile(file:str|Path) -> bytes:
     with open(file,'rb') as f:
         return f.read()

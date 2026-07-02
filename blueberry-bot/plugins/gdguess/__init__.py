@@ -8,7 +8,7 @@ from typing import Any, Callable, Optional, Type
 import cv2
 from nonebot import on_command,logger,get_plugin_config, require
 from nonebot.adapters import Message,Event,Bot
-from nonebot.adapters.discord import Message as DCMessage,Bot as DCBot,MessageSegment as DCMessageSegment,GuildMessageCreateEvent
+from nonebot.adapters.discord import Message as DCMessage,Bot as DCBot,MessageSegment as DCMessageSegment,GuildMessageCreateEvent,MessageEvent as DCMessageEvent
 from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGroupMessageEvent,MessageSegment as OBMessageSegment
 
 from nonebot.params import CommandArg
@@ -26,7 +26,7 @@ from .guess_session import GuessSession,SessionManager,ConfigManager as ConfigMa
 from .guess_config import ConfigManager,GDGuessConfigItem
 
 require("bbot_api")
-from ..bbot_api import getid,reaction_emoji,loadFile,safeInt,TextImageMessage,group_config
+from ..bbot_api import getid,reaction_emoji,loadFile,safeInt,TextImageMessage,group_config,reaction_emoji_dc
 from ..bbot_api.argparse import ArgParser
 require("gd_api")
 from ..gd_api.pemonlist import getPemonlistLevels
@@ -361,6 +361,8 @@ async def gdguess_logic(matcher:Type[Matcher],bot:Bot,event:Event,raw_args: Mess
         
         if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
             await reaction_emoji(bot,event.message_id,10068) # Questionmark
+        elif isinstance(bot,DCBot) and isinstance(event,DCMessageEvent):
+            await reaction_emoji_dc(bot,event,"❔")
         # Dont send tips when it's just finished
         if time.time()-last_finish_time.get(id,0)>10:
             await matcher.send(msg)
@@ -377,6 +379,8 @@ async def gdguess_logic(matcher:Type[Matcher],bot:Bot,event:Event,raw_args: Mess
             
         if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
             await reaction_emoji(bot,event.message_id,144) # Confetti emoji
+        elif isinstance(bot,DCBot) and isinstance(event,DCMessageEvent):
+            await reaction_emoji_dc(bot,event,"🎉")
         
         img=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{session.session_id}.webp",session.crop)
         msg.addImage(img,"guess.png")
@@ -404,6 +408,8 @@ async def gdguess_logic(matcher:Type[Matcher],bot:Bot,event:Event,raw_args: Mess
     else:
         if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
             await reaction_emoji(bot,event.message_id,424) # Button emoji
+        elif isinstance(bot,DCBot) and isinstance(event,DCMessageEvent):
+            await reaction_emoji_dc(bot,event,"🎉")
         if session.guesses%5==0:
             await sendMessageAndImage(bot,matcher,f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!\n需要提示吗? -gdguess -hint 以获取提示",loadFile(IMAGES_PATH/f"{id}.png"))
         elif not isinstance(bot,OBBot):
