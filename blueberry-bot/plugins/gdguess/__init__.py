@@ -546,6 +546,10 @@ async def hint(bot:Bot,matcher:type[Matcher],event:Event):
             hint_text[i]=session.level_name[i]
         
         session.hint_text="".join(hint_text)
+        
+        if isinstance(bot,DCBot):
+            # Wrap by `` to prevent from being formatted
+            session.hint_text="`"+session.hint_text+"`"
         session.hints_used=1
         
     await matcher.send(f"提示: {session.hint_text}")
