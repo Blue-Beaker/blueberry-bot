@@ -47,6 +47,22 @@ def add_balance(user:str,count:int,allow_negative:bool=False):
 def get_balance(user:str):
     return ORB_STORAGE.get_balance(user)
 
+class OrbAccount:
+    def __init__(self,user:str) -> None:
+        self.user=user
+    def add(self,count:int,allow_negative:bool=False):
+        return add_balance(self.user,count,allow_negative)
+    def get(self):
+        return get_balance(self.user)
+    
+    @classmethod
+    def fromEvent(cls,event:Event):
+        userid=get_orb_owner_id(event)
+        if userid:
+            return cls(userid)
+        else:
+            return None
+
 orb_get=on_command("orb-get",aliases=set(["orb-get","orb-check"]))
 @orb_get.handle()
 async def _(bot:Bot,event:Event, args: Message = CommandArg()):

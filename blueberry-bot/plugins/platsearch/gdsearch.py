@@ -35,6 +35,12 @@ from ..gd_api.gd import getLevel2,getLevelSearch2,getList2,getUser,getLevelsFrom
 from ..gd_api import gd
 from ..gd_api.thumbs import getThumbnail,getThumbnailUrl
 
+try:
+    require("orb_api")
+    from .. import orb_api
+except:
+    orb_api=None
+    
 driver=get_driver()
 plugin_cfg=get_plugin_config(Config)
 
@@ -133,7 +139,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         parser.add_argument('--song',help='Song ID (prefix _ for official songs)',type=str,default=0)
         
         parser.add_argument('-d',help='Difficulty',type=str,default="")
-        parser.add_argument('-v',help='Show Other Info',action='store_true')
+        parser.add_argument('-v',help='Show Other Info (Time, Upload/Update date, ...)',action='store_true')
         parser.add_argument('--text',help='Plain Text',action='store_true')
         parser.add_argument('-i',help='Show Thumbnail',action='store_true')
         parser.add_argument('-a',help='Include Unrated',action='store_true')
@@ -250,8 +256,25 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     level=levels[0]
     
     level2=None
+    
+    orb_account=None
     if verbose:
-        level2=downloadLevel2(level.id)
+        if orb_api:
+            orb_account=orb_api.OrbAccount.fromEvent(event)
+            if not orb_account:
+                return
+            
+            if orb_account.get()<25:
+                lines.addLine("额外信息需要持有 25 Orbs. 消耗可低于此值.")
+            else:
+                level2=downloadLevel2(level.id)
+                if level2 and level2.level_string:
+                    cost=min(25,level2.level_string.__len__()//100000)
+                    orb_account.add(-cost)
+                    lines.addLine(f"已消耗 {cost} Orbs.")
+                
+        else:
+            level2=downloadLevel2(level.id)
         
     supports_image=(isinstance(bot,OBBot) or isinstance(bot,DCBot))
     enable_image=(not force_text) and supports_image
