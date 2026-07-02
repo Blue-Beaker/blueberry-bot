@@ -9,7 +9,9 @@ def getThumbnail(levelID:int,api_base:str="https://levelthumbs.prevter.me/thumbn
     headers = {
         "User-Agent": ""
     }
-    req = requests.get(url=getThumbnailUrl(levelID,api_base,small), headers=headers, timeout=10)
+    url=getThumbnailUrl(levelID,api_base,small)
+    logger.info(f"Getting thumbnail for {levelID}: {url}")
+    req = requests.get(url=url, headers=headers, timeout=10)
     if req.status_code!=200:
         return None
     return req.content

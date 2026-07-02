@@ -82,6 +82,7 @@ def getList2(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs)
             continue
         result.append(l)
         
+    logger.info(f"Found {result.__len__()} results.")
     return result,PageInfo().parse(rawPageInfo)
 
 def getLevel(search:int|str|None=None,page:int=0,rated:bool=False,searchType:LevelSearchType|int=0,**kwargs):
@@ -113,6 +114,7 @@ def getLevel2(search:int|str|None=None,page:int=0,rated:bool=False,searchType:Le
     result:list[Level]=[]
     
     if req.text=='-1':
+        logger.error(f"No results: {req.text}")
         return result,PageInfo().setStatus(SearchStatus.EMPTY_RESULTS)
         
     spl=req.text.split("#")
@@ -150,6 +152,7 @@ def getLevel2(search:int|str|None=None,page:int=0,rated:bool=False,searchType:Le
         except:
             pass
         
+    logger.info(f"Found {result.__len__()} results.")
     return result,PageInfo().parse(rawPageInfo)
 
 
@@ -243,21 +246,25 @@ def getUser(search:int|str):
     }
     player_info=PlayerInfo()
     # Name search
-    if True:
-        data2=data.copy()
-        data2["str"]=str(search)
-        req = requests.post('http://www.boomlings.com/database/getGJUsers20.php', data=data2, headers=headers, timeout=30)
-        # logger.debug(f"getGJUsers20.php raw response: {req.text}")
-        spl=req.text.split("#")
-        if spl.__len__()<2:
-            return None
-        user=spl[0]
-        pages=spl[1]
-        # logger.debug(f"getGJUsers20.php parsed user dict: {parseDict(user)}")
-        player_info.load(parseDict(user))
-        userid=player_info.account_id
+    
+    data2=data.copy()
+    data2["str"]=str(search)
+    
+    logger.info(f"Finding User {search}...")
+    req = requests.post('http://www.boomlings.com/database/getGJUsers20.php', data=data2, headers=headers, timeout=30)
+    # logger.debug(f"getGJUsers20.php raw response: {req.text}")
+    spl=req.text.split("#")
+    if spl.__len__()<2:
+        return None
+    user=spl[0]
+    pages=spl[1]
+    # logger.debug(f"getGJUsers20.php parsed user dict: {parseDict(user)}")
+    player_info.load(parseDict(user))
+    userid=player_info.account_id
         
     data["targetAccountID"]=str(userid)
+    
+    # logger.info(f"Getting user info for {search}...")
     req = requests.post("http://www.boomlings.com/database/getGJUserInfo20.php", data=data, headers=headers, timeout=30)
     
     # print(req.text)
@@ -265,6 +272,7 @@ def getUser(search:int|str):
     
     player_info.load(parseDict(req.text))
     
+    logger.info(f"Got user: name={player_info.user_name} uid={player_info.user_id} accid={player_info.account_id}")
     return player_info
 
 
@@ -277,11 +285,14 @@ def getSong(musicID:int):
         "songID": musicID
     }
 
+    logger.info(f"Finding Song {musicID}...")
     req = requests.post("http://www.boomlings.com/database/getGJSongInfo.php", data=data, headers=headers)
     if req.status_code!=200:
         return None
     
     result=Song().load(parseDict(req.text,"~|~"))
+    
+    logger.info(f"Got song {musicID}: {result.name} by {result.artistID}")
     return result
 
 
