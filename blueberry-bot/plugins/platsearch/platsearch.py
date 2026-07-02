@@ -22,7 +22,7 @@ from .utils import select_page
 
 require('bbot_api')
 from ..bbot_api.argparse import ArgumentError,ArgParser
-from ..bbot_api import TextImageMessage,supportsImage,safeInt
+from ..bbot_api import TextImageMessage,supportsImage,safeInt,supportsMarkdown
 from .. import bbot_api
 require('gd_api')
 from ..gd_api import gd,thumbs
@@ -132,7 +132,7 @@ def get_levels_from_lists(lists_arg:list[str]):
 
 platweight = on_command("platweight")
 @platweight.handle()
-async def _(args: Message = CommandArg()):
+async def _(bot:Bot,args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     if not raw_args:
         await platweight.finish("\n".join([
@@ -153,7 +153,7 @@ async def _(args: Message = CommandArg()):
     
     search = [s.strip() for s in text.lower().split(",")]
     
-    msg=[]
+    msg:list[str]=[]
     results:list[plat_sheets.PlatChartEntry]=[]
     errored:bool=False
     
@@ -224,7 +224,8 @@ async def _(args: Message = CommandArg()):
                 pass
         msg.append(f"{results.__len__()} 项的原始权重和为 {total_weight}.\n提供10项以计算你的点数.")
     
-    
+    if supportsMarkdown(bot):
+        msg=[line.replace("*","\\*") for line in msg]
     await platweight.finish("\n".join(msg))
     
 
@@ -353,6 +354,8 @@ async def _(bot:Bot, args: Message = CommandArg()):
         if reply:
             await(platskill.finish(reply))
         
+    if supportsMarkdown(bot):
+        msg=[line.replace("*","\\*") for line in msg]
     await platskill.finish("\n".join(msg))
     
 
