@@ -276,10 +276,16 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         else:
             level2=downloadLevel2(level.id)
         
-    supports_image=(isinstance(bot,OBBot) or isinstance(bot,DCBot))
+    supports_image=bbot_api.supportsImage(bot)
+    
+    show_thumbnail = (show_thumbnail and supports_image)
     enable_image=(not force_text) and supports_image
     
     info_image=False
+
+    thumb=None
+    if show_thumbnail or enable_image:
+        thumb=getThumbnail(level.id)
     
     dc_entry=None
     dc_entries=PLAT_CHART_BY_ID.get_for_id(level.id)
@@ -354,7 +360,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                         downloads=level.downloads,
                         likes=level.likes,
                         scene_type="level_large",
-                        thumbnail=getThumbnailUrl(level.id),
+                        thumbnail=thumb if thumb else "",
                         description=level.get_description(),
                         **extra_render_args
                         )
@@ -365,6 +371,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             info_image=True
             await gdsearch.send(msg2.msg)
             
+    if show_thumbnail and thumb:
+        lines.addImage(thumb)
     # Basic Info (Text)
     if not info_image:
         lines.addLine(repr_level(level))
@@ -415,11 +423,6 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     
     # if not (classic_only or plat_only or demon):
     #     lines.append("使用-c、-p、-d参数, 可显示Classic、Plat与Demon关卡的详细计数")
-
-    if show_thumbnail and supports_image:
-        thumb=getThumbnail(level.id)
-        if thumb:
-            lines.addImage(thumb)
             
     # Others (Text)
     if verbose:
