@@ -66,6 +66,12 @@ class ResourceServer:
         self._resources[filename] = data
         return f"{self.base_url}/{filename}"
 
+    def remove_resource(self, url: str) -> None:
+        """Remove a previously added resource by its URL."""
+        # Extract filename from the URL
+        filename = url.rsplit("/", 1)[-1] if "/" in url else ""
+        self._resources.pop(filename, None)
+
     def _handle_connection(
         self,
         reader: asyncio.StreamReader,

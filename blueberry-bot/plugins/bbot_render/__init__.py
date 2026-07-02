@@ -78,23 +78,31 @@ class RenderAPI:
     async def _process_params(
         self,
         params: dict,
-    ) -> dict:
-        """Process render parameters, replacing large binary values with HTTP URLs."""
+    ) -> tuple[dict, list[str]]:
+        """Process render parameters, replacing large binary values with HTTP URLs.
+
+        Returns:
+            (processed_params, resource_urls) — the modified params dict and
+            a list of resource URLs that should be cleaned up after rendering.
+        """
         if not params:
-            return {}
+            return {}, []
 
         server = await self._ensure_resource_server()
         result = dict(params)
+        resource_urls: list[str] = []
 
         for key, value in result.items():
             if isinstance(value, bytes) and len(value) > _RESOURCE_THRESHOLD:
                 url = server.add_resource(value, suffix=".png")
                 result[key] = url
+                resource_urls.append(url)
             elif isinstance(value, str) and len(value) > _RESOURCE_THRESHOLD:
                 url = server.add_resource(value.encode("utf-8"), suffix=".txt")
                 result[key] = url
+                resource_urls.append(url)
 
-        return result
+        return result, resource_urls
 
     async def _render(self, scene: str, request_id: str,
                       params: dict | None = None) -> bytes | dict | None:
@@ -103,10 +111,12 @@ class RenderAPI:
         大字段（如 thumbnail bytes）自动替换为 HTTP URL，
         Godot 通过本地 HTTP 服务获取，避免入站消息过大。
         """
+        resource_urls: list[str] = []
         try:
             request = {"scene": scene, "request_id": request_id}
             if params:
-                request.update(await self._process_params(params))
+                processed, resource_urls = await self._process_params(params)
+                request.update(processed)
 
             async with websockets.connect(
                 self.uri,
@@ -132,6 +142,11 @@ class RenderAPI:
                     return raw
         except OSError:
             return None
+        finally:
+            # Godot 已获取图片，清理临时资源
+            if self._resource_server and resource_urls:
+                for url in resource_urls:
+                    self._resource_server.remove_resource(url)
 
     async def render_player_info(self, request_id: str,
                                  playername: str,
