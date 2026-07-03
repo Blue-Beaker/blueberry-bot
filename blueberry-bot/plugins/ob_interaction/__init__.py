@@ -42,7 +42,7 @@ async def _():
     group_config.save()
 
         
-onMsg=on_message()
+onMsg=on_type(OBMessageEvent)
 @onMsg.handle()
 async def _(bot:OBBot,event:OBMessageEvent):
     group_id:int|None = getattr(event,"group_id",None)
