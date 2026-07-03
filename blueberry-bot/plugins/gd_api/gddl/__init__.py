@@ -15,6 +15,7 @@ else:
     from nonebot import require
     require("nonebot_plugin_apscheduler")
     from nonebot_plugin_apscheduler import scheduler
+    from apscheduler.triggers.cron import CronTrigger
 
 class GDDLLevel:
     ID:int=0
@@ -68,4 +69,5 @@ if __name__ == "__main__":
 else:
     def update():
         CACHE.updateNow()
-    scheduler.add_job(update, "interval", days=1, id="GDDL_UPDATE")
+    trigger=CronTrigger.from_crontab('0 5 * * *') # Update every day at 5:00
+    scheduler.add_job(update, trigger=trigger, id="GDDL_UPDATE", misfire_grace_time=86400)

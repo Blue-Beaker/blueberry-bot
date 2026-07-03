@@ -32,6 +32,9 @@ from . import underrated
 from . import gd_extras,gduser
 from . import formatters
 
+require("nonebot_plugin_apscheduler")
+from nonebot_plugin_apscheduler import scheduler
+from apscheduler.triggers.cron import CronTrigger
 
 plugin_config = get_plugin_config(Config)
 
@@ -46,8 +49,10 @@ PLAT_SHEET_CACHE=BaseCache(plat_sheets.TheListsEntry,"platsearch_cache/plat_shee
 async def load():
     levelid_filler.FILLER_MAPPING.load()
     os.makedirs("platsearch_cache",exist_ok=True)
-    threading.Thread(target=threaded_update_cache2,args=[PLAT_CHART_CACHE,"Plat Chart cache"]).start()
-    threading.Thread(target=threaded_update_cache1,args=[PLAT_SHEET_CACHE,"Plat Sheet cache"]).start()
+    trigger=CronTrigger.from_crontab('*/30 * * * *') # Update every 30 mins
+    scheduler.add_job(threaded_update_cache1,trigger,args=[PLAT_SHEET_CACHE,"Plat Sheet cache"],id="Plat Sheet cache",misfire_grace_time=3600)
+    scheduler.add_job(threaded_update_cache2,trigger,args=[PLAT_CHART_CACHE,"Plat Chart cache"],id="Plat Chart cache",misfire_grace_time=3600)
+
 
 def match_ids_for_levels(entries:list[levelid_filler.ENTRY_TYPE],logfile:str=""):
     levels_not_matched=levelid_filler.fillIDsForEntries(entries)
@@ -68,7 +73,7 @@ def threaded_update_cache2(cache:BaseCache,name:str):
     match_ids_for_levels(PLAT_CHART_CACHE.entries,"cache/plat_chart_unmatched.json")
 
 def threaded_update_cache(cache:BaseCache,name:str):
-    cache.get()
+    cache.update()
     logger.info(f"Loaded {cache.entries.__len__()} entries into {name}, expiring at {time.ctime(cache.expiration_time)}")
 
 class SearchArgs:
