@@ -31,7 +31,7 @@ render_api.uri=plugin_cfg.render_server_uri
 
 gdlist = on_command("gdlist")
 @gdlist.handle()
-async def _(bot:Bot, args: Message = CommandArg()):
+async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     try:
         parser=ArgParser("gdlist")
@@ -49,6 +49,8 @@ async def _(bot:Bot, args: Message = CommandArg()):
         return
     try:
         lines:list[str]=[]
+        
+        await bbot_api.trigger_typing(bot,event)
         
         searchType:gd.ListSearchType=gd.ListSearchType.SEARCH
         
@@ -149,7 +151,7 @@ async def _(bot:Bot, args: Message = CommandArg()):
 
 gdthumb = on_command("gdthumb")
 @gdthumb.handle()
-async def _(bot:OBBot|DCBot,args: Message = CommandArg()):
+async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     try:
         parser=ArgParser("gdthumb")
@@ -167,6 +169,9 @@ async def _(bot:OBBot|DCBot,args: Message = CommandArg()):
         return
     
     lines:list[str]=[]
+    
+    await bbot_api.trigger_typing(bot,event)
+    
     levels,pageinfo=getLevel2(search,page-1,rated)
     if not isinstance(levels,list) or not pageinfo.success():
         await gdthumb.finish("查找出错."+pageinfo.status.value)

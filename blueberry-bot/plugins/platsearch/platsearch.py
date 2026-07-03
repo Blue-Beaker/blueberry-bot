@@ -137,7 +137,7 @@ def get_levels_from_lists(lists_arg:list[str]):
 
 platweight = on_command("platweight")
 @platweight.handle()
-async def _(bot:Bot,args: Message = CommandArg()):
+async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     if not raw_args:
         await platweight.finish("\n".join([
@@ -155,6 +155,8 @@ async def _(bot:Bot,args: Message = CommandArg()):
     except Exception as e:
         await platweight.finish(str(e))
         return
+    
+    await bbot_api.trigger_typing(bot,event)
     
     search = [s.strip() for s in text.lower().split(",")]
     
@@ -236,7 +238,7 @@ async def _(bot:Bot,args: Message = CommandArg()):
 
 platskill = on_command("platskill")
 @platskill.handle()
-async def _(bot:Bot, args: Message = CommandArg()):
+async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     if not raw_args:
         await platskill.finish("\n".join([
@@ -258,6 +260,8 @@ async def _(bot:Bot, args: Message = CommandArg()):
     except Exception as e:
         await platskill.finish(str(e))
         return
+    
+    await bbot_api.trigger_typing(bot,event)
     
     search = [s.strip() for s in text.lower().split(",")]
     

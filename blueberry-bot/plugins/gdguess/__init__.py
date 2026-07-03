@@ -28,6 +28,7 @@ from .guess_config import ConfigManager,GDGuessConfigItem
 require("bbot_api")
 from ..bbot_api import getid,reaction_emoji,loadFile,safeInt,TextImageMessage,group_config,reaction_emoji_dc
 from ..bbot_api.argparse import ArgParser
+from .. import bbot_api
 require("gd_api")
 from ..gd_api.pemonlist import getPemonlistLevels
 from ..gd_api.aredl import getAREDLLevels
@@ -333,6 +334,8 @@ async def gdguess_logic(matcher:Type[Matcher],bot:Bot,event:Event,raw_args: Mess
         await matcher.send("\n".join(help))
         await matcher.finish()
         return
+    
+    await bbot_api.trigger_typing(bot,event)
     
     id=getid(event)
     session=session_manager.entries.get(id)

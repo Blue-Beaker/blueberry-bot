@@ -63,6 +63,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     
     lines:list[str]=[]
     
+    await bbot_api.trigger_typing(bot,event)
+    
     user=getUser(search)
     if not user or not user.account_id:
         await gduser.finish("未找到玩家, 或发生错误.")

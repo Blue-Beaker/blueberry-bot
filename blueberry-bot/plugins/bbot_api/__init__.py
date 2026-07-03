@@ -30,6 +30,10 @@ async def reaction_emoji(bot:OBBot,msg:int,emoji:int):
 async def reaction_emoji_dc(bot:DCBot,event:DCMessageEvent,emoji:str):
     await bot.create_reaction(channel_id=event.channel_id,message_id=event.message_id,emoji=emoji)
     
+async def trigger_typing(bot:Bot,event:Event):
+    if isinstance(bot,DCBot) and isinstance(event,DCMessageEvent):
+        await bot.trigger_typing_indicator(channel_id=event.channel_id)
+    
 def loadFile(file:str|Path) -> bytes:
     with open(file,'rb') as f:
         return f.read()

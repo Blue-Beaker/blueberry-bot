@@ -12,6 +12,7 @@ import httpx
 require("bbot_api")
 from ..bbot_api.argparse import ArgParser
 from ..bbot_api import message_compat
+from .. import bbot_api
 require("gd_api")
 from ..gd_api.gd import getSong
 
@@ -40,6 +41,8 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
         
     music=None
     link=None
+    
+    await bbot_api.trigger_typing(bot,event)
     
     song_def=getSong(music_id)
     if not song_def or song_def.id<0:

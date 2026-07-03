@@ -226,6 +226,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     
     lines=bbot_api.TextImageMessage.build(bot)
     
+    await bbot_api.trigger_typing(bot,event)
+    
     if searchArgs.getSearchType()==LevelSearchType.FROM_USER:
         levels,pageinfo=getLevelsFromUser(searchArgs)
     else:
