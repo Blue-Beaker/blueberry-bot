@@ -412,7 +412,7 @@ async def gdguess_logic(matcher:Type[Matcher],bot:Bot,event:Event,raw_args: Mess
         if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
             await reaction_emoji(bot,event.message_id,424) # Button emoji
         elif isinstance(bot,DCBot) and isinstance(event,DCMessageEvent):
-            await reaction_emoji_dc(bot,event,"🎉")
+            await reaction_emoji_dc(bot,event,"🔴")
         if session.guesses%5==0:
             await sendMessageAndImage(bot,matcher,f"猜错了! 这是 {session.guesses} 次猜测了, 继续加油!\n需要提示吗? -gdguess -hint 以获取提示",loadFile(IMAGES_PATH/f"{id}.png"))
         elif not isinstance(bot,OBBot):
