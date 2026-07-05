@@ -156,8 +156,8 @@ class RenderAPI:
                                  usercoins: int = 0,
                                  demons: int = 0,
                                  creatorpoints: int = 0,
-                                 nondemons: int = 0,
-                                 nonpemons: int = 0,
+                                 nondemons: int|str = 0,
+                                 nonpemons: int|str = 0,
                                  c_demons: int = 0,
                                  pemons: int = 0,**kwargs) -> bytes | dict | None:
         """渲染 player_info 场景。
@@ -199,14 +199,14 @@ class RenderAPI:
                                c_hard: int = 0,
                                c_harder: int = 0,
                                c_insane: int = 0,
-                               c_all: int = 0,
+                               c_all: int|str = 0,
                                p_auto: int = 0,
                                p_easy: int = 0,
                                p_normal: int = 0,
                                p_hard: int = 0,
                                p_harder: int = 0,
                                p_insane: int = 0,
-                               p_all: int = 0,
+                               p_all: int|str = 0,
                                daily: int = 0,
                                gauntlet: int = 0) -> bytes | dict | None:
         """渲染 nondemons 场景（非恶魔完成统计）。

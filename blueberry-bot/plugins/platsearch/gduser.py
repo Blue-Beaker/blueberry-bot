@@ -99,7 +99,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             for i,id in player_icons.items():
                 user_info_args["icon_"+i.value]=construct_icon_url(i,id,icon.color,icon.color2,icon.glow_color)
         
-        img=await render_api.render_player_info(req_id_base+"_base",user.user_name,user.stars,user.moons,user.secret_coins,user.user_coins,user.demons,user.creator_points,c.sum(),p.sum(),c_demons.sum(),pemons.sum(),**user_info_args)
+        img=await render_api.render_player_info(req_id_base+"_base",user.user_name,user.stars,user.moons,user.secret_coins,user.user_coins,user.demons,user.creator_points,f"{c.sumNoAuto()}/{c.sum()}",f"{p.sumNoAuto()}/{p.sum()}",c_demons.sum(),pemons.sum(),**user_info_args)
         if isinstance(img,bytes):
             msg.addImage(img)
             info_image=True
@@ -121,7 +121,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         if user.creator_points:
             stats_line+=f"{user.creator_points}🛠"
         lines.append(stats_line)
-        lines.append(f"Non-demons: {user.classic_levels.sum()}, Non-pemons: {user.plat_levels.sum()}")
+        lines.append(f"Non-demons: {user.classic_levels.sumNoAuto()}/{user.classic_levels.sum()}, Non-pemons: {user.plat_levels.sumNoAuto()}/{user.plat_levels.sum()}")
         lines.append(f"Demons: {c_demons.sum()}, Pemons: {pemons.sum()}")
     
     if not (show_classic or show_plat or show_demons):

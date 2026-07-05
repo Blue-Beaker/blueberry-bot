@@ -377,7 +377,9 @@ class PlayerLevels:
         return self
 
     def sum(self) -> int:
-        return self.auto + self.easy + self.normal + self.hard + self.harder + self.insane
+        return self.auto + self.sumNoAuto()
+    def sumNoAuto(self) -> int:
+        return self.easy + self.normal + self.hard + self.harder + self.insane
 
     def __repr__(self) -> str:
         return f"Levels: {self.__dict__}"
