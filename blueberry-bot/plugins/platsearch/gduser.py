@@ -32,8 +32,7 @@ plugin_cfg=get_plugin_config(Config)
 
 require('bbot_render')
 from ..bbot_render import RenderAPI
-render_api=RenderAPI()
-render_api.uri=plugin_cfg.render_server_uri
+render_api=RenderAPI(uri=plugin_cfg.render_server_uri)
 
 gduser = on_command("gduser")
 @gduser.handle()

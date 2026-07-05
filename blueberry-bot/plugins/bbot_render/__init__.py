@@ -39,11 +39,12 @@ else:
 try:
     from nonebot import get_plugin_config
     plugin_config = get_plugin_config(Config)
+    
 except Exception:
     plugin_config = Config()
 
-_DEFAULT_URI = "http://localhost:9081"
-_DEFAULT_TIMEOUT = 30.0
+_DEFAULT_URI = plugin_config.render_server_uri
+_DEFAULT_TIMEOUT = plugin_config.render_server_timeout
 
 
 def _parse_uri(uri: str) -> str:
