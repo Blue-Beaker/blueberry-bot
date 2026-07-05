@@ -1,15 +1,25 @@
 #!/usr/bin/env python3
 """
-Client for BlueberryBot-Render WebSocket server.
-Connects to the Godot WebSocket server, sends a render request, and receives raw PNG data.
-Large binary parameters (e.g. thumbnail images) are automatically served via a local HTTP
-resource server to avoid hitting Godot's inbound WebSocket message size limit.
+Client for BlueberryBot-Render server.
+Connects to the Godot render server via HTTP (preferred) or WebSocket fallback,
+sends a render request, and receives raw PNG data.
+
+Binary parameters (e.g. thumbnail images) are base64-encoded with a ``base64://``
+prefix so Godot's TextureHelper can decode them directly — no separate resource
+server needed for binary data.
 """
 
+import base64
 import json
 import asyncio
 from pathlib import Path
 import sys
+
+try:
+    import httpx
+except ImportError:
+    print("Please install httpx: pip install httpx")
+    raise
 
 try:
     import websockets
@@ -23,10 +33,8 @@ if __name__ == "__main__" and __package__ is None:
     if str(_root) not in sys.path:
         sys.path.insert(0, str(_root))
     from plugins.bbot_render.config import Config
-    from plugins.bbot_render.resource_server import ResourceServer
 else:
     from .config import Config
-    from .resource_server import ResourceServer
 
 try:
     from nonebot import get_plugin_config
@@ -34,96 +42,126 @@ try:
 except Exception:
     plugin_config = Config()
 
-_DEFAULT_URI = "ws://localhost:9080"
+_DEFAULT_URI = "http://localhost:9081"
 _DEFAULT_TIMEOUT = 30.0
-# Parameters with values larger than this (bytes) will be served via HTTP instead
-_RESOURCE_THRESHOLD = 50 * 1024  # 50 KB
+
+
+def _parse_uri(uri: str) -> str:
+    """解析 URI，返回 HTTP 渲染端点 URL。
+
+    - ``ws://`` / ``wss://`` → 原样返回（兼容旧配置，直接 WebSocket）
+    - ``http://`` / ``https://`` → 追加 ``/render`` 路径
+    """
+    scheme = uri.split("://", 1)[0].lower() if "://" in uri else "http"
+    if scheme in ("ws", "wss"):
+        return uri
+    return uri.rstrip("/") + "/render"
 
 
 class RenderAPI:
-    """BlueberryBot-Render WebSocket 客户端。
+    """BlueberryBot-Render 客户端。
 
-    封装与 Godot 渲染服务的 WebSocket 通信，管理连接参数。
-    大字段（如 thumbnail 图片）自动通过本地 HTTP 服务提供 URL 给 Godot，
-    避免超出 Godot 的 WebSocket 入站消息大小限制。
+    封装与 Godot 渲染服务的通信。根据 ``uri`` 的 scheme 自动选择协议：
+    - ``http://`` / ``https://`` → HTTP POST /render（默认，推荐）
+    - ``ws://`` / ``wss://`` → WebSocket
+
+    bytes 参数（如 thumbnail）自动转为 ``base64://`` 内联编码，
+    Godot 的 TextureHelper 原生支持解码，无需额外资源服务器。
 
     Args:
-        uri: Godot WebSocket 服务端地址
+        uri: Godot 渲染服务地址。
+              例如 ``http://127.0.0.1:9081``（HTTP）或 ``ws://127.0.0.1:9080``（WebSocket）。
         timeout: 渲染超时时间（秒）
-        resource_url: 本地资源 HTTP 服务 URL，如 http://127.0.0.1:9081/resources
     """
 
     def __init__(
         self,
         uri: str = _DEFAULT_URI,
         timeout: float = _DEFAULT_TIMEOUT,
-        resource_url: str | None = None,
-        resource_alt_url: str | None = None,
     ):
-        self.uri = uri
         self.timeout = timeout
-        self._resource_server: ResourceServer | None = None
-        self._resource_url = resource_url or plugin_config.render_resource_url
-        self._resource_alt_url = resource_alt_url if resource_alt_url is not None else plugin_config.render_resource_alt_url
-
-    async def _ensure_resource_server(self) -> ResourceServer:
-        if self._resource_server is None:
-            self._resource_server = ResourceServer(
-                base_url=self._resource_url,
-                alt_url=self._resource_alt_url,
-            )
-            await self._resource_server.start()
-        return self._resource_server
+        self._uri = _parse_uri(uri)
+        self._is_ws = self._uri.startswith("ws://") or self._uri.startswith("wss://")
 
     async def _process_params(
         self,
         params: dict,
-    ) -> tuple[dict, list[str]]:
-        """Process render parameters, replacing large binary values with HTTP URLs.
+    ) -> dict:
+        """Process render parameters, converting binary data to base64:// strings.
 
-        Returns:
-            (processed_params, resource_urls) — the modified params dict and
-            a list of resource URLs that should be cleaned up after rendering.
+        - ``bytes`` values are base64-encoded with ``base64://`` prefix,
+          so Godot's TextureHelper can decode them directly.
+        - Strings are passed through as-is.
         """
         if not params:
-            return {}, []
+            return {}
 
-        server = await self._ensure_resource_server()
         result = dict(params)
-        resource_urls: list[str] = []
 
         for key, value in result.items():
-            if isinstance(value, bytes) and len(value) > _RESOURCE_THRESHOLD:
-                url = server.add_resource(value, suffix=".png")
-                result[key] = url
-                resource_urls.append(url)
-            elif isinstance(value, str) and len(value) > _RESOURCE_THRESHOLD:
-                url = server.add_resource(value.encode("utf-8"), suffix=".txt")
-                result[key] = url
-                resource_urls.append(url)
+            if isinstance(value, bytes):
+                # Godot 的 TextureHelper 原生支持 base64:// 前缀解码
+                b64 = base64.b64encode(value).decode("ascii")
+                result[key] = f"base64://{b64}"
 
-        return result, resource_urls
+        return result
 
-    async def _render(self, scene: str, request_id: str,
-                      params: dict | None = None,
-                      _retries: int = 3) -> bytes | dict | None:
-        """发送渲染请求到 Godot 渲染服务，返回渲染结果。
+    async def _render_http(self, scene: str, request_id: str,
+                           params: dict | None = None,
+                           _retries: int = 2) -> bytes | dict | None:
+        """通过 HTTP POST /render 发送渲染请求，返回 PNG bytes 或错误 dict。
 
-        大字段（如 thumbnail bytes）自动替换为 HTTP URL，
-        Godot 通过本地 HTTP 服务获取，避免入站消息过大。
-
-        如果接收到的结果为空（无数据），会自动重试最多 ``_retries`` 次。
+        所有 bytes 参数自动转为 ``base64://`` 内联编码，无需额外资源服务器。
+        Godot 的 TextureHelper 原生支持 ``base64://`` 前缀解码。
         """
-        resource_urls: list[str] = []
         for attempt in range(1, _retries + 1):
             try:
                 request = {"scene": scene, "request_id": request_id}
                 if params:
-                    processed, resource_urls = await self._process_params(params)
+                    processed = await self._process_params(params)
+                    request.update(processed)
+
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    resp = await client.post(self._uri, json=request)
+
+                if resp.status_code == 200:
+                    content_type = resp.headers.get("content-type", "")
+                    if "image" in content_type or "application/octet-stream" in content_type:
+                        return resp.content  # PNG bytes
+                    return resp.json()  # 可能是 JSON 响应
+                elif resp.status_code == 500:
+                    # 服务端错误，重试
+                    if attempt < _retries:
+                        continue
+                    return None
+                else:
+                    # 其他错误（400/404 等），不重试
+                    try:
+                        return resp.json()
+                    except Exception:
+                        return {"type": "error", "message": f"HTTP {resp.status_code}"}
+            except (httpx.ConnectError, httpx.TimeoutException):
+                if attempt < _retries:
+                    continue
+                return None
+        return None
+
+    async def _render_websocket(self, scene: str, request_id: str,
+                                params: dict | None = None,
+                                _retries: int = 3) -> bytes | dict | None:
+        """通过 WebSocket 发送渲染请求，作为 HTTP 失败时的回退方案。
+
+        bytes 参数自动转为 ``base64://`` 内联编码。
+        """
+        for attempt in range(1, _retries + 1):
+            try:
+                request = {"scene": scene, "request_id": request_id}
+                if params:
+                    processed = await self._process_params(params)
                     request.update(processed)
 
                 async with websockets.connect(
-                    self.uri,
+                    self._uri,
                     max_size=100 * 1024 * 1024,
                     max_queue=None,
                 ) as ws:
@@ -152,12 +190,22 @@ class RenderAPI:
                 if attempt < _retries:
                     continue  # 连接失败，重试
                 return None
-            finally:
-                # Godot 已获取图片，清理临时资源
-                if self._resource_server and resource_urls:
-                    for url in resource_urls:
-                        self._resource_server.remove_resource(url)
         return None
+
+    async def _render(self, scene: str, request_id: str,
+                      params: dict | None = None,
+                      _retries: int = 3) -> bytes | dict | None:
+        """发送渲染请求到 Godot 渲染服务，返回渲染结果。
+
+        根据 ``uri`` 的 scheme 自动选择协议：
+        - ``http://`` / ``https://`` → HTTP POST /render
+        - ``ws://`` / ``wss://`` → WebSocket（兼容旧配置）
+
+        bytes 参数自动转为 ``base64://`` 内联编码，Godot 的 TextureHelper 原生支持。
+        """
+        if self._is_ws:
+            return await self._render_websocket(scene, request_id, params, _retries)
+        return await self._render_http(scene, request_id, params, _retries)
 
     async def render_player_info(self, request_id: str,
                                  playername: str,
@@ -259,7 +307,7 @@ class RenderAPI:
             **kwargs) -> bytes | dict | None:
         """渲染 level 场景（关卡信息）。
 
-        可直接传入 bytes 类型的 thumbnail，框架会自动通过 HTTP 提供给 Godot。
+        可直接传入 bytes 类型的 thumbnail，框架自动转为 base64:// 内联编码。
         """
         params = {k: v for k, v in locals().items()
                   if k not in ("self", "request_id", "scene_type", "kwargs") and v is not None and v != b""}
