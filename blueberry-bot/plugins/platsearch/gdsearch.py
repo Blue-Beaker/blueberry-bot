@@ -362,7 +362,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                         downloads=level.downloads,
                         likes=level.likes,
                         scene_type="level_large",
-                        thumbnail=thumb if thumb else "",
+                        thumbnail=getThumbnailUrl(level.id),
                         description=level.get_description(),
                         **extra_render_args
                         )
