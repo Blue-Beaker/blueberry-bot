@@ -361,7 +361,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                         downloads=level.downloads,
                         likes=level.likes,
                         scene_type="level_large",
-                        thumbnail=getThumbnailUrl(level.id),
+                        thumbnail=getThumbnailUrl(level.id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or "",
                         description=level.get_description(),
                         **extra_render_args
                         )
