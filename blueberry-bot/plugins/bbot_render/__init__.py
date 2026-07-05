@@ -105,48 +105,59 @@ class RenderAPI:
         return result, resource_urls
 
     async def _render(self, scene: str, request_id: str,
-                      params: dict | None = None) -> bytes | dict | None:
+                      params: dict | None = None,
+                      _retries: int = 3) -> bytes | dict | None:
         """发送渲染请求到 Godot 渲染服务，返回渲染结果。
 
         大字段（如 thumbnail bytes）自动替换为 HTTP URL，
         Godot 通过本地 HTTP 服务获取，避免入站消息过大。
+
+        如果接收到的结果为空（无数据），会自动重试最多 ``_retries`` 次。
         """
         resource_urls: list[str] = []
-        try:
-            request = {"scene": scene, "request_id": request_id}
-            if params:
-                processed, resource_urls = await self._process_params(params)
-                request.update(processed)
+        for attempt in range(1, _retries + 1):
+            try:
+                request = {"scene": scene, "request_id": request_id}
+                if params:
+                    processed, resource_urls = await self._process_params(params)
+                    request.update(processed)
 
-            async with websockets.connect(
-                self.uri,
-                max_size=100 * 1024 * 1024,
-                max_queue=None,
-            ) as ws:
-                await ws.send(json.dumps(request))
+                async with websockets.connect(
+                    self.uri,
+                    max_size=100 * 1024 * 1024,
+                    max_queue=None,
+                ) as ws:
+                    await ws.send(json.dumps(request))
 
-                # 接收渲染结果
-                fragments: list[bytes] = []
-                is_text = False
-                async for fragment in ws.recv_streaming():
-                    if isinstance(fragment, str):
-                        is_text = True
-                        fragments.append(fragment.encode())
+                    # 接收渲染结果
+                    fragments: list[bytes] = []
+                    is_text = False
+                    async for fragment in ws.recv_streaming():
+                        if isinstance(fragment, str):
+                            is_text = True
+                            fragments.append(fragment.encode())
+                        else:
+                            fragments.append(fragment)
+
+                    raw = b"".join(fragments)
+                    if not raw:
+                        if attempt < _retries:
+                            continue  # 空结果，重试
+                        return None
+                    if is_text:
+                        return json.loads(raw.decode())
                     else:
-                        fragments.append(fragment)
-
-                raw = b"".join(fragments)
-                if is_text:
-                    return json.loads(raw.decode())
-                else:
-                    return raw
-        except OSError:
-            return None
-        finally:
-            # Godot 已获取图片，清理临时资源
-            if self._resource_server and resource_urls:
-                for url in resource_urls:
-                    self._resource_server.remove_resource(url)
+                        return raw
+            except OSError:
+                if attempt < _retries:
+                    continue  # 连接失败，重试
+                return None
+            finally:
+                # Godot 已获取图片，清理临时资源
+                if self._resource_server and resource_urls:
+                    for url in resource_urls:
+                        self._resource_server.remove_resource(url)
+        return None
 
     async def render_player_info(self, request_id: str,
                                  playername: str,
