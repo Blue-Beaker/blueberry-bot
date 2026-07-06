@@ -83,6 +83,7 @@ async def convertMessage(msg:Message):
         else:
             if strings_pool:
                 newmsg.append(await convertMessageSegment(strings_pool))
+                strings_pool=""
             newmsg.append(await convertMessageSegment(seg))
     
     if strings_pool:
