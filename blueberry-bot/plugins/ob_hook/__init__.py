@@ -6,6 +6,7 @@ from nonebot import get_plugin_config,logger,require
 from nonebot.adapters import Bot
 from nonebot.adapters.onebot.v11 import Bot as OBBot
 from nonebot.adapters.onebot.v11.message import Message,MessageSegment
+from nonebot.exception import MockApiException
 
 from nonebot.adapters.discord import Bot as DCBot,MessageSegment as DCMessageSegment,Message as DCMessage
 from nonebot.adapters.discord.message import parse_message
@@ -17,8 +18,6 @@ from ..bbot_api import pack_message
 
 require("bbot_render")
 from ..bbot_render import RenderAPI
-
-
 
 plugin_config = get_plugin_config(Config)
 
@@ -34,6 +33,9 @@ async def handle_api_call(bot: Bot, api: str, data: dict[str, Any]):
     # print(api,data)
     if not isinstance(bot, OBBot):
         return
+    
+    # logger.info(data)
+    
     if(api in ["send_msg"]):
         msg=data.get("message")
         if isinstance(msg,Message):
@@ -44,21 +46,47 @@ async def handle_api_call(bot: Bot, api: str, data: dict[str, Any]):
                 msg=msg+await pack_message(bot,get_random_suffix())
                 
             data["message"]=await convertMessage(msg)
+            
+    # logger.info(data)
+    
+    # raise MockApiException(data)
                 
     # logger.info(f"{api},{data}")
-                
+    
+async def convertMessageNode(msg:Message):
+    return msg
+
+    newmsg=Message()
+    for msgseg1 in msg:
+        msg1 = msgseg1.data.get("content",None)
+        if msg1:
+            newmsg.append(MessageSegment.node_custom(int(msgseg1.data["user_id"]),msgseg1.data["nickname"],await convertMessage(msg1)))
+            
+    return newmsg
+    
+
 async def convertMessage(msg:Message):
     if msg.__len__()==0:
         return msg
             
-    if msg[0].type == "node":
-        for msgseg1 in msg:
-            msg1 = getattr(msgseg1,"content")
-            setattr(msgseg1,"content",await convertMessage(msg1))
+    if getattr(msg[0],'type',None) == "node":
+        return await convertMessageNode(msg)
     
-    newmsg=type(msg)()
+    newmsg=Message()
+    
+    strings_pool=""
     for seg in msg:
-        newmsg.append(await convertMessageSegment(seg))
+        if isinstance(seg,str):
+            strings_pool+=seg
+        elif seg.is_text():
+            strings_pool+=seg.data["text"]
+        else:
+            if strings_pool:
+                newmsg.append(await convertMessageSegment(strings_pool))
+            newmsg.append(await convertMessageSegment(seg))
+    
+    if strings_pool:
+        newmsg.append(await convertMessageSegment(strings_pool))
     return newmsg
     
 async def convertMessageSegment(seg:MessageSegment|str):

@@ -8,6 +8,10 @@ from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent
 from nonebot.adapters.minecraft import BaseChatEvent as MCBaseChatEvent
 from . import sheets_api
 sheets_api=sheets_api
+from nonebot import get_plugin_config,logger
+from .config import Config
+
+plugin_config=get_plugin_config(Config)
 
 def getid(event: Event) -> str:
     if isinstance(event,DCMessageEvent):
@@ -110,7 +114,7 @@ def get_group_id(event):
     return group_id
 
 def can_pack_message(bot:Bot):
-    return isinstance(bot,OBBot)
+    return isinstance(bot,OBBot) and plugin_config.ob_pack_message
 
 class LoginInfo:
     user_id:int=-1
@@ -121,6 +125,14 @@ class LoginInfo:
         if self.user_id>0 and self.nickname and time.time()<self.expiration:
             return
         
+        if plugin_config.ob_user_id:
+            self.user_id=plugin_config.ob_user_id
+        if plugin_config.ob_user_nickname:
+            self.nickname=plugin_config.ob_user_nickname
+        
+        if plugin_config.ob_user_id and plugin_config.ob_user_nickname:
+            self.expiration=int(time.time()+600)
+            return
         login_info = await bot.get_login_info()
         self.user_id=login_info.get("user_id",-1)
         self.nickname=login_info.get("nickname","")
