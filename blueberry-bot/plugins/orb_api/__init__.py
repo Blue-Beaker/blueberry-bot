@@ -16,6 +16,7 @@ require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
 require("bbot_api")
 from ..bbot_api import get_user_id
+from ..bbot_api.profile_link.events import on_link, LinkUserEvent, UnlinkUserEvent
 
 driver=get_driver()
 
@@ -35,6 +36,22 @@ async def load_sessions():
 @driver.on_shutdown
 async def save_sessions():
     save_sync()
+
+# ── profile_link 事件监听器 ──────────────────────────
+
+@on_link(LinkUserEvent)
+def _orb_on_link(event: LinkUserEvent):
+    from ..bbot_api.profile_link.profile_link import get_profile_link_manager
+    manager = get_profile_link_manager()
+    if manager.migrate_dict(ORB_STORAGE.balances, event.raw_id, event.profile_id):
+        logger.info(f"orb: 已迁移余额 {event.raw_id} → {event.profile_id}")
+
+@on_link(UnlinkUserEvent)
+def _orb_on_unlink(event: UnlinkUserEvent):
+    from ..bbot_api.profile_link.profile_link import get_profile_link_manager
+    manager = get_profile_link_manager()
+    if manager.migrate_dict(ORB_STORAGE.balances, event.profile_id, event.raw_id):
+        logger.info(f"orb: 已回迁余额 {event.profile_id} → {event.raw_id}")
 
 def get_orb_owner_id(event:Event):
     """从事件中提取带平台前缀的用户 ID。"""

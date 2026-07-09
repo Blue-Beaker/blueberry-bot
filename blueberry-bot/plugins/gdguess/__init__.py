@@ -27,6 +27,7 @@ from .guess_config import ConfigManager,GDGuessConfigItem
 
 require("bbot_api")
 from ..bbot_api import getid,reaction_emoji,loadFile,safeInt,TextImageMessage,group_config,reaction_emoji_dc
+from ..bbot_api.profile_link.events import on_link, LinkUserEvent, UnlinkUserEvent
 from ..bbot_api.argparse import ArgParser
 from .. import bbot_api
 require("gd_api")
@@ -104,8 +105,27 @@ class SaveManager:
             os.remove(f)
         
 SAVE_MANAGER=SaveManager()
-            
-    
+
+# ── profile_link 事件监听器 ──────────────────────────
+
+@on_link(LinkUserEvent)
+def _gdguess_on_link(event: LinkUserEvent):
+    from ..bbot_api.profile_link.profile_link import get_profile_link_manager
+    manager = get_profile_link_manager()
+    if manager.migrate_dict(session_manager.entries, event.raw_id, event.profile_id):
+        logger.info(f"gdguess: 已迁移会话 {event.raw_id} → {event.profile_id}")
+    if config_manager.merge_profile(event.profile_id, event.raw_id):
+        logger.info(f"gdguess: 已合并配置 {event.raw_id} → {event.profile_id}")
+
+@on_link(UnlinkUserEvent)
+def _gdguess_on_unlink(event: UnlinkUserEvent):
+    from ..bbot_api.profile_link.profile_link import get_profile_link_manager
+    manager = get_profile_link_manager()
+    if manager.migrate_dict(session_manager.entries, event.profile_id, event.raw_id):
+        logger.info(f"gdguess: 已回迁会话 {event.profile_id} → {event.raw_id}")
+    if config_manager.unmerge_profile(event.profile_id, event.raw_id):
+        logger.info(f"gdguess: 已拆分配置 {event.profile_id} → {event.raw_id}")
+
 gdguess_test = on_command("gdguess-test",permission=SUPERUSER)
 @gdguess_test.handle()
 async def _(bot:Bot,event:Event,args: Message = CommandArg()):

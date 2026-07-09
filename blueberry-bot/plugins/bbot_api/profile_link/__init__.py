@@ -5,14 +5,12 @@ from nonebot.permission import SUPERUSER
 from nonebot.exception import FinishedException
 
 from .profile_link import get_profile_link_manager
-from .listeners import register_all
 
 
 driver = get_driver()
 
 @driver.on_startup
 async def load_profile_links():
-    register_all()
     manager = get_profile_link_manager()
     manager.load()
     logger.info(f"已加载 {len(manager.user_links)} 个用户绑定, {len(manager.group_links)} 个群绑定.")

@@ -12,6 +12,7 @@ from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent
 from nonebot.adapters.discord import MessageEvent as DCMessageEvent, MessageSegment as DCMessageSegment, Message as DCMessage
 
 from ..bbot_api import getid
+from ..bbot_api.profile_link.events import on_link, LinkUserEvent, UnlinkUserEvent
 
 from . import guess_data
 from . import handler_mc
@@ -63,6 +64,22 @@ def saveSessions():
         json.dump(handler_base.INSTANCES.dump(),f,ensure_ascii=False,indent=2)
         
 handler_base.after_command=saveSessions
+
+# ── profile_link 事件监听器 ──────────────────────────
+
+@on_link(LinkUserEvent)
+def _guess_on_link(event: LinkUserEvent):
+    from ..bbot_api.profile_link.profile_link import get_profile_link_manager
+    manager = get_profile_link_manager()
+    if manager.migrate_dict(INSTANCES.guessManagers, event.raw_id, event.profile_id):
+        logger.info(f"guess: 已迁移会话 {event.raw_id} → {event.profile_id}")
+
+@on_link(UnlinkUserEvent)
+def _guess_on_unlink(event: UnlinkUserEvent):
+    from ..bbot_api.profile_link.profile_link import get_profile_link_manager
+    manager = get_profile_link_manager()
+    if manager.migrate_dict(INSTANCES.guessManagers, event.profile_id, event.raw_id):
+        logger.info(f"guess: 已回迁会话 {event.profile_id} → {event.raw_id}")
 
 handler_msg = on_command("guess")
 @handler_msg.handle()

@@ -26,6 +26,7 @@ from .gus_data import GusData,GusEntry
 require("bbot_api")
 from ..bbot_api import TextImageMessage,getid,get_group_id
 from ..bbot_api.group_config import GroupConfig,ConfigItem,make_config_handler
+from ..bbot_api.profile_link.events import on_link, LinkUserEvent, LinkGroupEvent, UnlinkUserEvent, UnlinkGroupEvent
 
 require("gdguess")
 from ..gdguess import gdguess_logic
@@ -95,6 +96,28 @@ class GusCooldown:
         return False
     
 cooldown = GusCooldown()
+
+# ── profile_link 事件监听器 ──────────────────────────
+
+@on_link(LinkUserEvent)
+def _gus_on_link(event: LinkUserEvent):
+    if group_config.merge_profile(event.profile_id, event.raw_id):
+        logger.info(f"gus: 已合并配置 {event.raw_id} → {event.profile_id}")
+
+@on_link(UnlinkUserEvent)
+def _gus_on_unlink(event: UnlinkUserEvent):
+    if group_config.unmerge_profile(event.profile_id, event.raw_id):
+        logger.info(f"gus: 已拆分配置 {event.profile_id} → {event.raw_id}")
+
+@on_link(LinkGroupEvent)
+def _gus_on_link_group(event: LinkGroupEvent):
+    if group_config.merge_profile(event.profile_id, event.raw_group_id):
+        logger.info(f"gus: 已合并群配置 {event.raw_group_id} → {event.profile_id}")
+
+@on_link(UnlinkGroupEvent)
+def _gus_on_unlink_group(event: UnlinkGroupEvent):
+    if group_config.unmerge_profile(event.profile_id, event.raw_group_id):
+        logger.info(f"gus: 已拆分群配置 {event.profile_id} → {event.raw_group_id}")
 
 gus_cmd=on_command("gus")
 @gus_cmd.handle()

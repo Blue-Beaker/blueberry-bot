@@ -20,6 +20,7 @@ from .config import Config
 require("bbot_api")
 from ..bbot_api import getid as getid_raw,get_group_id
 from ..bbot_api.group_config import GroupConfig,ConfigItem,make_config_handler
+from ..bbot_api.profile_link.events import on_link, LinkUserEvent, LinkGroupEvent, UnlinkUserEvent, UnlinkGroupEvent
 from ..bbot_api import message_compat
 
 def getid(event:Event):
@@ -123,6 +124,27 @@ async def save():
     # say_config.save()
     say_config.save()
 
+# ── profile_link 事件监听器 ──────────────────────────
+
+@on_link(LinkUserEvent)
+def _say_on_link(event: LinkUserEvent):
+    if say_config.merge_profile(event.profile_id, event.raw_id):
+        logger.info(f"say: 已合并配置 {event.raw_id} → {event.profile_id}")
+
+@on_link(UnlinkUserEvent)
+def _say_on_unlink(event: UnlinkUserEvent):
+    if say_config.unmerge_profile(event.profile_id, event.raw_id):
+        logger.info(f"say: 已拆分配置 {event.profile_id} → {event.raw_id}")
+
+@on_link(LinkGroupEvent)
+def _say_on_link_group(event: LinkGroupEvent):
+    if say_config.merge_profile(event.profile_id, event.raw_group_id):
+        logger.info(f"say: 已合并群配置 {event.raw_group_id} → {event.profile_id}")
+
+@on_link(UnlinkGroupEvent)
+def _say_on_unlink_group(event: UnlinkGroupEvent):
+    if say_config.unmerge_profile(event.profile_id, event.raw_group_id):
+        logger.info(f"say: 已拆分群配置 {event.profile_id} → {event.raw_group_id}")
 
 class SayConfigOld:
     allowed_sessions:dict[str,bool]={}

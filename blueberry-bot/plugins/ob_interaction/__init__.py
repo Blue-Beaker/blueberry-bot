@@ -15,6 +15,7 @@ from .config import Config
 
 require("bbot_api")
 from ..bbot_api.group_config import GroupConfig, ConfigItem, make_config_handler
+from ..bbot_api.profile_link.events import on_link, LinkUserEvent, LinkGroupEvent, UnlinkUserEvent, UnlinkGroupEvent
 
 plugin_config = get_plugin_config(Config)
 
@@ -41,7 +42,28 @@ async def _():
 async def _():
     group_config.save()
 
-        
+# ── profile_link 事件监听器 ──────────────────────────
+
+@on_link(LinkUserEvent)
+def _ob_on_link(event: LinkUserEvent):
+    if group_config.merge_profile(event.profile_id, event.raw_id):
+        logger.info(f"ob_interaction: 已合并配置 {event.raw_id} → {event.profile_id}")
+
+@on_link(UnlinkUserEvent)
+def _ob_on_unlink(event: UnlinkUserEvent):
+    if group_config.unmerge_profile(event.profile_id, event.raw_id):
+        logger.info(f"ob_interaction: 已拆分配置 {event.profile_id} → {event.raw_id}")
+
+@on_link(LinkGroupEvent)
+def _ob_on_link_group(event: LinkGroupEvent):
+    if group_config.merge_profile(event.profile_id, event.raw_group_id):
+        logger.info(f"ob_interaction: 已合并群配置 {event.raw_group_id} → {event.profile_id}")
+
+@on_link(UnlinkGroupEvent)
+def _ob_on_unlink_group(event: UnlinkGroupEvent):
+    if group_config.unmerge_profile(event.profile_id, event.raw_group_id):
+        logger.info(f"ob_interaction: 已拆分群配置 {event.profile_id} → {event.raw_group_id}")
+
 onMsg=on_type(OBMessageEvent)
 @onMsg.handle()
 async def _(bot:OBBot,event:OBMessageEvent):
