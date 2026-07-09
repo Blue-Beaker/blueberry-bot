@@ -37,7 +37,7 @@ async def load_sessions():
     ORB_STORAGE.load()
     logger.info(f"Loaded {len(ORB_STORAGE.balances.keys())} entries.")
     scheduler.add_job(save_sync, "interval", seconds=10, id="ORBS_SAVE") 
-    scheduler.add_job(save_force, "interval", minutes=10, id="ORBS_SAVE") 
+    scheduler.add_job(save_force, "interval", minutes=10, id="ORBS_SAVE2") 
     
 @driver.on_shutdown
 async def save_sessions():
