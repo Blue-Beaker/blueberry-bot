@@ -672,10 +672,10 @@ async def sendMessageAndImage(bot:Bot,matcher:type[Matcher],message:str,image:by
     await matcher.send(buildMessageImage(bot,message,image,image_name))
         
 def buildMessageImage(bot:Bot,message:str,image:bytes,image_name:str="guess.png"):
-    if isinstance(bot,OBBot):
-        return(OBMessageSegment.text(message)+OBMessageSegment.image(image))
-    else:
-        return(DCMessage().append(message).append(DCMessageSegment.attachment(image_name,content=image)))
+    msg=bbot_api.TextImageMessage.build(bot)
+    msg.addText(message)
+    msg.addImage(image=image,image_name=image_name)
+    return msg.msg
 
 def get_default_config(id:str):
     if id.startswith("group"):

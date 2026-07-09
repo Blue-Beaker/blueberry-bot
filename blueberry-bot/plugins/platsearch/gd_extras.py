@@ -196,10 +196,10 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
         return
     
 def buildMessageImage(bot:Bot,message:str,image:bytes,image_name:str):
-    if isinstance(bot,OBBot):
-        return(OBMessageSegment.text(message)+OBMessageSegment.image(image))
-    else:
-        return(DCMessage().append(message).append(DCMessageSegment.attachment(image_name,content=image)))
+    msg=bbot_api.TextImageMessage.build(bot)
+    msg.addText(message)
+    msg.addImage(image=image,image_name=image_name)
+    return msg.msg
 
 def get_help(bot:Bot,event:Event):
     if isinstance(bot,OBBot) or isinstance(bot,DCBot):

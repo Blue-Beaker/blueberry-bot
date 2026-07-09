@@ -68,7 +68,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     if not user or not user.account_id:
         await gduser.finish("未找到玩家, 或发生错误.")
         
-    supports_image=(isinstance(bot,OBBot) or isinstance(bot,DCBot))
+    supports_image=bbot_api.supportsImage(bot)
     enable_image=(not force_text) and supports_image
     
     msg=bbot_api.TextImageMessage.build(bot)
