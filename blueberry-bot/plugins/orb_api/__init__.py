@@ -67,6 +67,9 @@ def add_balance(user:str,count:int,allow_negative:bool=False):
 def get_balance(user:str):
     return ORB_STORAGE.get_balance(user)
 
+def user_exists(user:str):
+    return ORB_STORAGE.balances.__contains__(user)
+
 class OrbAccount:
     def __init__(self,user:str) -> None:
         self.user=user
@@ -87,6 +90,9 @@ orb_id=on_command("orb-id")
 @orb_id.handle()
 async def _(bot:Bot,event:Event, args: Message = CommandArg()):
     event_userid = get_orb_owner_id(event)
+    if event_userid:
+        # Add 0 orbs to ensure account exists
+        add_balance(event_userid,0,False)
     await orb_id.finish(f"你的orb id: {event_userid}")
     
 
@@ -140,6 +146,49 @@ async def _(bot:Bot,event:Event, args: Message = CommandArg()):
             reply.append(f"Orbs不足以扣除! {userid} 拥有 {get_balance(userid)} Orbs.")
             
         await orb_add.finish("\n".join(reply))
+        
+    except Exception as e:
+        if isinstance(e,FinishedException):
+            raise e
+        await orb_add.finish(f"错误: {e}")
+        logger.error(f"Error: {traceback.format_exc()}")
+        
+        
+orb_transfer=on_command("orb-transfer")
+@orb_transfer.handle()
+async def _(bot:Bot,event:Event, args: Message = CommandArg()):
+    cmd_args=args.extract_plain_text().split()
+    userid = get_orb_owner_id(event)
+    if not userid:
+        await orb_transfer.finish(f"内部错误: 找不到你的ID.")
+    
+    if(cmd_args.__len__()<2):
+        await orb_transfer.finish(f"用法: orb-transfer 用户ID 数量\n你的用户ID:{userid}")
+    try:
+        target_id = cmd_args[0]
+        count = int(cmd_args[1])
+        reply=[]
+        if count<0:
+            await orb_transfer.finish("别想抢走别人的 Orbs!")
+        elif count==0:
+            await orb_transfer.finish("这有什么用呢?")
+            
+        if not user_exists(userid):
+            await orb_transfer.finish("目标用户不存在, 请确认ID正确.")
+        
+        balance = get_balance(userid)
+        
+        if balance<count:
+            await orb_transfer.finish(f"你的 Orbs 不足, 你只有 {balance} Orbs.")
+        
+        result = add_balance(userid,-count,False)
+        result = add_balance(target_id,count,False)
+        
+        if result:
+            reply.append(f"已转移 {count} Orbs. 你现在拥有{get_balance(userid)} Orbs.")
+            reply.append(f"{target_id} 现在拥有 {get_balance(target_id)} Orbs.")
+            
+        await orb_transfer.finish("\n".join(reply))
         
     except Exception as e:
         if isinstance(e,FinishedException):
