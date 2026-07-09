@@ -30,6 +30,7 @@ def migrate_key(old_key: str) -> str:
 class OrbStorage:
     balances: dict[str, int]
     config_path: str | None
+    needs_save: bool=False
     
     def __init__(self, config_path: str | None = None) -> None:
         self.balances = {}
@@ -49,8 +50,10 @@ class OrbStorage:
                 new_key = migrate_key(old_key)
                 migrated[new_key] = value
             self.balances = migrated
+            self.needs_save=True
         else:
             self.balances = balances
+            self.needs_save=True
     
     def save(self) -> None:
         if not self.config_path:
@@ -72,6 +75,7 @@ class OrbStorage:
         data = self.to_dict()
         with open(self.config_path, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
+            self.needs_save=False
     
     def load(self) -> None:
         if not self.config_path or not os.path.exists(self.config_path):
@@ -88,6 +92,7 @@ class OrbStorage:
     def get_balance(self, user: str) -> int:
         if user not in self.balances:
             self.balances[user] = 0
+            self.needs_save=True
         return self.balances.get(user, 0)
     
     def add_balance(self, user: str, count: int, allow_negative: bool = False) -> bool:
@@ -95,4 +100,5 @@ class OrbStorage:
         if not allow_negative and count < 0 and changed < 0:
             return False
         self.balances[user] = changed
+        self.needs_save=True
         return True

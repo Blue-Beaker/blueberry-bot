@@ -23,15 +23,16 @@ driver=get_driver()
 ORB_STORAGE=OrbStorage("config/orb_data.json")
 
 def save_sync():
-    ORB_STORAGE.save()
-    logger.info(f"Saved {len(ORB_STORAGE.balances.keys())} entries.")
+    if ORB_STORAGE.needs_save:
+        ORB_STORAGE.save()
+        logger.info(f"Saved {len(ORB_STORAGE.balances.keys())} entries.")
 
 @driver.on_startup
 async def load_sessions():
     os.makedirs("config",exist_ok=True)
     ORB_STORAGE.load()
     logger.info(f"Loaded {len(ORB_STORAGE.balances.keys())} entries.")
-    scheduler.add_job(save_sync, "interval", minutes=5, id="ORBS_SAVE") 
+    scheduler.add_job(save_sync, "interval", seconds=10, id="ORBS_SAVE") 
     
 @driver.on_shutdown
 async def save_sessions():
