@@ -23,6 +23,16 @@ driver=get_driver()
 ORB_STORAGE=OrbStorage("config/orb_data.json")
 
 
+def _migrate_balance(from_id: str, to_id: str) -> bool:
+    """累加迁移 orb 余额：将 raw_id 的 orb 累加到 profile_id，再删除 raw_id。"""
+    if from_id not in ORB_STORAGE.balances:
+        return False
+    amount = ORB_STORAGE.balances[from_id]
+    add_balance(to_id, amount)
+    del ORB_STORAGE.balances[from_id]
+    return True
+
+
 def save_force():
     ORB_STORAGE.save()
     logger.info(f"Saved {len(ORB_STORAGE.balances.keys())} entries.")
@@ -47,10 +57,8 @@ async def save_sessions():
 
 @on_link(LinkUserEvent)
 def _orb_on_link(event: LinkUserEvent):
-    from ..bbot_api.profile_link.profile_link import get_profile_link_manager
-    manager = get_profile_link_manager()
-    if manager.migrate_dict(ORB_STORAGE.balances, event.raw_id, event.profile_id):
-        ORB_STORAGE.needs_save=True
+    if _migrate_balance(event.raw_id, event.profile_id):
+        ORB_STORAGE.needs_save = True
         logger.info(f"orb: 已迁移余额 {event.raw_id} → {event.profile_id}")
         logger.info(f"{event.profile_id}: {get_balance(event.profile_id)}")
 
@@ -58,11 +66,16 @@ def _orb_on_link(event: LinkUserEvent):
 def _orb_on_unlink(event: UnlinkUserEvent):
     from ..bbot_api.profile_link.profile_link import get_profile_link_manager
     manager = get_profile_link_manager()
-    if manager.migrate_dict(ORB_STORAGE.balances, event.profile_id, event.raw_id):
-        ORB_STORAGE.needs_save=True
-        logger.info(f"orb: 已回迁余额 {event.profile_id} → {event.raw_id}")
-        logger.info(f"{event.profile_id}: {get_balance(event.profile_id)}")
-        logger.info(f"{event.raw_id}: {get_balance(event.raw_id)}")
+    profile = manager.get_user_profile(event.profile_id)
+    # 只有解绑后 profile 不再关联任何实际 ID 时，才把 orb 回退到 raw_id
+    if profile and len(profile.linked_ids) == 0:
+        if _migrate_balance(event.profile_id, event.raw_id):
+            ORB_STORAGE.needs_save = True
+            logger.info(f"orb: 已回迁余额 {event.profile_id} → {event.raw_id}")
+            logger.info(f"{event.profile_id}: {get_balance(event.profile_id)}")
+            logger.info(f"{event.raw_id}: {get_balance(event.raw_id)}")
+    else:
+        logger.info(f"orb: 跳过回迁 (profile {event.profile_id} 仍有其他绑定)")
 
 def get_orb_owner_id(event:Event):
     """从事件中提取带平台前缀的用户 ID。"""
