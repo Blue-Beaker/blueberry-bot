@@ -5,6 +5,7 @@ import uuid
 from nonebot.adapters import Event,Bot,Message
 from nonebot.adapters.discord import GuildMessageCreateEvent,MessageEvent as DCMessageEvent,Message as DCMessage,MessageSegment as DCMessageSegment,Bot as DCBot
 from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent,Bot as OBBot,Message as OBMessage,MessageSegment as OBMessageSegment,MessageEvent as OBMessageEvent
+from nonebot.adapters.qq import Bot as QQBot, Message as QQMessage, MessageSegment as QQMessageSegment, MessageEvent as QQMessageEvent, C2CMessageCreateEvent as QQC2CMessageCreateEvent, GroupMessageCreateEvent as QQGroupMessageCreateEvent
 from nonebot.adapters.minecraft import BaseChatEvent as MCBaseChatEvent
 from . import sheets_api
 sheets_api=sheets_api
@@ -20,6 +21,11 @@ def getid(event: Event) -> str:
         return "group_"+str(getattr(event,"group_id"))
     if isinstance(event,MCBaseChatEvent):
         return "mc_"+event.server_name
+    
+    if isinstance(event,QQGroupMessageCreateEvent):
+        return "qqgroup_"+event.group_id
+    if isinstance(event,QQC2CMessageCreateEvent):
+        return "qquser_"+event.get_user_id()
     else:
         return "u_" + str(event.get_user_id())
     
@@ -50,14 +56,14 @@ def safeInt(i:Any,fallback:_A=-1) -> int|_A:
         return fallback
     
 def supportsImage(bot:Bot):
-    return isinstance(bot,OBBot) or isinstance(bot,DCBot)
+    return isinstance(bot,OBBot) or isinstance(bot,DCBot) or isinstance(bot,QQBot)
 
 def supportsMarkdown(bot:Bot):
     return isinstance(bot,DCBot)
     
 class TextImageMessage:
-    msg:DCMessage|OBMessage|str
-    def __init__(self,msg:DCMessage|OBMessage|str) -> None:
+    msg:DCMessage|OBMessage|QQMessage|str
+    def __init__(self,msg:DCMessage|OBMessage|QQMessage|str) -> None:
         self.msg=msg
     @classmethod
     def build(cls,bot:Bot):
@@ -65,6 +71,8 @@ class TextImageMessage:
             return cls(DCMessage())
         elif isinstance(bot,OBBot):
             return cls(OBMessage())
+        elif isinstance(bot,QQBot):
+            return cls(QQMessage())
         else:
             return cls("")
     def addText(self,text:str):
@@ -87,6 +95,8 @@ class TextImageMessage:
                 self.msg.append(imgsegment)
             else:
                 self.msg.append(OBMessageSegment.image(image))
+        elif isinstance(self.msg,QQMessage):
+            self.msg.append(QQMessageSegment.file_image(image,image_name))
         return self
     def getMessage(self):
         return self.msg
@@ -100,6 +110,8 @@ def get_group_id(event):
     # print(event)
     if isinstance(event,MCBaseChatEvent):
         group_id=event.server_name
+    elif isinstance(event,QQGroupMessageCreateEvent):
+        group_id=event.group_id
     else:
         for field in ["group_id","channel_id"]:
             group_id=getattr(event,field,None)

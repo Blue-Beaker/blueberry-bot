@@ -1,12 +1,14 @@
 import traceback
 from nonebot import logger, require,get_plugin_config,on_command
 from nonebot.exception import IgnoredException,FinishedException
-from nonebot.message import run_preprocessor
+from nonebot.message import run_preprocessor,event_preprocessor
 from nonebot.adapters import Bot,Event,Message
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg
 from nonebot.permission import SUPERUSER
 from .config import Config
+
+from nonebot.adapters.qq import Bot as QQBot,QQMessageEvent,C2CMessageCreateEvent,GroupAtMessageCreateEvent
 
 plugin_config=get_plugin_config(Config)
 
@@ -15,6 +17,13 @@ from ..bbot_api import getid,get_group_id
 
 debuglist=set(plugin_config.debug_sessions)
 
+# @event_preprocessor
+# async def _(bot:Bot, event: Event):
+#     if isinstance(event,GroupAtMessageCreateEvent):
+#         logger.info(f"{type(event)} {event.get_user_id()},{event.get_session_id()},{event.group_id},{event.group_openid}")
+#     elif isinstance(event,C2CMessageCreateEvent):
+#         logger.info(f"{type(event)} {event.get_user_id()},{event.get_session_id()}")
+        
 @run_preprocessor
 async def _(event: Event, matcher: Matcher):
     if isinstance(matcher,debug_cmd):
