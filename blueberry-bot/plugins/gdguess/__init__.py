@@ -26,7 +26,7 @@ from .guess_session import GuessSession,SessionManager,ConfigManager as ConfigMa
 from .guess_config import ConfigManager,GDGuessConfigItem
 
 require("bbot_api")
-from ..bbot_api import getid,reaction_emoji,loadFile,safeInt,TextImageMessage,group_config,reaction_emoji_dc
+from ..bbot_api import getid,reaction_emoji_ob,loadFile,safeInt,TextImageMessage,group_config,reaction_emoji_dc,reaction_emoji
 from ..bbot_api.profile_link.events import on_link, LinkUserEvent, UnlinkUserEvent
 from ..bbot_api.argparse import ArgParser
 from .. import bbot_api
@@ -384,10 +384,11 @@ async def gdguess_logic(matcher:Type[Matcher],bot:Bot,event:Event,raw_args: Mess
     if not session or session.completed:
         msg="你还没有正在进行的猜图游戏! 输入 -gdguess -start [List ID] 来开始一个新的游戏.\n-start换成 -hard/-insane/-extreme 可以获得更小的截图, 但难度也会更大哦!"
         
-        if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
-            await reaction_emoji(bot,event.message_id,10068) # Questionmark
-        elif isinstance(bot,DCBot) and isinstance(event,DCMessageEvent):
-            await reaction_emoji_dc(bot,event,"❔")
+        await reaction_emoji(bot,event,"❔")
+        # if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
+        #     await reaction_emoji_ob(bot,event,10068) # Questionmark
+        # elif isinstance(bot,DCBot) and isinstance(event,DCMessageEvent):
+        #     await reaction_emoji_dc(bot,event,"❔")
         # Dont send tips when it's just finished
         if time.time()-last_finish_time.get(id,0)>10:
             await matcher.send(msg)
@@ -402,10 +403,11 @@ async def gdguess_logic(matcher:Type[Matcher],bot:Bot,event:Event,raw_args: Mess
         if session.hints_used:
             msg.addText(" (已使用提示)")
             
-        if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
-            await reaction_emoji(bot,event.message_id,144) # Confetti emoji
-        elif isinstance(bot,DCBot) and isinstance(event,DCMessageEvent):
-            await reaction_emoji_dc(bot,event,"🎉")
+        await reaction_emoji(bot,event,"🎉")
+        # if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
+        #     await reaction_emoji_ob(bot,event,144) # Confetti emoji
+        # elif isinstance(bot,DCBot) and isinstance(event,DCMessageEvent):
+        #     await reaction_emoji_dc(bot,event,"🎉")
         
         img=guess_utils.draw_rectangle_on_image(DATA_PATH/"images"/f"{session.session_id}.webp",session.crop)
         msg.addImage(img,"guess.png")
@@ -432,7 +434,7 @@ async def gdguess_logic(matcher:Type[Matcher],bot:Bot,event:Event,raw_args: Mess
         removeImages(id)
     else:
         if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
-            await reaction_emoji(bot,event.message_id,424) # Button emoji
+            await reaction_emoji_ob(bot,event,424) # Button emoji
         elif isinstance(bot,DCBot) and isinstance(event,DCMessageEvent):
             await reaction_emoji_dc(bot,event,"🔴")
         if session.guesses%5==0:
@@ -463,7 +465,7 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     cooldown=next_guess_time.get(id,0)-int(time.time())
     if cooldown>0:
         if isinstance(bot,OBBot) and isinstance(event,OBGroupMessageEvent):
-            await reaction_emoji(bot,event.message_id,424) # Button emoji
+            await reaction_emoji_ob(bot,event,424) # Button emoji
         else:
             await matcher.send(f"再过{id}秒才能再次开始哦")
         return
