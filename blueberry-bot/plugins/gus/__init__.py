@@ -208,7 +208,7 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
     if isinstance(msg,OBMessage):
         imgs=msg.get("image",1)
     elif isinstance(event,GuildMessageCreateEvent):
-        imgs=[atta for atta in event.attachments if atta.content_type.startswith('image')]
+        imgs=[atta for atta in event.attachments if isinstance(atta.content_type,str) and atta.content_type.startswith('image')]
     if not imgs:
         await gus_add.finish("请包含一张图片用于添加.")
     
