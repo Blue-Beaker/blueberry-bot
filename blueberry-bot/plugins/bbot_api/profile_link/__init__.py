@@ -34,16 +34,16 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
     if not cmd_args:
         await profile_link_cmd.finish(
             "用法:\n"
-            "account create <通用ID> - 创建通用用户 ID\n"
+            "account create <通用ID> [实际ID ...] - 创建通用用户 ID (可选绑定)\n"
             "account delete <通用ID> - 删除通用用户 ID\n"
             "account list - 列出所有绑定\n"
             "account show <通用ID> - 查看绑定详情\n"
-            "account link <通用ID> <实际ID> - 绑定实际用户 ID\n"
-            "account unlink <通用ID> <实际ID> - 解除用户绑定\n"
-            "account create-group <通用ID> - 创建通用群 ID\n"
+            "account link <通用ID> <实际ID> [实际ID ...] - 批量绑定实际用户 ID\n"
+            "account unlink <通用ID> <实际ID> [实际ID ...] - 批量解除用户绑定\n"
+            "account create-group <通用ID> [实际群ID ...] - 创建通用群 ID (可选绑定)\n"
             "account delete-group <通用ID> - 删除通用群 ID\n"
-            "account link-group <通用ID> <群ID> - 绑定群 ID\n"
-            "account unlink-group <通用ID> <群ID> - 解除群绑定"
+            "account link-group <通用ID> <群ID> [群ID ...] - 批量绑定群 ID\n"
+            "account unlink-group <通用ID> <群ID> [群ID ...] - 批量解除群绑定"
         )
     
     try:
@@ -53,11 +53,19 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
         
         if action == "create":
             if len(cmd_args) < 2:
-                await profile_link_cmd.finish("用法: account create <通用ID>")
+                await profile_link_cmd.finish("用法: account create <通用ID> [实际ID ...]")
             name = cmd_args[1]
             manager.create_user_profile(name)
+            for raw_id in cmd_args[2:]:
+                try:
+                    manager.link_user_id(name, raw_id)
+                except ValueError as e:
+                    await profile_link_cmd.send(f"绑定 '{raw_id}' 失败: {e}")
             manager.save()
-            await profile_link_cmd.finish(f"已创建通用用户 ID: {name}")
+            if len(cmd_args) > 2:
+                await profile_link_cmd.finish(f"已创建通用用户 ID '{name}' 并绑定了 {len(cmd_args) - 2} 个ID")
+            else:
+                await profile_link_cmd.finish(f"已创建通用用户 ID: {name}")
         
         elif action == "delete":
             if len(cmd_args) < 2:
@@ -71,35 +79,61 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
         
         elif action == "link":
             if len(cmd_args) < 3:
-                await profile_link_cmd.finish("用法: account link <通用ID> <实际ID>")
-            name, raw_id = cmd_args[1], cmd_args[2]
-            try:
-                manager.link_user_id(name, raw_id)
-                manager.save()
-                await profile_link_cmd.finish(f"已将 '{raw_id}' 绑定到 '{name}'")
-            except ValueError as e:
-                await profile_link_cmd.finish(str(e))
+                await profile_link_cmd.finish("用法: account link <通用ID> <实际ID> [实际ID ...]")
+            name = cmd_args[1]
+            linked = []
+            errors = []
+            for raw_id in cmd_args[2:]:
+                try:
+                    manager.link_user_id(name, raw_id)
+                    linked.append(raw_id)
+                except ValueError as e:
+                    errors.append(f"'{raw_id}': {e}")
+            manager.save()
+            msg = ""
+            if linked:
+                msg += f"已将 {len(linked)} 个ID绑定到 '{name}': {', '.join(linked)}"
+            if errors:
+                msg += "\n" + "\n".join(errors)
+            await profile_link_cmd.finish(msg)
         
         elif action == "unlink":
             if len(cmd_args) < 3:
-                await profile_link_cmd.finish("用法: account unlink <通用ID> <实际ID>")
-            name, raw_id = cmd_args[1], cmd_args[2]
-            try:
-                manager.unlink_user_id(name, raw_id)
-                manager.save()
-                await profile_link_cmd.finish(f"已解除 '{raw_id}' 与 '{name}' 的绑定")
-            except ValueError as e:
-                await profile_link_cmd.finish(str(e))
+                await profile_link_cmd.finish("用法: account unlink <通用ID> <实际ID> [实际ID ...]")
+            name = cmd_args[1]
+            unlinked = []
+            errors = []
+            for raw_id in cmd_args[2:]:
+                try:
+                    manager.unlink_user_id(name, raw_id)
+                    unlinked.append(raw_id)
+                except ValueError as e:
+                    errors.append(f"'{raw_id}': {e}")
+            manager.save()
+            msg = ""
+            if unlinked:
+                msg += f"已解除 {len(unlinked)} 个ID与 '{name}' 的绑定: {', '.join(unlinked)}"
+            if errors:
+                msg += "\n" + "\n".join(errors)
+            await profile_link_cmd.finish(msg)
         
         # ── 群组绑定 ──────────────────────────────────
         
         elif action == "create-group":
             if len(cmd_args) < 2:
-                await profile_link_cmd.finish("用法: account create-group <通用ID>")
+                await profile_link_cmd.finish("用法: account create-group <通用ID> [实际群ID ...]")
             name = cmd_args[1]
             manager.create_group_profile(name)
+            for raw_gid in cmd_args[2:]:
+                try:
+                    manager.link_group_id(name, raw_gid)
+                except ValueError as e:
+                    await profile_link_cmd.send(f"绑定群 '{raw_gid}' 失败: {e}")
             manager.save()
-            await profile_link_cmd.finish(f"已创建通用群 ID: {name}")
+            if len(cmd_args) > 2:
+                await profile_link_cmd.finish(f"已创建通用群 ID '{name}' 并绑定了 {len(cmd_args) - 2} 个群")
+            else:
+                await profile_link_cmd.finish(f"已创建通用群 ID: {name}")
         
         elif action == "delete-group":
             if len(cmd_args) < 2:
@@ -113,25 +147,43 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
         
         elif action == "link-group":
             if len(cmd_args) < 3:
-                await profile_link_cmd.finish("用法: account link-group <通用ID> <群ID>")
-            name, raw_gid = cmd_args[1], cmd_args[2]
-            try:
-                manager.link_group_id(name, raw_gid)
-                manager.save()
-                await profile_link_cmd.finish(f"已将群 '{raw_gid}' 绑定到 '{name}'")
-            except ValueError as e:
-                await profile_link_cmd.finish(str(e))
+                await profile_link_cmd.finish("用法: account link-group <通用ID> <群ID> [群ID ...]")
+            name = cmd_args[1]
+            linked = []
+            errors = []
+            for raw_gid in cmd_args[2:]:
+                try:
+                    manager.link_group_id(name, raw_gid)
+                    linked.append(raw_gid)
+                except ValueError as e:
+                    errors.append(f"'{raw_gid}': {e}")
+            manager.save()
+            msg = ""
+            if linked:
+                msg += f"已将 {len(linked)} 个群绑定到 '{name}': {', '.join(linked)}"
+            if errors:
+                msg += "\n" + "\n".join(errors)
+            await profile_link_cmd.finish(msg)
         
         elif action == "unlink-group":
             if len(cmd_args) < 3:
-                await profile_link_cmd.finish("用法: account unlink-group <通用ID> <群ID>")
-            name, raw_gid = cmd_args[1], cmd_args[2]
-            try:
-                manager.unlink_group_id(name, raw_gid)
-                manager.save()
-                await profile_link_cmd.finish(f"已解除群 '{raw_gid}' 与 '{name}' 的绑定")
-            except ValueError as e:
-                await profile_link_cmd.finish(str(e))
+                await profile_link_cmd.finish("用法: account unlink-group <通用ID> <群ID> [群ID ...]")
+            name = cmd_args[1]
+            unlinked = []
+            errors = []
+            for raw_gid in cmd_args[2:]:
+                try:
+                    manager.unlink_group_id(name, raw_gid)
+                    unlinked.append(raw_gid)
+                except ValueError as e:
+                    errors.append(f"'{raw_gid}': {e}")
+            manager.save()
+            msg = ""
+            if unlinked:
+                msg += f"已解除 {len(unlinked)} 个群与 '{name}' 的绑定: {', '.join(unlinked)}"
+            if errors:
+                msg += "\n" + "\n".join(errors)
+            await profile_link_cmd.finish(msg)
         
         # ── 查询 ──────────────────────────────────────
         
