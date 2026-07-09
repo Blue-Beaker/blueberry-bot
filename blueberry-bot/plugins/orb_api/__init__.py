@@ -45,14 +45,19 @@ def _orb_on_link(event: LinkUserEvent):
     from ..bbot_api.profile_link.profile_link import get_profile_link_manager
     manager = get_profile_link_manager()
     if manager.migrate_dict(ORB_STORAGE.balances, event.raw_id, event.profile_id):
+        ORB_STORAGE.needs_save=True
         logger.info(f"orb: 已迁移余额 {event.raw_id} → {event.profile_id}")
+        logger.info(f"{event.profile_id}: {get_balance(event.profile_id)}")
 
 @on_link(UnlinkUserEvent)
 def _orb_on_unlink(event: UnlinkUserEvent):
     from ..bbot_api.profile_link.profile_link import get_profile_link_manager
     manager = get_profile_link_manager()
     if manager.migrate_dict(ORB_STORAGE.balances, event.profile_id, event.raw_id):
+        ORB_STORAGE.needs_save=True
         logger.info(f"orb: 已回迁余额 {event.profile_id} → {event.raw_id}")
+        logger.info(f"{event.profile_id}: {get_balance(event.profile_id)}")
+        logger.info(f"{event.raw_id}: {get_balance(event.raw_id)}")
 
 def get_orb_owner_id(event:Event):
     """从事件中提取带平台前缀的用户 ID。"""
