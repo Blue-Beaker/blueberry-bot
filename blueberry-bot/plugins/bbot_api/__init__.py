@@ -19,17 +19,17 @@ def get_raw_id(event: Event) -> str:
     """从事件中提取原始平台 ID（不含 profile_link 映射）。"""
     if isinstance(event,DCMessageEvent):
         return "dc_"+str(event.channel_id)
-    if hasattr(event,"group_id"):
-        return "group_"+str(getattr(event,"group_id"))
     if isinstance(event,MCBaseChatEvent):
         return "mc_"+event.server_name
     
     if isinstance(event,QQGroupMessageCreateEvent):
         return "qqgroup_"+event.group_id
-    if isinstance(event,QQC2CMessageCreateEvent):
+    if isinstance(event,QQMessageEvent):
         return "qquser_"+event.get_user_id()
-    else:
-        return "u_" + str(event.get_user_id())
+    if hasattr(event,"group_id"):
+        return "group_"+str(getattr(event,"group_id"))
+    
+    return "u_" + str(event.get_user_id())
 
 def get_raw_user_id(event: Event) -> str:
     """从事件中提取带平台前缀的用户 ID（用户级别，与 get_raw_id 格式一致）。"""
@@ -39,7 +39,7 @@ def get_raw_user_id(event: Event) -> str:
         return f"dc_{raw_uid}"
     if isinstance(event,OBMessageEvent):
         return f"u_{raw_uid}"
-    if isinstance(event,QQC2CMessageCreateEvent):
+    if isinstance(event,QQMessageEvent):
         return f"qquser_{raw_uid}"
     if isinstance(event,MCBaseChatEvent):
         return f"mc_{raw_uid}"
@@ -59,6 +59,38 @@ def getid(event: Event) -> str:
     manager = get_profile_link_manager()
     resolved = manager.resolve_user_id(raw_id)
     return resolved
+
+def get_raw_group_id(event):
+    """从事件中提取原始群 ID（不含 profile_link 映射）。"""
+    # print(event)
+    if isinstance(event,MCBaseChatEvent):
+        group_id=event.server_name
+    elif isinstance(event,QQGroupMessageCreateEvent):
+        group_id=event.group_id
+    else:
+        for field in ["group_id","channel_id"]:
+            group_id=getattr(event,field,None)
+            if group_id:
+                break
+        
+    if group_id:
+        group_id=str(group_id)
+    else:
+        group_id="private"
+    # print(group_id)
+    return group_id
+
+def get_group_id(event):
+    group_id = get_raw_group_id(event)
+    
+    # profile_link 解析：实际群 ID → 通用 ID
+    if group_id != "private":
+        manager = get_profile_link_manager()
+        resolved = manager.resolve_group_id(group_id)
+        if resolved:
+            return resolved
+    return group_id
+
     
 async def reaction_emoji(bot:OBBot,msg:int,emoji:int):
     data={
@@ -107,7 +139,10 @@ class TextImageMessage:
         else:
             return cls("")
     def addText(self,text:str):
-        self.msg+=text
+        if isinstance(self.msg,Message):
+            self.msg.append(text)
+        else:
+            self.msg+=text
         return self
     def addLine(self,text:str):
         if self.msg.__len__()>0 and (isinstance(self.msg,str) or self.msg[-1].is_text()):
@@ -137,37 +172,6 @@ class TextImageMessage:
         else:
             return self.msg
     
-def get_raw_group_id(event):
-    """从事件中提取原始群 ID（不含 profile_link 映射）。"""
-    # print(event)
-    if isinstance(event,MCBaseChatEvent):
-        group_id=event.server_name
-    elif isinstance(event,QQGroupMessageCreateEvent):
-        group_id=event.group_id
-    else:
-        for field in ["group_id","channel_id"]:
-            group_id=getattr(event,field,None)
-            if group_id:
-                break
-        
-    if group_id:
-        group_id=str(group_id)
-    else:
-        group_id="private"
-    # print(group_id)
-    return group_id
-
-def get_group_id(event):
-    group_id = get_raw_group_id(event)
-    
-    # profile_link 解析：实际群 ID → 通用 ID
-    if group_id != "private":
-        manager = get_profile_link_manager()
-        resolved = manager.resolve_group_id(group_id)
-        if resolved:
-            return resolved
-    return group_id
-
 def can_pack_message(bot:Bot):
     return isinstance(bot,OBBot) and plugin_config.ob_pack_message
 
