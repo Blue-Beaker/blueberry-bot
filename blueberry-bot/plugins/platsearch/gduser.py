@@ -67,6 +67,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     user=getUser(search)
     if not user or not user.account_id:
         await gduser.finish("未找到玩家, 或发生错误.")
+        return
         
     supports_image=bbot_api.supportsImage(bot)
     enable_image=(not force_text) and supports_image
@@ -161,7 +162,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             msg.addImage(icon,"icon.png",True)
         
     msg.addText("\n".join(lines))
-    await gduser.finish(msg.msg)
+    await msg.finish(gduser)
     
 def getIconIDs(icon: PlayerIcons):
     id_for_types:dict[IconType,int]={}

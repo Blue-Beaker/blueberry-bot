@@ -370,7 +370,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             msg2.addLine(repr_level(level))
             msg2.addImage(img)
             info_image=True
-            await gdsearch.send(msg2.msg)
+            await msg2.send(gdsearch)
             
     if show_thumbnail and thumb:
         lines.addImage(thumb)
