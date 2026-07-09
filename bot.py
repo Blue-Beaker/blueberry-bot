@@ -5,6 +5,8 @@ from nonebot.adapters.discord import Adapter as DISCORDAdapter
 
 from nonebot.adapters.onebot.v11 import Adapter as ONEBOT_V11Adapter
 
+from nonebot.adapters.qq import Adapter as QQAdapter
+
 
 
 nonebot.init()
@@ -15,6 +17,8 @@ driver.register_adapter(MINECRAFTAdapter)
 driver.register_adapter(DISCORDAdapter)
 
 driver.register_adapter(ONEBOT_V11Adapter)
+
+driver.register_adapter(QQAdapter)
 
 
 nonebot.load_from_toml("pyproject.toml")
