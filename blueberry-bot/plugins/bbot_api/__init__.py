@@ -231,14 +231,21 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
     raw_group = get_raw_group_id(event)
     user_id = get_raw_user_id(event)
     
-    lines = [f"平台ID: {raw_id}", f"用户ID: {user_id}", f"群组ID: {group_id}"]
+    lines = [f"平台ID: {raw_id}", f"用户ID: {user_id}", f"群组ID: {raw_group}"]
     
     # 显示 profile_link 绑定信息
     profile = manager.find_user_by_linked_id(raw_id)
     if profile:
-        lines.append(f"绑定到: {profile.name}")
+        lines.append(f"用户绑定到: {profile.name}")
         if profile.linked_ids:
             lines.append(f"  关联ID: {', '.join(profile.linked_ids)}")
+            
+    profile2 = manager.find_group_by_linked_id(raw_id)
+    if profile2:
+        lines.append(f"群组绑定到: {profile2.name}")
+        if profile2.linked_ids:
+            lines.append(f"  关联ID: {', '.join(profile2.linked_ids)}")
+            
     if resolved_id != raw_id:
         lines.append(f"解析ID: {resolved_id}")
     
