@@ -15,6 +15,25 @@ from .profile_link.profile_link import get_profile_link_manager
 
 plugin_config=get_plugin_config(Config)
 
+import re
+
+def infer_id_prefix(raw_id: str) -> str:
+    """根据 ID 形式推断平台前缀（与 get_raw_id 格式一致）。
+    
+    规则:
+      - 不超过 10 位纯数字 → group_ (OneBot 群号)
+      - 超过 10 位纯数字 → dc_ (Discord 频道/用户 ID)
+      - 32 位大写十六进制 → qqgroup_ / qquser_ (QQ openid)
+      - 其他 → mc_ (Minecraft 服务器名等)
+    """
+    if re.fullmatch(r"\d{1,10}", raw_id):
+        return "group_"
+    if re.fullmatch(r"\d+", raw_id):
+        return "dc_"
+    if re.fullmatch(r"[0-9A-F]{32}", raw_id):
+        return "qqgroup_"
+    return "mc_"
+
 def get_raw_id(event: Event) -> str:
     """从事件中提取原始平台 ID（不含 profile_link 映射）。"""
     if isinstance(event,DCMessageEvent):
@@ -60,25 +79,26 @@ def getid(event: Event) -> str:
     resolved = manager.resolve_user_id(raw_id)
     return resolved
 
-def get_raw_group_id(event):
-    """从事件中提取原始群 ID（不含 profile_link 映射）。"""
-    # print(event)
+def is_group_event(event):
+    """判断事件是否为群组/频道/服务器事件。"""
+    if isinstance(event,DCMessageEvent):
+        return True
     if isinstance(event,MCBaseChatEvent):
-        group_id=event.server_name
-    elif isinstance(event,QQGroupMessageCreateEvent):
-        group_id=event.group_id
-    else:
-        for field in ["group_id","channel_id"]:
-            group_id=getattr(event,field,None)
-            if group_id:
-                break
-        
-    if group_id:
-        group_id=str(group_id)
-    else:
-        group_id="private"
-    # print(group_id)
-    return group_id
+        return True
+    if isinstance(event,QQGroupMessageCreateEvent):
+        return True
+    if hasattr(event,"group_id"):
+        return True
+    return False
+
+def get_raw_group_id(event):
+    """从事件中提取带平台前缀的原始群 ID（不含 profile_link 映射）。
+    
+    群组事件返回格式与 get_raw_id 一致，非群组事件返回 "private"。
+    """
+    if is_group_event(event):
+        return get_raw_id(event)
+    return "private"
 
 def get_group_id(event):
     group_id = get_raw_group_id(event)

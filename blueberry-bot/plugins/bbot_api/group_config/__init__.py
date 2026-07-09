@@ -1,4 +1,5 @@
 import os, json
+import re
 from typing import Any, Generic, TypeVar, Optional
 
 from pydantic import BaseModel
@@ -256,7 +257,27 @@ class GroupConfig(Generic[_C]):
                 if isinstance(d, dict):
                     obj = self.config_class()
                     obj.load_dict(d)
-                    self.group_overrides[g] = obj
+                    # 自动迁移旧格式 group key（纯数字 → group_前缀）
+                    migrated_key = _migrate_group_key(g)
+                    self.group_overrides[migrated_key] = obj
+
+
+def _migrate_group_key(key: str) -> str:
+    """将旧格式 group key 迁移为带前缀的新格式。
+    
+    根据 ID 形式推断平台前缀（与 get_raw_id 格式一致）:
+      - 不超过 10 位纯数字 → group_ (OneBot 群号)
+      - 超过 10 位纯数字 → dc_ (Discord 频道 ID)
+      - 32 位大写十六进制 → qqgroup_ (QQ 群 openid)
+      - 其他格式保持不变（如 "global", "private", profile 名称等）
+    """
+    if re.fullmatch(r"\d{1,10}", key):
+        return f"group_{key}"
+    if re.fullmatch(r"\d+", key):
+        return f"dc_{key}"
+    if re.fullmatch(r"[0-9A-F]{32}", key):
+        return f"qqgroup_{key}"
+    return key
 
 
 # ── 可复用的配置指令处理函数 ───────────────────────────
