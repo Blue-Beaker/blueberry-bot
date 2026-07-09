@@ -11,10 +11,12 @@ from . import sheets_api
 sheets_api=sheets_api
 from nonebot import get_plugin_config,logger
 from .config import Config
+from .profile_link.profile_link import get_profile_link_manager
 
 plugin_config=get_plugin_config(Config)
 
-def getid(event: Event) -> str:
+def get_raw_id(event: Event) -> str:
+    """从事件中提取原始平台 ID（不含 profile_link 映射）。"""
     if isinstance(event,DCMessageEvent):
         return "dc_"+str(event.channel_id)
     if hasattr(event,"group_id"):
@@ -28,6 +30,35 @@ def getid(event: Event) -> str:
         return "qquser_"+event.get_user_id()
     else:
         return "u_" + str(event.get_user_id())
+
+def get_raw_user_id(event: Event) -> str:
+    """从事件中提取带平台前缀的用户 ID（用户级别，与 get_raw_id 格式一致）。"""
+    raw_uid = event.get_user_id().replace(" ","_")
+    
+    if isinstance(event,DCMessageEvent):
+        return f"dc_{raw_uid}"
+    if isinstance(event,OBMessageEvent):
+        return f"u_{raw_uid}"
+    if isinstance(event,QQC2CMessageCreateEvent):
+        return f"qquser_{raw_uid}"
+    if isinstance(event,MCBaseChatEvent):
+        return f"mc_{raw_uid}"
+    return f"u_{raw_uid}"
+
+def get_user_id(event: Event) -> str:
+    raw_id = get_raw_user_id(event)
+    # profile_link 解析：实际 ID → 通用 ID
+    manager = get_profile_link_manager()
+    resolved = manager.resolve_user_id(raw_id)
+    return resolved
+    
+
+def getid(event: Event) -> str:
+    raw_id = get_raw_id(event)
+    # profile_link 解析：实际 ID → 通用 ID
+    manager = get_profile_link_manager()
+    resolved = manager.resolve_user_id(raw_id)
+    return resolved
     
 async def reaction_emoji(bot:OBBot,msg:int,emoji:int):
     data={
@@ -106,7 +137,8 @@ class TextImageMessage:
         else:
             return self.msg
     
-def get_group_id(event):
+def get_raw_group_id(event):
+    """从事件中提取原始群 ID（不含 profile_link 映射）。"""
     # print(event)
     if isinstance(event,MCBaseChatEvent):
         group_id=event.server_name
@@ -123,6 +155,17 @@ def get_group_id(event):
     else:
         group_id="private"
     # print(group_id)
+    return group_id
+
+def get_group_id(event):
+    group_id = get_raw_group_id(event)
+    
+    # profile_link 解析：实际群 ID → 通用 ID
+    if group_id != "private":
+        manager = get_profile_link_manager()
+        resolved = manager.resolve_group_id(group_id)
+        if resolved:
+            return resolved
     return group_id
 
 def can_pack_message(bot:Bot):
@@ -165,3 +208,67 @@ async def auto_pack_message(bot:Bot,message:Message|str,limit:int):
         assert reply
         return reply
     return message
+
+
+# ── getid 指令 ────────────────────────────────────────
+
+from nonebot import on_command
+from nonebot.params import CommandArg
+from nonebot.permission import SUPERUSER
+
+getid_cmd = on_command("getid")
+
+@getid_cmd.handle()
+async def _(bot: Bot, event: Event, args: Message = CommandArg()):
+    manager = get_profile_link_manager()
+    raw_id = get_raw_id(event)
+    resolved_id = getid(event)
+    group_id = get_group_id(event)
+    raw_group = get_raw_group_id(event)
+    user_id = get_raw_user_id(event)
+    
+    lines = [f"平台ID: {raw_id}", f"用户ID: {user_id}", f"群组ID: {group_id}"]
+    
+    # 显示 profile_link 绑定信息
+    profile = manager.find_user_by_linked_id(raw_id)
+    if profile:
+        lines.append(f"绑定到: {profile.name}")
+        if profile.linked_ids:
+            lines.append(f"  关联ID: {', '.join(profile.linked_ids)}")
+    if resolved_id != raw_id:
+        lines.append(f"解析ID: {resolved_id}")
+    
+    # 群组绑定
+    group_profile = manager.find_group_by_linked_id(raw_group) if raw_group != "private" else None
+    if group_profile and group_profile.name != (profile.name if profile else None):
+        lines.append(f"群绑定到: {group_profile.name}")
+    
+    # 处理 at 其他人
+    at_users = []
+    if isinstance(event, OBMessageEvent):
+        for seg in event.get_message():
+            if seg.type == "at" and str(seg.data.get("qq")) != bot.self_id:
+                at_users.append(str(seg.data.get("qq")))
+    elif isinstance(bot,DCBot) and isinstance(event, DCMessageEvent):
+        for seg in event.get_message():
+            if seg.type == "mention_user" and str(seg.data.get("user_id")) != bot.self_info.id:
+                at_users.append(str(seg.data.get("user_id")))
+    elif isinstance(bot,QQBot) and isinstance(event, QQMessageEvent):
+        for seg in event.get_message():
+            if seg.type == "mention_user":
+                uid = str(seg.data.get("user_id", ""))
+                if uid and uid != bot.self_info.id:
+                    at_users.append(uid)
+    
+    if at_users:
+        lines.append("")
+        lines.append("被@用户:")
+        for uid in at_users:
+            # 尝试查找该用户的 profile_link
+            uprofile = manager.find_user_by_linked_id(uid)
+            if uprofile:
+                lines.append(f"  {uid} → {uprofile.name}")
+            else:
+                lines.append(f"  {uid}")
+    
+    await getid_cmd.finish("\n".join(lines))

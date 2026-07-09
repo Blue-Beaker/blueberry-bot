@@ -14,6 +14,8 @@ from threading import Timer
 from nonebot import require
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
+require("bbot_api")
+from ..bbot_api import get_user_id
 
 driver=get_driver()
 
@@ -35,8 +37,9 @@ async def save_sessions():
     save_sync()
 
 def get_orb_owner_id(event:Event):
+    """从事件中提取带平台前缀的用户 ID。"""
     try:
-        return event.get_user_id().replace(" ","_")
+        return get_user_id(event)
     except:
         return None
     
@@ -62,6 +65,13 @@ class OrbAccount:
             return cls(userid)
         else:
             return None
+        
+orb_id=on_command("orb-id")
+@orb_id.handle()
+async def _(bot:Bot,event:Event, args: Message = CommandArg()):
+    event_userid = get_orb_owner_id(event)
+    await orb_id.finish(f"你的orb id: {event_userid}")
+    
 
 orb_get=on_command("orb-get",aliases=set(["orb-get","orb-check"]))
 @orb_get.handle()
