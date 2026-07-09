@@ -13,7 +13,7 @@ from nonebot.adapters.qq import Bot as QQBot,QQMessageEvent,C2CMessageCreateEven
 plugin_config=get_plugin_config(Config)
 
 require("bbot_api")
-from ..bbot_api import getid,get_group_id
+from ..bbot_api import getid,get_group_id,get_raw_id
 
 debuglist=set(plugin_config.debug_sessions)
 
@@ -32,7 +32,7 @@ async def _(event: Event, matcher: Matcher):
         return
     # debuglist=plugin_config.debug_sessions
     try:
-        eid = getid(event)
+        eid = get_raw_id(event)
         is_listed=(eid in debuglist)
         
         if is_listed!=plugin_config.debug_sessions_is_on:

@@ -108,13 +108,15 @@ SAVE_MANAGER=SaveManager()
 
 # ── profile_link 事件监听器 ──────────────────────────
 
+from ..bbot_api.profile_link.group_config_migrator import migrate_group_config, unmigrate_group_config
+
 @on_link(LinkUserEvent)
 def _gdguess_on_link(event: LinkUserEvent):
     from ..bbot_api.profile_link.profile_link import get_profile_link_manager
     manager = get_profile_link_manager()
     if manager.migrate_dict(session_manager.entries, event.raw_id, event.profile_id):
         logger.info(f"gdguess: 已迁移会话 {event.raw_id} → {event.profile_id}")
-    if config_manager.merge_profile(event.profile_id, event.raw_id):
+    if migrate_group_config(config_manager, event.profile_id, event.raw_id):
         logger.info(f"gdguess: 已合并配置 {event.raw_id} → {event.profile_id}")
 
 @on_link(UnlinkUserEvent)
@@ -123,7 +125,7 @@ def _gdguess_on_unlink(event: UnlinkUserEvent):
     manager = get_profile_link_manager()
     if manager.migrate_dict(session_manager.entries, event.profile_id, event.raw_id):
         logger.info(f"gdguess: 已回迁会话 {event.profile_id} → {event.raw_id}")
-    if config_manager.unmerge_profile(event.profile_id, event.raw_id):
+    if unmigrate_group_config(config_manager, event.profile_id, event.raw_id):
         logger.info(f"gdguess: 已拆分配置 {event.profile_id} → {event.raw_id}")
 
 gdguess_test = on_command("gdguess-test",permission=SUPERUSER)

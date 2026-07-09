@@ -1,5 +1,4 @@
 import os, json
-import re
 from typing import Any, Generic, TypeVar, Optional
 
 from pydantic import BaseModel
@@ -57,9 +56,7 @@ class GroupConfig(Generic[_C]):
         if group == "global":
             return self.global_config
         config = self.config_class()
-        # 1) 先加载 global 默认值
         config.load_dict(self.global_config.to_dict())
-        # 2) 再覆盖 group 层的非 None 字段
         overrides = self.group_overrides.get(group)
         if overrides is not None:
             merged = {k: v for k, v in overrides.to_dict().items() if v is not None}
@@ -139,69 +136,6 @@ class GroupConfig(Generic[_C]):
         """更新 global 层默认值。"""
         self.global_config.load_dict(kwargs)
     
-    # ── profile_link 合并 ────────────────────────────────
-    
-    def merge_profile(self, profile_id: str, raw_id: str) -> bool:
-        """将 raw_id 的配置合并到 profile_id 下（用于 profile_link 绑定）。
-        
-        合并规则：
-        - profile_id 作为下层，raw_id 作为上层
-        - raw_id 有值的字段覆盖到 profile_id
-        - 两层都未覆写的字段保持空白（不在 override 中）
-        - 合并后删除 raw_id 的 override 条目
-        
-        返回是否发生了变更。
-        """
-        if profile_id == raw_id:
-            return False
-        
-        profile_overrides = self.group_overrides.get(profile_id)
-        raw_overrides = self.group_overrides.get(raw_id)
-        
-        if raw_overrides is None:
-            return False
-        
-        # 获取 raw_id 有值的字段
-        raw_fields = {k: v for k, v in raw_overrides.to_dict().items() if v is not None}
-        if not raw_fields:
-            # raw_id 没有有效覆盖，直接删除
-            del self.group_overrides[raw_id]
-            return True
-        
-        if profile_overrides is None:
-            # profile 没有配置，直接使用 raw_id 的配置
-            self.group_overrides[profile_id] = raw_overrides
-        else:
-            # profile 作为下层，raw_id 作为上层覆盖
-            for key, value in raw_fields.items():
-                setattr(profile_overrides, key, value)
-        
-        # 删除 raw_id 的 override
-        del self.group_overrides[raw_id]
-        return True
-    
-    def unmerge_profile(self, profile_id: str, raw_id: str) -> bool:
-        """将 profile_id 的配置拆分回 raw_id（用于 profile_link 解绑）。
-        
-        解绑后 raw_id 恢复为合并前的独立配置。
-        注意：由于合并时覆盖信息已丢失，解绑时 profile 保留合并后的值，
-        raw_id 获取 profile 的完整配置作为独立配置。
-        
-        返回是否发生了变更。
-        """
-        if profile_id == raw_id:
-            return False
-        
-        profile_overrides = self.group_overrides.get(profile_id)
-        if profile_overrides is None:
-            return False
-        
-        # raw_id 获取 profile 的完整配置作为独立配置
-        raw_config = self.config_class()
-        raw_config.load_dict(profile_overrides.to_dict())
-        self.group_overrides[raw_id] = raw_config
-        return True
-
     # ── 重置 ─────────────────────────────────────────────
     
     def reset(self, group: str, *keys: str) -> None:
@@ -257,27 +191,7 @@ class GroupConfig(Generic[_C]):
                 if isinstance(d, dict):
                     obj = self.config_class()
                     obj.load_dict(d)
-                    # 自动迁移旧格式 group key（纯数字 → group_前缀）
-                    migrated_key = _migrate_group_key(g)
-                    self.group_overrides[migrated_key] = obj
-
-
-def _migrate_group_key(key: str) -> str:
-    """将旧格式 group key 迁移为带前缀的新格式。
-    
-    根据 ID 形式推断平台前缀（与 get_raw_id 格式一致）:
-      - 不超过 10 位纯数字 → group_ (OneBot 群号)
-      - 超过 10 位纯数字 → dc_ (Discord 频道 ID)
-      - 32 位大写十六进制 → qqgroup_ (QQ 群 openid)
-      - 其他格式保持不变（如 "global", "private", profile 名称等）
-    """
-    if re.fullmatch(r"\d{1,10}", key):
-        return f"group_{key}"
-    if re.fullmatch(r"\d+", key):
-        return f"dc_{key}"
-    if re.fullmatch(r"[0-9A-F]{32}", key):
-        return f"qqgroup_{key}"
-    return key
+                    self.group_overrides[g] = obj
 
 
 # ── 可复用的配置指令处理函数 ───────────────────────────

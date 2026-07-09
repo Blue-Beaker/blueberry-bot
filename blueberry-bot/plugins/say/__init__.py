@@ -24,10 +24,10 @@ from ..bbot_api.profile_link.events import on_link, LinkUserEvent, LinkGroupEven
 from ..bbot_api import message_compat
 
 def getid(event:Event):
-    id=getid_raw(event)
-    if id.startswith("u_"):
+    # id=getid_raw(event)
+    # if id.startswith("u_"):
         return get_group_id(event)
-    return id
+    # return id
 
 try:
     require("orb_api")
@@ -126,24 +126,26 @@ async def save():
 
 # ── profile_link 事件监听器 ──────────────────────────
 
+from ..bbot_api.profile_link.group_config_migrator import migrate_group_config, unmigrate_group_config
+
 @on_link(LinkUserEvent)
 def _say_on_link(event: LinkUserEvent):
-    if say_config.merge_profile(event.profile_id, event.raw_id):
+    if migrate_group_config(say_config, event.profile_id, event.raw_id):
         logger.info(f"say: 已合并配置 {event.raw_id} → {event.profile_id}")
 
 @on_link(UnlinkUserEvent)
 def _say_on_unlink(event: UnlinkUserEvent):
-    if say_config.unmerge_profile(event.profile_id, event.raw_id):
+    if unmigrate_group_config(say_config, event.profile_id, event.raw_id):
         logger.info(f"say: 已拆分配置 {event.profile_id} → {event.raw_id}")
 
 @on_link(LinkGroupEvent)
 def _say_on_link_group(event: LinkGroupEvent):
-    if say_config.merge_profile(event.profile_id, event.raw_group_id):
+    if migrate_group_config(say_config, event.profile_id, event.raw_group_id):
         logger.info(f"say: 已合并群配置 {event.raw_group_id} → {event.profile_id}")
 
 @on_link(UnlinkGroupEvent)
 def _say_on_unlink_group(event: UnlinkGroupEvent):
-    if say_config.unmerge_profile(event.profile_id, event.raw_group_id):
+    if unmigrate_group_config(say_config, event.profile_id, event.raw_group_id):
         logger.info(f"say: 已拆分群配置 {event.profile_id} → {event.raw_group_id}")
 
 class SayConfigOld:

@@ -102,13 +102,16 @@ def get_raw_group_id(event):
 
 def get_group_id(event):
     group_id = get_raw_group_id(event)
+    # logger.info(group_id)
     
     # profile_link 解析：实际群 ID → 通用 ID
     if group_id != "private":
         manager = get_profile_link_manager()
         resolved = manager.resolve_group_id(group_id)
         if resolved:
-            return resolved
+            group_id=resolved
+            
+    # logger.info(group_id)
     return group_id
 
     
