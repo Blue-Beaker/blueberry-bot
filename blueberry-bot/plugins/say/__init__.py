@@ -235,9 +235,9 @@ async def _(event:Event, arg: Message = CommandArg()):
 async def _(event:Event, arg: Message = CommandArg()):
     await set_say_state(False,arg.extract_plain_text().strip()=="-a",event,say_off)
         
-gus_cfg=on_command("say-cfg",permission=SUPERUSER)
+say_cfg=on_command("say-cfg",permission=SUPERUSER)
 config_handler=make_config_handler("say-cfg",SayConfigItem,say_config,getid)
-gus_cfg.handle()(config_handler)
+say_cfg.handle()(config_handler)
         
 async def set_say_state(enable:bool, isall:bool, event:Event, matcher:Type[Matcher]):
     if isall:
