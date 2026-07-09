@@ -87,7 +87,7 @@ class OrbStorage:
     
     def get_balance(self, user: str) -> int:
         if user not in self.balances:
-            self.add_balance(user,0,False)
+            self.balances[user] = 0
         return self.balances.get(user, 0)
     
     def add_balance(self, user: str, count: int, allow_negative: bool = False) -> bool:
