@@ -79,7 +79,7 @@ def get_balance(user:str):
     return ORB_STORAGE.get_balance(user)
 
 def user_exists(user:str):
-    return ORB_STORAGE.balances.__contains__(user)
+    return user in ORB_STORAGE.balances.keys()
 
 class OrbAccount:
     def __init__(self,user:str) -> None:
