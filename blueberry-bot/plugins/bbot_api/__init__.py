@@ -12,7 +12,7 @@ sheets_api=sheets_api
 from nonebot import get_plugin_config,logger
 from .config import Config
 from .profile_link.profile_link import get_profile_link_manager
-from .message_compat import TextImageMessage
+from .message_compat import TextImageMessage,supportsRecord,supportsImage,supportsMarkdown
 
 plugin_config=get_plugin_config(Config)
 
@@ -141,12 +141,6 @@ def safeInt(i:Any,fallback:_A=-1) -> int|_A:
         return int(i)
     except:
         return fallback
-    
-def supportsImage(bot:Bot):
-    return isinstance(bot,OBBot) or isinstance(bot,DCBot) or isinstance(bot,QQBot)
-
-def supportsMarkdown(bot:Bot):
-    return isinstance(bot,DCBot)
     
 def can_pack_message(bot:Bot):
     return isinstance(bot,OBBot) and plugin_config.ob_pack_message

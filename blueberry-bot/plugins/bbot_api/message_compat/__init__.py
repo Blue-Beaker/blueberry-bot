@@ -6,6 +6,14 @@ from nonebot.adapters.qq import Bot as QQBot, Message as QQMessage, MessageSegme
 from nonebot.adapters.minecraft import BaseChatEvent as MCBaseChatEvent
 from nonebot.matcher import Matcher
 
+def supportsRecord(bot:Bot):
+    return isinstance(bot,OBBot) or isinstance(bot,DCBot) or isinstance(bot,QQBot)
+def supportsImage(bot:Bot):
+    return isinstance(bot,OBBot) or isinstance(bot,DCBot) or isinstance(bot,QQBot)
+
+def supportsMarkdown(bot:Bot):
+    return isinstance(bot,DCBot)
+
 def record(bot:Bot,content:bytes,filename:str="say.wav"):
     if isinstance(bot,OBBot):
         return OBMessageSegment.record(content)

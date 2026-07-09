@@ -668,7 +668,7 @@ def recover_cache_img(id:str,session:GuessSession):
     return True
 
 def isSupportedAdapter(bot:Bot):
-    return isinstance(bot,DCBot) or isinstance(bot,OBBot)
+    return bbot_api.supportsImage(bot)
 
 async def sendMessageAndImage(bot:Bot,matcher:type[Matcher],message:str,image:bytes,image_name:str="guess.png"):
     await matcher.send(buildMessageImage(bot,message,image,image_name))

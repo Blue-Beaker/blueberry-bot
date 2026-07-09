@@ -150,7 +150,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
 
 gdthumb = on_command("gdthumb")
 @gdthumb.handle()
-async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
+async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     try:
         parser=ArgParser("gdthumb")
@@ -168,6 +168,9 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
         return
     
     lines:list[str]=[]
+    
+    if not bbot_api.supportsImage(bot):
+        await gdthumb.finish("错误: 本会话不支持图片.")
     
     await bbot_api.trigger_typing(bot,event)
     
@@ -202,7 +205,7 @@ def buildMessageImage(bot:Bot,message:str,image:bytes,image_name:str):
     return msg.msg
 
 def get_help(bot:Bot,event:Event):
-    if isinstance(bot,OBBot) or isinstance(bot,DCBot):
+    if bbot_api.supportsImage(bot):
         return ["gdthumb [关名/ID] 获取关卡截图"]
     else:
         return []

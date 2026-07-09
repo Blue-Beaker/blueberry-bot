@@ -24,7 +24,7 @@ except:
 
 gdmusic = on_command("gdmusic")
 @gdmusic.handle()
-async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
+async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     text_args=args.extract_plain_text().split()
     try:
         parser=ArgParser("gdmusic")
@@ -38,6 +38,9 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
         
     except Exception as e:
         await gdmusic.finish(f"错误: {e}")
+        
+    if not bbot_api.supportsRecord(bot):
+        await gdmusic.finish("错误: 本会话不支持音频.")
         
     music=None
     link=None
@@ -129,7 +132,7 @@ async def _(bot:OBBot|DCBot,event:Event,args: Message = CommandArg()):
             logger.error(e)
             
 def get_help(bot:Bot,event:Event):
-    if isinstance(bot,OBBot) or isinstance(bot,DCBot):
+    if bbot_api.supportsRecord(bot):
         return ["gdmusic [ID] 查询/点播GD音乐"]
     else:
         return []
