@@ -47,6 +47,11 @@ debug_cmd=on_command("debug",permission=SUPERUSER)
 @debug_cmd.handle()
 async def _(bot:Bot, event: Event, msg: Message=CommandArg()):
     args=msg.extract_plain_text().strip().split()
+    
+    async def finish(msg:str,**kwargs):
+        instance_header='[Debug] ' if plugin_config.debug_sessions_is_on else '[Production] '
+        await debug_cmd.finish(instance_header+msg,**kwargs)
+        
     try:
         subcmds=["id","list","on","off"]
         
@@ -56,30 +61,30 @@ async def _(bot:Bot, event: Event, msg: Message=CommandArg()):
             
             is_listed=(session_id in debuglist)
             
-            await debug_cmd.finish(f"当前 Debug {'on' if is_listed else 'off'}\nSession ID: {session_id}, Group ID:{group_id}")
+            await finish(f"当前 Debug {'on' if is_listed else 'off'}\nSession ID: {session_id}, Group ID:{group_id}")
             
             return
         
         subcmd=args[0].lower()
         if subcmd=="list":
-            await debug_cmd.finish(f"当前调试Sessions: {','.join(debuglist)}")
+            await finish(f"当前调试Sessions: {','.join(debuglist)}")
             return
             
         elif subcmd in ["on","off"]:
             session_id=getid(event) if args.__len__()<2 else args[1]
             if subcmd=="on":
                 debuglist.add(session_id)
-                await debug_cmd.finish(f"已为 {session_id} 开启调试")
+                await finish(f"已为 {session_id} 开启调试")
                 return
             else:
                 if session_id in debuglist: debuglist.remove(session_id)
-                await debug_cmd.finish(f"已为 {session_id} 关闭调试")
+                await finish(f"已为 {session_id} 关闭调试")
                 return
             
-        await debug_cmd.finish(f"子命令: {",".join(subcmds)}")
+        await finish(f"子命令: {",".join(subcmds)}")
     except Exception as e:
         if isinstance(e,FinishedException):
             raise e
-        await debug_cmd.send(f"错误. 请检查日志")
         logger.error(f"Error executing debug command: {traceback.format_exc()}")
+        await finish(f"错误. 请检查日志")
     
