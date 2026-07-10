@@ -287,25 +287,31 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     thumb=None
     if show_thumbnail or enable_image:
         thumb=getThumbnail(level.id)
+        
+    song=gd.getSong(level.songID)
     
     dc_entry=None
-    dc_entries=PLAT_CHART_BY_ID.get_for_id(level.id)
-    if dc_entries:
-        dc_entry=dc_entries[0]
-    
+    # Check Difficulty Chart for platformers
+    if level.is_plat():
+        dc_entries=PLAT_CHART_BY_ID.get_for_id(level.id)
+        if dc_entries:
+            dc_entry=dc_entries[0]
+            
     nlwlike_entry=None
-    nlwlike_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
-    nlwlike_entries.sort(key=lambda x: 1 if x.is_legacy() else 0)
-    
-    if nlwlike_entries:
-        nlwlike_entry=nlwlike_entries[0]
+    # Check NLW-like for pemons
+    if level.is_plat() and level.demon:
+        nlwlike_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
+        nlwlike_entries.sort(key=lambda x: 1 if x.is_legacy() else 0)
+        
+        if nlwlike_entries:
+            nlwlike_entry=nlwlike_entries[0]
     
     underrated_entry=None
-    underrated_entries=UNDERRATED_BY_ID.get_for_id(level.id)
-    if underrated_entries:
-        underrated_entry=underrated_entries[0]
-    
-    song=gd.getSong(level.songID)
+    # Check underrated levels for non-demons
+    if not level.demon:
+        underrated_entries=UNDERRATED_BY_ID.get_for_id(level.id)
+        if underrated_entries:
+            underrated_entry=underrated_entries[0]
     
     # Image Sections
     if enable_image:

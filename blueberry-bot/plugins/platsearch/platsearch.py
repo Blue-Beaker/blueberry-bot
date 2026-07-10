@@ -50,8 +50,8 @@ async def load():
     levelid_filler.FILLER_MAPPING.load()
     os.makedirs("platsearch_cache",exist_ok=True)
     trigger=CronTrigger.from_crontab('*/30 * * * *') # Update every 30 mins
-    scheduler.add_job(threaded_update_cache1,trigger,args=[PLAT_SHEET_CACHE,"Plat Sheet cache"],id="Plat Sheet cache",misfire_grace_time=3600)
-    scheduler.add_job(threaded_update_cache2,trigger,args=[PLAT_CHART_CACHE,"Plat Chart cache"],id="Plat Chart cache",misfire_grace_time=3600)
+    scheduler.add_job(threaded_update_cache1,trigger,args=[PLAT_SHEET_CACHE,"Plat Sheet cache"],id="Plat Sheet cache",misfire_grace_time=1800)
+    scheduler.add_job(threaded_update_cache2,trigger,args=[PLAT_CHART_CACHE,"Plat Chart cache"],id="Plat Chart cache",misfire_grace_time=1800)
 
 
 def match_ids_for_levels(entries:list[levelid_filler.ENTRY_TYPE],logfile:str=""):

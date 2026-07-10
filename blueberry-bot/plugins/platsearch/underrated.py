@@ -11,6 +11,9 @@ from .plat_sheets import LevelEntry
 from .data_cache import BaseCache
 from .config import Config
 
+require("nonebot_plugin_apscheduler")
+from nonebot_plugin_apscheduler import scheduler
+from apscheduler.triggers.cron import CronTrigger
 require('bbot_api')
 from ..bbot_api.sheets_api import Sheet
 from ..bbot_api import safeInt
@@ -115,8 +118,14 @@ async def load_cache():
     os.makedirs("platsearch_cache",exist_ok=True)
     threading.Thread(target=threaded_update_cache,args=[UR_CACHE,"Underrated Levels cache"]).start()
     
-def threaded_update_cache(cache:BaseCache,name:str):
-    cache.get()
+    trigger=CronTrigger.from_crontab('*/30 * * * *') # Update every 30 mins
+    scheduler.add_job(threaded_update_cache,trigger,args=[UR_CACHE,"Underrated Levels cache",True],id="Underrated Levels cache",misfire_grace_time=1800)
+    
+def threaded_update_cache(cache:BaseCache,name:str,force:bool=False):
+    if not force:
+        cache.get()
+    else:
+        cache.update()
     logger.info(f"Loaded {cache.entries.__len__()} entries into {name}, expiring at {time.ctime(cache.expiration_time)}")
     
 gdur = on_command("gdur")
