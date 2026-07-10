@@ -613,8 +613,10 @@ platupdate = on_command("platupdate",permission=SUPERUSER)
 async def _():
     await platupdate.send("开始刷新platsearch缓存...\n刷新DifficultyChart...")
     PLAT_CHART_CACHE.update()
+    match_ids_for_levels(PLAT_CHART_CACHE.entries,"cache/plat_chart_unmatched.json")
     await platupdate.send("刷新NLW/IDS/HDS...")
     PLAT_SHEET_CACHE.update()
+    match_ids_for_levels(PLAT_SHEET_CACHE.entries,"cache/plat_sheet_unmatched.json")
     await platupdate.finish(f"刷新完毕. DifficultyChart:{PLAT_CHART_CACHE.entries.__len__()}, NLW/IDS/HDS:{PLAT_SHEET_CACHE.entries.__len__()})")
     return
 

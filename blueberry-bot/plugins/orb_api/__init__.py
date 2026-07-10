@@ -46,8 +46,8 @@ async def load_sessions():
     os.makedirs("config",exist_ok=True)
     ORB_STORAGE.load()
     logger.info(f"Loaded {len(ORB_STORAGE.balances.keys())} entries.")
-    scheduler.add_job(save_sync, "interval", seconds=10, id="ORBS_SAVE") 
-    scheduler.add_job(save_force, "interval", minutes=10, id="ORBS_SAVE2") 
+    scheduler.add_job(save_sync, "interval", seconds=10, id="ORBS_SAVE", misfire_grace_time=10) 
+    scheduler.add_job(save_force, "interval", minutes=10, id="ORBS_SAVE2", misfire_grace_time=600) 
     
 @driver.on_shutdown
 async def save_sessions():

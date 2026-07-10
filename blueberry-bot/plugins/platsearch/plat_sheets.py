@@ -164,6 +164,10 @@ def get_nlw():
             if not level and not creator:
                 # current_section="WTH IS THIS"
                 break
+            
+            if level=="None Yet!" and not creator:
+                break
+            
             checkpoints=line[2]
             skillsets=[i.strip() for i in line[3].split(",")]
             desc=line[5]
@@ -233,7 +237,11 @@ def get_plat_chart():
                 continue
             while line.__len__()<6:
                 line.append("")
+                
             entry=PlatChartEntry.build(tier,line)
+            # Invalid entry
+            if entry.name.__contains__(".") and entry.creator=="---":
+                continue
             # if entry.name or entry.id>0:
             results.append(entry)
             if entry.id>0:
