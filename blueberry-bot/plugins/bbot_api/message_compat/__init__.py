@@ -72,14 +72,14 @@ class TextImageMessage:
         else:
             return self.msg
     
-    async def send(self,matcher:type[Matcher]):
+    async def send(self,matcher:type[Matcher],**kwargs):
         if isinstance(self.msg,QQMessage):
             msgpart=QQMessage()
             has_image=False
             for i in self.msg:
                 if has_image and not i.is_text():
                     # Send part of message
-                    await matcher.send(msgpart)
+                    await matcher.send(msgpart,**kwargs)
                     msgpart=QQMessage()
                         
                 msgpart.append(i)
@@ -87,8 +87,8 @@ class TextImageMessage:
                     has_image=True
                     
         
-        await matcher.send(self.msg)
+        await matcher.send(self.msg,**kwargs)
         
-    async def finish(self,matcher:type[Matcher]):
-        await self.send(matcher)
+    async def finish(self,matcher:type[Matcher],**kwargs):
+        await self.send(matcher,**kwargs)
         await matcher.finish()
