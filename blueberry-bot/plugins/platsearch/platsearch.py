@@ -59,7 +59,7 @@ def match_ids_for_levels(entries:list[levelid_filler.ENTRY_TYPE],logfile:str="")
     if levels_not_matched:
         jsondata=[]
         for l in levels_not_matched:
-            jsondata.append({"level":l.to_dict(),"matches":levelid_filler.NAMES_TO_LEVEL.get(l.name)})
+            jsondata.append({"level":l.to_dict(),"matches":levelid_filler.FILLER_MAPPING.getEntriesForName(l.name)})
             
         if logfile:
             with open(logfile,"w") as f:

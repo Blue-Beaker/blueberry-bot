@@ -1,5 +1,7 @@
 import os
+import time
 from typing import Callable, Sequence, TypeVar
+from cachetools import TTLCache, cached
 from nonebot import logger, require
 import yaml
 
@@ -12,9 +14,15 @@ from ..gd_api.gddl import GDDLLevel
 
 ENTRY_TYPE = TypeVar(name="ENTRY_TYPE",bound=TheListsEntry|PlatChartEntry)
 
+NameMappingEntry=tuple[str,int]
+
 class FillerMapping:
     author_names:dict[str,str]
     fixed_levels:dict[str,int]
+    
+    # Name: (Publisher, ID)
+    names_to_levels:dict[str,list[NameMappingEntry]]={}
+    
     def __init__(self) -> None:
         self.author_names={}
         self.fixed_levels={}
@@ -50,13 +58,30 @@ class FillerMapping:
         if id:
             return id
         
-        if level.name in NAMES_TO_LEVEL:
-            entries=NAMES_TO_LEVEL[level.name]
-            
-            for creator,id in entries:
-                if level.creator and self.map_creator(creator).lower().strip() in level.creator.lower():
-                    level.id=id
-                    return id
+        entries=self.getEntriesForName(level.name)
+        
+        for creator,id in entries:
+            if level.creator and self.map_creator(creator).lower().strip() in level.creator.lower():
+                level.id=id
+                return id
+    
+    def getEntriesForName(self,name:str):
+        key=name.lower().strip()
+        if key not in self.names_to_levels:
+            self.names_to_levels[key]=[]
+        return self.names_to_levels[key]
+    
+    @cached(TTLCache(maxsize=1,ttl=10))
+    def loadNamesToLevelMappings(self):
+        self.names_to_levels.clear()
+        levels=gddl.getGDDLUntiered()
+        if not levels:
+            return
+        for id,level in levels.items():
+            entries=self.getEntriesForName(level.Name)
+            if (level.Publisher,level.ID) in entries:
+                continue
+            entries.append((level.Publisher,level.ID))
                     
 FILLER_MAPPING=FillerMapping()
 FILLER_MAPPING.load()
@@ -64,8 +89,8 @@ FILLER_MAPPING.load()
 def fillIDsForEntries(entries:Sequence[ENTRY_TYPE]):
     
     FILLER_MAPPING.load()
-    if NAMES_TO_LEVEL.__len__()==0:
-        loadNamesToLevelMappings()
+    # if NAMES_TO_LEVEL.__len__()==0:
+    FILLER_MAPPING.loadNamesToLevelMappings()
     levels_not_matched:list[ENTRY_TYPE]=[]
     for i in entries:
         id=FILLER_MAPPING.fillIDForEntry(i)
@@ -76,19 +101,6 @@ def fillIDsForEntries(entries:Sequence[ENTRY_TYPE]):
 
 # Name: (Publisher, ID)
 NAMES_TO_LEVEL:dict[str,list[tuple[str,int]]]={}
-
-def loadNamesToLevelMappings():
-    NAMES_TO_LEVEL.clear()
-    levels=gddl.getGDDLUntiered()
-    if not levels:
-        return
-    for id,level in levels.items():
-        name=level.Name
-        if name not in NAMES_TO_LEVEL:
-            NAMES_TO_LEVEL[name]=[]
-        if (level.Publisher,level.ID) in NAMES_TO_LEVEL[name]:
-            continue
-        NAMES_TO_LEVEL[name].append((level.Publisher,level.ID))
 
 
 def get_plat_chart():
