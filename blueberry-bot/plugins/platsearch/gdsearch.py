@@ -22,7 +22,7 @@ from .config import Config
 from .gd_icon import IconType, construct_icon_url,get_icon,ICON_TYPES
 from .gd_extras import repr_level
 from .platsearch import PLAT_CHART_CACHE,PLAT_SHEET_CACHE
-from .underrated import UR_CACHE,formatUnderrated
+from .underrated import UR_CACHE,formatUnderrated,UnderratedLevel
 from .plat_sheets import LevelEntry,TheListsEntry,PlatChartEntry
 from .data_cache import ManagedIDMapCache
 from . import formatters
@@ -291,6 +291,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     song=gd.getSong(level.songID)
     
     dc_entry=None
+    dc_entries:list[PlatChartEntry]=[]
     # Check Difficulty Chart for platformers
     if level.is_plat():
         dc_entries=PLAT_CHART_BY_ID.get_for_id(level.id)
@@ -298,6 +299,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             dc_entry=dc_entries[0]
             
     nlwlike_entry=None
+    nlwlike_entries:list[TheListsEntry]=[]
     # Check NLW-like for pemons
     if level.is_plat() and level.demon:
         nlwlike_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
@@ -307,6 +309,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             nlwlike_entry=nlwlike_entries[0]
     
     underrated_entry=None
+    underrated_entries:list[UnderratedLevel]=[]
     # Check underrated levels for non-demons
     if not level.demon:
         underrated_entries=UNDERRATED_BY_ID.get_for_id(level.id)
