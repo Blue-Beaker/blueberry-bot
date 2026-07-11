@@ -497,7 +497,7 @@ platrandom = on_command("platrandom")
 async def _(bot:Bot, search_args: Message = CommandArg()):
     text0=search_args.extract_plain_text()
     try:
-        parser=ArgParser("platrandom")
+        parser=ArgParser("platrandom",add_help=False)
         parser.add_argument('-t',help="Tier",type=int,default=-1)
         parser.add_argument('-s',help="Skills",type=str,default=None)
         parser.add_argument('-h',help="help",action='store_true',default=None)

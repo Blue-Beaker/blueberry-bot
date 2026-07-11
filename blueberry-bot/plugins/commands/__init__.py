@@ -8,6 +8,9 @@ from nonebot.adapters.discord.commands import (
     on_slash_command,
 )
 import platform,psutil
+from .config import Config
+
+plugin_config=get_plugin_config(Config)
 
 def get_system_info()->str:
     sysinfo=[]
@@ -28,6 +31,10 @@ def get_all_help(bot:Bot,event:Event)->str:
         "help 显示本帮助",
         "sysinfo 显示运行此Bot的系统信息"
     ]
+    
+    if plugin_config.help_lines_overrides:
+        help_lines.extend(plugin_config.help_lines_overrides)
+        return "\n".join(help_lines)
         
     plugins=get_loaded_plugins()
     for plugin in plugins:

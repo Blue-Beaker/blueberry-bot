@@ -15,8 +15,8 @@ class ShowHelp(Exception):
         return self.message
 
 class ArgParser(argparse.ArgumentParser):
-    def __init__(self, command_name=None, *args, **kwargs):
-        super().__init__(exit_on_error=False, add_help=True, *args, **kwargs)
+    def __init__(self, command_name=None, add_help=True, *args, **kwargs):
+        super().__init__(exit_on_error=False, add_help=add_help, *args, **kwargs)
         self.messages = []
         self.command_name = command_name or self.prog
     def _print_message(self, message, file=None):
