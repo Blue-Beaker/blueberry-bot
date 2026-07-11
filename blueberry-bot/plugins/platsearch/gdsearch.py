@@ -352,6 +352,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 "length2":format_verify_time(level2.verification_time),
                 "song_info": f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}"
             })
+            
+        level_desc=level.get_description()
+        
+        if level.stars==0 and level.downloads<1000:
+            level_desc=""
         
         img=await render_api.render_level(req_id_base+"_base",
                         level_id=level.id,
@@ -371,7 +376,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                         likes=level.likes,
                         scene_type="level_large",
                         thumbnail=getThumbnailUrl(level.id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or "",
-                        description=level.get_description(),
+                        description=level_desc,
                         **extra_render_args
                         )
         if isinstance(img,bytes):
