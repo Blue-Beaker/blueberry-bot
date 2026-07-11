@@ -106,6 +106,8 @@ class TheListsEntry(LevelEntry):
         return sect in ["plending","pending"]
     def is_main(self):
         return not (self.is_legacy() or self.is_pending())
+    def get_section(self):
+        return self.section.replace("Fuck","Fxxk")
         
 @cached(cache=TTLCache(maxsize=20,ttl=30))
 def get_hds():

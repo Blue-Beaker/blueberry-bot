@@ -47,9 +47,9 @@ def formatListsLevel(l:TheListsEntry,compact:bool=False,exclude_base_info:bool=F
     lines:list[str]=[]
     
     if not exclude_base_info:
-        firstline=f"{l.name} by {l.creator} ({l.sheet} {l.section})"
+        firstline=f"{l.name} by {l.creator} ({l.sheet} {l.get_section()})"
     else:
-        firstline=f"{l.sheet} {l.section}"
+        firstline=f"{l.sheet} {l.get_section()}"
         
     if not compact:
         lines.append(firstline)

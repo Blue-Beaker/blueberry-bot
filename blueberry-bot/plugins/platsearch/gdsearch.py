@@ -337,7 +337,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         if nlwlike_entry:
             extra_render_args.update({
                 "nlw_type": nlwlike_entry.sheet,
-                "nlw_tier": nlwlike_entry.section,
+                "nlw_tier": nlwlike_entry.get_section(),
                 "nlw_tags": ", ".join(nlwlike_entry.skillsets)
             })
             
