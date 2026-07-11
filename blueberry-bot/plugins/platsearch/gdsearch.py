@@ -427,33 +427,9 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             lines.addLine("--NLW/IDS/HDS--")
         for e in nlwlike_entries:
             lines.addLine(formatters.formatListsLevel(e,False,True))
-            
-            
-        
-    
-    # if not (classic_only or plat_only or demon):
-    #     lines.append("使用-c、-p、-d参数, 可显示Classic、Plat与Demon关卡的详细计数")
-            
-    # Others (Text)
-    if verbose:
-        pass
-        # lines.append(f"Global Rank {user.global_rank}")
-        # lines.append(f"Account ID {user.account_id}")
-        # lines.append(f"Player ID {user.user_id}")
+
     if lines.msg.__len__():
         await gdsearch.finish(await bbot_api.auto_pack_message(bot,lines.msg,6))
-
-def getIconIDs(icon: PlayerIcons):
-    id_for_types:dict[IconType,int]={}
-    for i in IconType:
-        id_for_types[i]=icon.get_icon_for_type(i.value) or 0
-    return id_for_types
-    
-async def render_nondemons(req_id:str,classic:gd.PlayerLevels,plat:gd.PlayerLevels):
-    return await render_api.render_nondemons(req_id,classic.auto,classic.easy,classic.normal,classic.hard,classic.harder,classic.insane,classic.sum(),plat.auto,plat.easy,plat.normal,plat.hard,plat.harder,plat.insane,plat.sum(),classic.daily,classic.gauntlet)
-
-async def render_demons(req_id:str,classic:gd.PlayerDemonLevels,plat:gd.PlayerDemonLevels):
-    return await render_api.render_demons(req_id,classic.ezd,classic.med,classic.hdd,classic.insd,classic.exd,classic.sum(),plat.ezd,plat.med,plat.hdd,plat.insd,plat.exd,plat.sum(),classic.weekly,classic.gauntlet)
 
 def get_help(bot:Bot,event:Event):
     return ["gdsearch [参数] [关名/ID] 搜索关卡"]

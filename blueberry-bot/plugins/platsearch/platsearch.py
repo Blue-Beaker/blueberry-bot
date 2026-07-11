@@ -594,7 +594,7 @@ def level_in_three_sheets(search:str):
 
 plathelp = on_command("plathelp")
 @plathelp.handle()
-async def _():
+async def _(bot:Bot,event:Event):
     help_lines=[
         "plathelp 显示Plat搜索功能相关帮助",
         "platsearch 搜索Plat关卡",
@@ -625,6 +625,7 @@ def get_help(bot:Bot,event:Event):
     help_lines=[
             "plathelp 显示Plat搜索功能相关帮助",
             "platsearch 搜索Plat关卡",
+            "platsheet 在NLW/IDS/HDS中搜索Plat关卡",
             "platweight 根据提供关卡/list计算Plat Top10",
             "platskill 根据提供关卡/list计算Plat Skillset分布",
             "platrandom 随机抽取Plat关卡"
