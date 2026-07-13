@@ -33,7 +33,11 @@ from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
 from ..gd_api.gd import getLevel2,getLevelSearch2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons,downloadLevel2,LevelSearchArgs,Difficulty,Length,getLevelsFromUser,PageInfo
 from ..gd_api import gd
+from ..gd_api.gd import Level
 from ..gd_api.thumbs import getThumbnail,getThumbnailUrl
+
+require("bbot_perms")
+from ..bbot_perms import get_perms
 
 try:
     require("orb_api")
@@ -234,6 +238,9 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
     if not include_unrated:
         lines.addLine("默认只搜索 Rated 关卡. -a 以搜索全部关卡.")
+        
+    if levels and not get_perms(event).gd_unrated:
+        levels = [censor_unrate_levels(l) for l in levels]
     
     if not isinstance(levels,list) or not pageinfo.success():
         lines.addLine("查找出错."+pageinfo.status.value)
@@ -352,11 +359,6 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 "length2":format_verify_time(level2.verification_time),
                 "song_info": f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}"
             })
-            
-        level_desc=level.get_description()
-        
-        if level.stars==0 and level.downloads<1000:
-            level_desc=""
         
         img=await render_api.render_level(req_id_base+"_base",
                         level_id=level.id,
@@ -376,7 +378,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                         likes=level.likes,
                         scene_type="level_large",
                         thumbnail=getThumbnailUrl(level.id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or "",
-                        description=level_desc,
+                        description=level.get_description(),
                         **extra_render_args
                         )
         if isinstance(img,bytes):
@@ -439,6 +441,16 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
 def get_help(bot:Bot,event:Event):
     return ["gdsearch [参数] [关名/ID] 搜索关卡"]
 
+def censor_unrate_levels(level:Level):
+    level1=Level()
+    level1.__dict__=level.__dict__.copy()
+    if is_unrated_hidden(level1):
+        level1.name="<Unrated Level>"
+        level1.description=""
+    return level1
+
+def is_unrated_hidden(level:gd.Level):
+    return level.stars==0 and level.downloads<5000
 
 def format_verify_time(frame_count: int | None, fps: int = 240) -> str:
     """将验证用时（帧）格式化为 1h 1m 1s 形式，低于 1h/1m 时隐藏对应段落。"""
