@@ -10,16 +10,31 @@ def supportsRecord(bot:Bot):
     return isinstance(bot,OBBot) or isinstance(bot,DCBot) or isinstance(bot,QQBot)
 def supportsImage(bot:Bot):
     return isinstance(bot,OBBot) or isinstance(bot,DCBot) or isinstance(bot,QQBot)
+def supportsFile(bot:Bot):
+    return isinstance(bot,DCBot) or isinstance(bot,QQBot)
 
 def supportsMarkdown(bot:Bot):
     return isinstance(bot,DCBot)
 
-def record(bot:Bot,content:bytes,filename:str="say.wav"):
+def file(bot:Bot,content:bytes,filename:str):
+    # if isinstance(bot,OBBot):
+    #     return OBMessageSegment.record(content)
+    if isinstance(bot,DCBot):
+        return DCMessageSegment.attachment(filename,None,content)
+    elif isinstance(bot,QQBot):
+        return QQMessageSegment.file_file(content,file_name=filename)
+    else:
+        return "无法发送文件: 不支持的平台."
+    
+
+def record(bot:Bot,content:bytes,filename:str="say.wav",as_file:bool=False):
     if isinstance(bot,OBBot):
         return OBMessageSegment.record(content)
     elif isinstance(bot,DCBot):
         return DCMessageSegment.attachment(filename,None,content)
     elif isinstance(bot,QQBot):
+        if as_file:
+            return QQMessageSegment.file_file(content,file_name=filename)
         return QQMessageSegment.file_audio(content,file_name=filename)
     else:
         return "无法发送音频: 不支持的平台."
