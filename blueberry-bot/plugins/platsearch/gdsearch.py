@@ -20,7 +20,7 @@ from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGro
 
 from .config import Config
 from .gd_icon import IconType, construct_icon_url,get_icon,ICON_TYPES
-from .gd_extras import repr_level
+from .utils import repr_level,repr_list
 from .platsearch import PLAT_CHART_CACHE,PLAT_SHEET_CACHE
 from .underrated import UR_CACHE,formatUnderrated,UnderratedLevel
 from .plat_sheets import LevelEntry,TheListsEntry,PlatChartEntry
@@ -39,6 +39,25 @@ from ..gd_api.thumbs import getThumbnail,getThumbnailUrl
 require("bbot_perms")
 from ..bbot_perms import get_perms
 
+from .utils import repr_level,repr_list,ensure_gd_level,SearchException
+from . import utils
+
+from .platsearch import PLAT_CHART_CACHE,PLAT_SHEET_CACHE
+from .underrated import UR_CACHE
+from .data_cache import ManagedIDMapCache
+
+PLAT_CHART_BY_ID=ManagedIDMapCache(PLAT_CHART_CACHE)
+PLAT_SHEET_BY_ID=ManagedIDMapCache(PLAT_SHEET_CACHE)
+UNDERRATED_BY_ID=ManagedIDMapCache(UR_CACHE)
+
+def get_level_line(level:Level) -> str:
+    levelstr=repr_level(level)
+    if level.is_plat():
+        levelstr+=("".join([f" E{l2.enj or '-'} W{l2.weight or '-'} P{l2.pemon or '-'}" for l2 in PLAT_CHART_BY_ID.get_for_id(level.id)]))
+    return levelstr
+
+utils.REPR_LEVEL_FUNC=get_level_line
+
 try:
     require("orb_api")
     from .. import orb_api
@@ -51,11 +70,6 @@ plugin_cfg=get_plugin_config(Config)
 require('bbot_render')
 from ..bbot_render import RenderAPI
 render_api=RenderAPI(uri=plugin_cfg.render_server_uri)
-
-PLAT_CHART_BY_ID=ManagedIDMapCache(PLAT_CHART_CACHE)
-PLAT_SHEET_BY_ID=ManagedIDMapCache(PLAT_SHEET_CACHE)
-UNDERRATED_BY_ID=ManagedIDMapCache(UR_CACHE)
-
 
 _DIFFICULTY_MAPPINGS:dict[str,Difficulty]={
 }
@@ -242,26 +256,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     if levels and not get_perms(event).gd_unrated:
         levels = [censor_unrate_levels(l) for l in levels]
     
-    if not isinstance(levels,list) or not pageinfo.success():
-        lines.addLine("查找出错."+pageinfo.status.value)
-        await gdsearch.finish(lines.msg)
+    try:
+        level = ensure_gd_level(levels,pageinfo)
+    except SearchException as e:
+        await gdsearch.finish(await bbot_api.auto_pack_message(bot,e.msg,6))
         return
-    if levels.__len__()==0:
-        lines.addLine("没有查找到任何关卡.")
-        await gdsearch.finish(lines.msg)
-        return
-    elif levels.__len__()>1:
-        lines.addLine("找到多个关卡,请用id选择:")
-        lines.addLine(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
-        for l in levels:
-            lines.addLine(repr_level(l))
-            if l.is_plat():
-                lines.addText("".join([f" E{l2.enj or '-'} W{l2.weight or '-'} P{l2.pemon or '-'}" for l2 in PLAT_CHART_BY_ID.get_for_id(l.id)]))
-            
-        await gdsearch.finish(await bbot_api.auto_pack_message(bot,lines.msg,6))
-        return
-    
-    level=levels[0]
     
     level2=None
     

@@ -21,6 +21,8 @@ from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList,ListSearchT
 from ..gd_api import gd
 from ..gd_api.thumbs import getThumbnail
 
+from .utils import repr_level,repr_list,ensure_gd_level,SearchException
+
 driver=get_driver()
 plugin_cfg=get_plugin_config(Config)
 
@@ -175,21 +177,12 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     await bbot_api.trigger_typing(bot,event)
     
     levels,pageinfo=getLevel2(search,page-1,rated)
-    if not isinstance(levels,list) or not pageinfo.success():
-        await gdthumb.finish("查找出错."+pageinfo.status.value)
-        return
-    if levels.__len__()==0:
-        await gdthumb.finish("没有查找到任何关卡.")
-        return
-    elif levels.__len__()>1:
-        lines.append("找到多个关卡,请用id选择:")
-        lines.append(f"第 {page}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
-        for l in levels:
-            lines.append(repr_level(l))
-        await gdthumb.finish("\n".join(lines))
-        return
     
-    l=levels[0]
+    try:
+        l = ensure_gd_level(levels,pageinfo)
+    except SearchException as e:
+        await gdthumb.finish(e.msg)
+    
     thumb=getThumbnail(l.id)
     if not thumb:
         await gdthumb.finish(f"未找到该关卡截图: {l.name} by {l.creator} ({l.repr_difficulty()})")
@@ -210,8 +203,3 @@ def get_help(bot:Bot,event:Event):
     else:
         return []
     
-def repr_level(l:gd.Level,fromuser:bool=False):
-    return f"{l.name} by {l.creator} ({l.repr_difficulty()}) ({l.id})" if not fromuser else f"{l.name} ({l.repr_difficulty()}) ({l.id})"
-
-def repr_list(l:gd.LevelList,fromuser:bool=False):
-    return f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)" if not fromuser else f"{l.name} ({l.id}) ({l.levels.__len__()} 个关卡)"
