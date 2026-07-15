@@ -55,3 +55,32 @@ async def _(bot:BaseBot,event:BaseEvent,args:Message=CommandArg()):
         reply.append(f"来自{name}服务器: \n{msg}")
         
     await whitelist_msg.send("\n".join(reply))
+    
+mcexec=on_command("mc-exec",permission=SUPERUSER)
+@mcexec.handle()
+async def _(bot:BaseBot,event:BaseEvent,args:Message=CommandArg()):
+    cmdargs=args.extract_plain_text().split()
+    
+    mc_adapter = get_adapter(MCAdapter)
+    if not cmdargs:
+        await mcexec.finish("用法: mc-exec <服务器> <命令...>"
+                            +"\n当前服务器列表: \n"
+                            +", ".join(mc_adapter.bots.keys()))
+        
+    server_name=cmdargs[0]
+    
+    
+    mc_bot=mc_adapter.bots.get(server_name,None)
+    
+    if not mc_bot:
+        for name,bot2 in mc_adapter.bots.items():
+            if bot2.self_id.lower()==server_name.lower():
+                mc_bot=bot2
+                break
+    
+    if not mc_bot:
+        await mcexec.finish("未知服务器. 当前服务器列表:\n"+", ".join(mc_adapter.bots.keys()))
+    
+    assert isinstance(mc_bot,Bot)
+    msg,result = await mc_bot.send_rcon_cmd(command=" ".join(cmdargs[1:]))
+    await mcexec.finish(f"来自服务器的消息: {msg}\n (返回值={result})")
