@@ -1,10 +1,11 @@
 import json
-from nonebot import on_command,logger,on_startswith,get_plugin_config
+from nonebot import on_command,logger,on_startswith,get_plugin_config,get_adapter
 from nonebot.rule import is_type
 from nonebot.adapters.minecraft.bot import Bot
-from nonebot.adapters.minecraft import BasePlayerCommandEvent,MessageEvent
-from nonebot.adapters import Message
+from nonebot.adapters.minecraft import BasePlayerCommandEvent,MessageEvent,Adapter as MCAdapter
+from nonebot.adapters import Message,Bot as BaseBot, Event as BaseEvent
 from nonebot.params import CommandArg
+from nonebot.permission import SUPERUSER
 
 CONFIG_PATH="config.json"
 
@@ -40,3 +41,17 @@ async def _(bot:Bot,event:BasePlayerCommandEvent):
         msg,result = await bot2.send_rcon_cmd(command=convert_server_command(cmd,bot,bot2))
         if(result>=1):
             await bot.send_private_msg(uuid=event.player.uuid,nickname=event.player.nickname,message=f"来自{name}服务器: \n{msg}")
+            
+whitelist_msg=on_command("mc-whitelist",permission=SUPERUSER)
+@whitelist_msg.handle()
+async def _(bot:BaseBot,event:BaseEvent,args:Message=CommandArg()):
+    reply=[]
+    mc_adapter = get_adapter(MCAdapter)
+    for name,bot2 in mc_adapter.bots.items():
+        if(bot==bot2 or not isinstance(bot2,Bot) or bot2.self_id not in server_prefixes.keys()):
+            continue
+        msg,result = await bot2.send_rcon_cmd(command=server_prefixes[bot2.self_id]+" "+args.extract_plain_text().strip())
+        # if(result>=1):
+        reply.append(f"来自{name}服务器: \n{msg}")
+        
+    await whitelist_msg.send("\n".join(reply))
