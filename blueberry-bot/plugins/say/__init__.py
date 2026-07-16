@@ -199,10 +199,15 @@ async def _(bot:Bot,event: Event, arg: Message = CommandArg()):
                 await say.finish(f"你的 Orbs 不足! 需要 {orb_cost}, 你只有 {balance}")
                 
             orb_api.add_balance(orb_id,-orb_cost)
-    
-    res = requests.get(plugin_config.say_request_url.replace("{$text}",text))
-    if res.status_code != 200:
-        logger.error(f"Request say failed: {res.status_code}")
+    try:
+        res = requests.get(plugin_config.say_request_url.replace("{$text}",text))
+    except Exception as e:
+        logger.error(f"Request say failed: {e}")
+        res=None
+        
+    if not res or res.status_code != 200:
+        if res:
+            logger.error(f"Request say failed: {res.status_code}")
         
         if orb_api and orb_id:
             orb_api.add_balance(orb_id,-orb_cost)
