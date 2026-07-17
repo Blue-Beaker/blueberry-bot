@@ -7,10 +7,10 @@ if __name__ == "__main__" and __package__ is None:
     if str(_root) not in sys.path:
         sys.path.insert(0, str(_root))
     from plugins.gd_api.file_based_cache import FileBasedCache
-    from gddl_internal import GDDLSearchResult,getGDDLResponse,fetch_gddl_all_untiered,safeFloat,safeInt
+    from gddl_internal import GDDLSearchResult,getGDDLResponse,fetch_gddl_all_plat,safeFloat,safeInt
 else:
     from ..file_based_cache import FileBasedCache
-    from .gddl_internal import GDDLSearchResult,getGDDLResponse,fetch_gddl_all_untiered,safeFloat,safeInt
+    from .gddl_internal import GDDLSearchResult,getGDDLResponse,fetch_gddl_all_plat,safeFloat,safeInt
     
     from nonebot import require
     require("nonebot_plugin_apscheduler")
@@ -50,9 +50,9 @@ class GDDLLevel:
     def __repr__(self) -> str:
         return f"GDDLLevel[{self.Name} by {self.Publisher} {self.ID}]"
 
-CACHE=FileBasedCache(list,fetch_gddl_all_untiered,Path("cache")/"gddl_untiered.json",cache_name="GDDL Untiered Cache",expiration=8640000)
+CACHE=FileBasedCache(list,fetch_gddl_all_plat,Path("cache")/"gddl_plat.json",cache_name="GDDL Platformer Cache",expiration=8640000)
 
-def getGDDLUntiered():
+def getGDDLPlat():
     data=CACHE.getOrUpdate()
     if not data:
         return None
@@ -63,7 +63,7 @@ def getGDDLUntiered():
     return levels
     
 if __name__ == "__main__":
-    levels=getGDDLUntiered()
+    levels=getGDDLPlat()
     if levels:
         print(levels)
 else:

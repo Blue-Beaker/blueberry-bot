@@ -74,7 +74,7 @@ class FillerMapping:
     @cached(TTLCache(maxsize=1,ttl=10))
     def loadNamesToLevelMappings(self):
         self.names_to_levels.clear()
-        levels=gddl.getGDDLUntiered()
+        levels=gddl.getGDDLPlat()
         if not levels:
             return
         for id,level in levels.items():

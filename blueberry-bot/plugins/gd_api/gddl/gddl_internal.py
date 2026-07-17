@@ -20,7 +20,7 @@ class GDDLSearchResult:
         return f"[{self.__class__.__name__}]{self.__dict__}"
 
 def getGDDLResponse(page:int=0,limit:int=25):
-    url=f"https://gdladder.com/api/level/search?limit={limit}&page={page}&sort=ID&sortDirection=asc&excludeRated=true"
+    url=f"https://gdladder.com/api/level/search?limit={limit}&page={page}&sort=ID&sortDirection=asc&length=6"
     headers = {
         "User-Agent": "",
         "accept": "application/json"
@@ -32,7 +32,7 @@ def getGDDLResponse(page:int=0,limit:int=25):
     else:
         return GDDLSearchResult().load(resp.json())
     
-def fetch_gddl_all_untiered():
+def fetch_gddl_all_plat():
     levels:list[dict[str,Any]]=[]
     page=0
     total=0
@@ -81,7 +81,7 @@ def safeFloat(i:Any,fallback:_A=-1) -> float|_A:
         return fallback
 
 if __name__ == "__main__":
-    all_levels=fetch_gddl_all_untiered()
+    all_levels=fetch_gddl_all_plat()
     if not all_levels:
         all_levels=[]
     for i in all_levels:
