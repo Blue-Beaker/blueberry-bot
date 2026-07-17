@@ -81,8 +81,14 @@ def safeFloat(i:Any,fallback:_A=-1) -> float|_A:
         return fallback
 
 if __name__ == "__main__":
-    all_levels=fetch_gddl_all_plat()
-    if not all_levels:
-        all_levels=[]
-    for i in all_levels:
-        print(f"{i.get("ID")}: {i.get("Meta",{}).get("Name","")}")
+    # all_levels=fetch_gddl_all_plat()
+    # if not all_levels:
+    #     all_levels=[]
+    # for i in all_levels:
+    #     print(f"{i.get("ID")}: {i.get("Meta",{}).get("Name","")}")
+    resp=getGDDLResponse()
+    if resp:
+        for i in resp.levels:
+            print(f"{i.get("ID")}: {i.get("Meta",{}).get("Name","")}")
+        
+        
