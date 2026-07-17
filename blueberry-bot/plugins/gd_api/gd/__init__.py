@@ -4,7 +4,8 @@ import sys
 from enum import Enum
 import requests
 from cachetools import cached, TTLCache
-from nonebot import logger
+from nonebot import logger,get_plugin_config
+from pydantic import BaseModel
 
 # 直接运行时将 blueberry-bot/ 加入 sys.path，使 plugins 包可导入
 if __name__ == "__main__" and __package__ is None:
@@ -18,6 +19,18 @@ else:
     from .models import BaseLevel, Difficulty, Length, Level, LevelList, PageInfo, PlayerDemonLevels, PlayerIcons, PlayerInfo, PlayerLevels, Song, SearchStatus
     from .search_args import LevelSearchArgs, LevelSearchType, ListSearchType
     from .utils import safeBool, safeInt
+
+class Config(BaseModel):
+    gd_endpoint_base:str="https://www.boomlings.com"
+
+GD_ENDPOINT_BASE="https://www.boomlings.com"
+
+try:
+    plugin_cfg=get_plugin_config(Config)
+except:
+    plugin_cfg=Config()
+    
+GD_ENDPOINT_BASE=plugin_cfg.gd_endpoint_base
 
 def parseDict(s:str,splitter:str=":"):
     spl=s.split(splitter)
@@ -56,7 +69,7 @@ def getList2(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs)
     }
     data.update(kwargs)
 
-    url = "http://www.boomlings.com/database/getGJLevelLists.php"
+    url = GD_ENDPOINT_BASE+"/database/getGJLevelLists.php"
 
     logger.info(f"Searching list {search}...")
     req = requests.post(url=url, data=data, headers=headers, timeout=30)
@@ -104,7 +117,7 @@ def getLevel2(search:int|str|None=None,page:int=0,rated:bool=False,searchType:Le
         data["str"]=str(search)
     data.update(kwargs)
 
-    url = "http://www.boomlings.com/database/getGJLevels21.php"
+    url = GD_ENDPOINT_BASE+"/database/getGJLevels21.php"
 
     logger.info(f"Searching level {search}...")
     req = requests.post(url=url, data=data, headers=headers, timeout=30)
@@ -215,7 +228,7 @@ def downloadLevel2(levelID:int, **kwargs):
     }
     data.update(kwargs)
 
-    url = "http://www.boomlings.com/database/downloadGJLevel22.php"
+    url = GD_ENDPOINT_BASE+"/database/downloadGJLevel22.php"
 
     logger.info(f"Downloading level {levelID}...")
     req = requests.post(url=url, data=data, headers=headers, timeout=30)
@@ -251,7 +264,7 @@ def getUser(search:int|str):
     data2["str"]=str(search)
     
     logger.info(f"Finding User {search}...")
-    req = requests.post('http://www.boomlings.com/database/getGJUsers20.php', data=data2, headers=headers, timeout=30)
+    req = requests.post(GD_ENDPOINT_BASE+"/database/getGJUsers20.php", data=data2, headers=headers, timeout=30)
     # logger.debug(f"getGJUsers20.php raw response: {req.text}")
     spl=req.text.split("#")
     if spl.__len__()<2:
@@ -265,7 +278,7 @@ def getUser(search:int|str):
     data["targetAccountID"]=str(userid)
     
     # logger.info(f"Getting user info for {search}...")
-    req = requests.post("http://www.boomlings.com/database/getGJUserInfo20.php", data=data, headers=headers, timeout=30)
+    req = requests.post(GD_ENDPOINT_BASE+"/database/getGJUserInfo20.php", data=data, headers=headers, timeout=30)
     
     # print(req.text)
     # print(parseDict(req.text))
@@ -286,7 +299,7 @@ def getSong(musicID:int):
     }
 
     logger.info(f"Finding Song {musicID}...")
-    req = requests.post("http://www.boomlings.com/database/getGJSongInfo.php", data=data, headers=headers)
+    req = requests.post(GD_ENDPOINT_BASE+"/database/getGJSongInfo.php", data=data, headers=headers)
     if req.status_code!=200:
         return None
     
