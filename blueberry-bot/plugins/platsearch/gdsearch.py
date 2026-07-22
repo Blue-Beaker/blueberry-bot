@@ -31,10 +31,10 @@ require('bbot_api')
 from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2,getLevelSearch2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons,downloadLevel2,LevelSearchArgs,Difficulty,Length,getLevelsFromUser,PageInfo
+from ..gd_api.gd import getLevel2_async,getLevelSearch2_async,getList2_async,getUser_async,getLevelsFromList_async,ListSearchType,LevelSearchType,PlayerIcons,downloadLevel2_async,LevelSearchArgs,Difficulty,Length,getLevelsFromUser_async,PageInfo,getSong_async
 from ..gd_api import gd
 from ..gd_api.gd import Level
-from ..gd_api.thumbs import getThumbnail,getThumbnailUrl
+from ..gd_api.thumbs import getThumbnail_async,getThumbnailUrl
 
 require("bbot_perms")
 from ..bbot_perms import get_perms
@@ -246,9 +246,9 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     await bbot_api.trigger_typing(bot,event)
     
     if searchArgs.getSearchType()==LevelSearchType.FROM_USER:
-        levels,pageinfo=getLevelsFromUser(searchArgs)
+        levels,pageinfo=await getLevelsFromUser_async(searchArgs)
     else:
-        levels,pageinfo=getLevelSearch2(searchArgs)
+        levels,pageinfo=await getLevelSearch2_async(searchArgs)
         
     if not include_unrated:
         lines.addLine("默认只搜索 Rated 关卡. -a 以搜索全部关卡.")
@@ -274,14 +274,14 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             if orb_account.get()<25:
                 lines.addLine("额外信息需要持有 25 Orbs. 消耗可低于此值.")
             else:
-                level2=downloadLevel2(level.id)
+                level2=await downloadLevel2_async(level.id)
                 if level2 and level2.level_string:
                     cost=min(25,level2.level_string.__len__()//100000)
                     orb_account.add(-cost)
                     lines.addLine(f"已消耗 {cost} Orbs.")
                 
         else:
-            level2=downloadLevel2(level.id)
+            level2=await downloadLevel2_async(level.id)
         
     supports_image=bbot_api.supportsImage(bot)
     
@@ -292,9 +292,9 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
 
     thumb=None
     if show_thumbnail or enable_image:
-        thumb=getThumbnail(level.id)
+        thumb=await getThumbnail_async(level.id)
         
-    song=gd.getSong(level.songID)
+    song=await getSong_async(level.songID)
     
     dc_entry=None
     dc_entries:list[PlatChartEntry]=[]

@@ -2,8 +2,9 @@ from pathlib import Path
 import sys
 
 from enum import Enum
-import requests
-from cachetools import cached, TTLCache
+import httpx
+from cachetools import TTLCache
+from cachetools_async import cached as async_cached
 from nonebot import logger,get_plugin_config
 from pydantic import BaseModel
 
@@ -32,6 +33,24 @@ except:
     
 GD_ENDPOINT_BASE=plugin_cfg.gd_endpoint_base
 
+# 共享的 httpx AsyncClient
+_client: httpx.AsyncClient | None = None
+
+async def get_client() -> httpx.AsyncClient:
+    global _client
+    if _client is None:
+        _client = httpx.AsyncClient(timeout=30, headers={"User-Agent": ""})
+    return _client
+
+async def close_client():
+    global _client
+    if _client is not None:
+        await _client.aclose()
+        _client = None
+
+from .. import run_async
+import asyncio
+
 def parseDict(s:str,splitter:str=":"):
     spl=s.split(splitter)
     data:dict[str,str]={}
@@ -53,13 +72,39 @@ def parseLine(line:str,line_spl:str="|",dict_spl:str=":"):
     return datas
 
 def getList(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs):
-    return getList2(search,page,searchType=searchType,**kwargs)[0]
+    return run_async(getList_async(search,page,searchType=searchType,**kwargs))
 
-@cached(TTLCache(maxsize=100,ttl=60))
 def getList2(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs):
-    headers = {
-        "User-Agent": ""
-    }
+    return run_async(getList2_async(search,page,searchType=searchType,**kwargs))
+
+def getLevel(search:int|str|None=None,page:int=0,rated:bool=False,searchType:LevelSearchType|int=0,**kwargs):
+    return run_async(getLevel_async(search,page,rated,searchType=searchType,**kwargs))
+
+def getLevel2(search:int|str|None=None,page:int=0,rated:bool=False,searchType:LevelSearchType|int=0,**kwargs):
+    return run_async(getLevel2_async(search,page,rated,searchType=searchType,**kwargs))
+
+def getLevelSearch(args: LevelSearchArgs):
+    return run_async(getLevelSearch_async(args))
+
+def getLevelSearch2(args: LevelSearchArgs):
+    return run_async(getLevelSearch2_async(args))
+
+def getLevelsFromList(listID: int):
+    return run_async(getLevelsFromList_async(listID))
+
+def getLevelsFromUser(args: LevelSearchArgs):
+    return run_async(getLevelsFromUser_async(args))
+
+
+# ---- Async 核心实现 ----
+
+async def getList_async(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs):
+    result, _ = await getList2_async(search, page, searchType=searchType, **kwargs)
+    return result
+
+@async_cached(TTLCache(maxsize=100, ttl=60))  # type: ignore[arg-type]
+async def getList2_async(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs):
+    client = await get_client()
 
     data = {
         "str": str(search),
@@ -72,7 +117,7 @@ def getList2(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs)
     url = GD_ENDPOINT_BASE+"/database/getGJLevelLists.php"
 
     logger.info(f"Searching list {search}...")
-    req = requests.post(url=url, data=data, headers=headers, timeout=30)
+    req = await client.post(url=url, data=data)
     logger.debug(f"Raw response: {req.text}")
     
     result:list[LevelList]=[]
@@ -98,14 +143,13 @@ def getList2(search:int|str,page:int=0,searchType:ListSearchType|int=0,**kwargs)
     logger.info(f"Found {result.__len__()} results.")
     return result,PageInfo().parse(rawPageInfo)
 
-def getLevel(search:int|str|None=None,page:int=0,rated:bool=False,searchType:LevelSearchType|int=0,**kwargs):
-    return getLevel2(search,page,rated,searchType=searchType,**kwargs)[0]
+async def getLevel_async(search:int|str|None=None,page:int=0,rated:bool=False,searchType:LevelSearchType|int=0,**kwargs):
+    result, _ = await getLevel2_async(search, page, rated, searchType=searchType, **kwargs)
+    return result
 
-@cached(TTLCache(maxsize=100,ttl=60))
-def getLevel2(search:int|str|None=None,page:int=0,rated:bool=False,searchType:LevelSearchType|int=0,**kwargs):
-    headers = {
-    "User-Agent": ""
-    }
+@async_cached(TTLCache(maxsize=100, ttl=60))  # type: ignore[arg-type]
+async def getLevel2_async(search:int|str|None=None,page:int=0,rated:bool=False,searchType:LevelSearchType|int=0,**kwargs):
+    client = await get_client()
     
     data = {
         "star": 0 if not rated else 1,
@@ -120,7 +164,7 @@ def getLevel2(search:int|str|None=None,page:int=0,rated:bool=False,searchType:Le
     url = GD_ENDPOINT_BASE+"/database/getGJLevels21.php"
 
     logger.info(f"Searching level {search}...")
-    req = requests.post(url=url, data=data, headers=headers, timeout=30)
+    req = await client.post(url=url, data=data)
     logger.debug(f"Raw response: {req.text}")
     
     
@@ -169,32 +213,33 @@ def getLevel2(search:int|str|None=None,page:int=0,rated:bool=False,searchType:Le
     return result,PageInfo().parse(rawPageInfo)
 
 
-def getLevelSearch(args: LevelSearchArgs):
-    return getLevelSearch2(args)[0]
+async def getLevelSearch_async(args: LevelSearchArgs):
+    result, _ = await getLevelSearch2_async(args)
+    return result
 
-def getLevelSearch2(args: LevelSearchArgs):
+async def getLevelSearch2_async(args: LevelSearchArgs):
     """使用 LevelSearchArgs 链式构造器搜索关卡。
 
-    基于 getLevel2 实现，用 args.getData() 构建请求参数。
+    基于 getLevel2_async 实现，用 args.getData() 构建请求参数。
     """
     data = args.getData()
     search = data.pop("str", None)
-    return getLevel2(search=search, **data)
+    return await getLevel2_async(search=search, **data)  # type: ignore[arg-type]
 
 
-def getLevelsFromList(listID: int):
-    return getLevel(str(listID), searchType=LevelSearchType.LEVEL_FROM_LIST)
+async def getLevelsFromList_async(listID: int):
+    return await getLevel_async(str(listID), searchType=LevelSearchType.LEVEL_FROM_LIST)
 
-def getLevelsFromUser(args: LevelSearchArgs):
+async def getLevelsFromUser_async(args: LevelSearchArgs):
     args.setSearchType(LevelSearchType.FROM_USER)
     if not args.getSearch():
         return None,PageInfo().setStatus(SearchStatus.NO_USER_ARG)
-    user=getUser(args.getSearch() or "")
+    user=await getUser_async(args.getSearch() or "")
     if not user or not user.user_id:
         return None,PageInfo().setStatus(SearchStatus.USER_NOT_FOUND)
     args.setSearch(str(user.user_id))
     
-    return getLevelSearch2(args)
+    return await getLevelSearch2_async(args)
 
 
 def downloadLevel(levelID:int, **kwargs):
@@ -202,11 +247,27 @@ def downloadLevel(levelID:int, **kwargs):
 
     简写封装，直接返回 Level 对象或 None。
     """
-    return downloadLevel2(levelID, **kwargs)
+    return run_async(downloadLevel_async(levelID, **kwargs))
 
-@cached(TTLCache(maxsize=100, ttl=180))
 def downloadLevel2(levelID:int, **kwargs):
-    """下载关卡完整数据（含关卡字符串）。
+    return run_async(downloadLevel2_async(levelID, **kwargs))
+
+def getUser(search:int|str):
+    return run_async(getUser_async(search))
+
+def getSong(musicID:int):
+    return run_async(getSong_async(musicID))
+
+
+# ---- Async 核心实现（续） ----
+
+async def downloadLevel_async(levelID:int, **kwargs):
+    """下载关卡完整数据（含关卡字符串），async 版本。"""
+    return await downloadLevel2_async(levelID, **kwargs)
+
+@async_cached(TTLCache(maxsize=100, ttl=180))  # type: ignore[arg-type]
+async def downloadLevel2_async(levelID:int, **kwargs):
+    """下载关卡完整数据（含关卡字符串），async 版本。
 
     对应端点 downloadGJLevel22.php，返回的响应包含关卡数据字符串（key 4）。
     使用 -1 作为 levelID 可获取每日关卡，-2 获取每周关卡。
@@ -218,9 +279,7 @@ def downloadLevel2(levelID:int, **kwargs):
     Returns:
         Level 对象（含 level_string），若解析失败则返回 None。
     """
-    headers = {
-        "User-Agent": ""
-    }
+    client = await get_client()
 
     data = {
         "levelID": levelID,
@@ -231,7 +290,7 @@ def downloadLevel2(levelID:int, **kwargs):
     url = GD_ENDPOINT_BASE+"/database/downloadGJLevel22.php"
 
     logger.info(f"Downloading level {levelID}...")
-    req = requests.post(url=url, data=data, headers=headers, timeout=30)
+    req = await client.post(url=url, data=data)
     logger.debug(f"Raw response: {req.text}")
 
     spl = req.text.split("#")
@@ -247,12 +306,9 @@ def downloadLevel2(levelID:int, **kwargs):
 
     return level
 
-
-@cached(TTLCache(maxsize=100,ttl=60))
-def getUser(search:int|str):
-    headers = {
-        "User-Agent": ""  # Empty User-Agent
-    }
+@async_cached(TTLCache(maxsize=100, ttl=60))  # type: ignore[arg-type]
+async def getUser_async(search:int|str):
+    client = await get_client()
     userid=safeInt(search)
     data = {
         "secret": "Wmfd2893gb7"
@@ -264,7 +320,7 @@ def getUser(search:int|str):
     data2["str"]=str(search)
     
     logger.info(f"Finding User {search}...")
-    req = requests.post(GD_ENDPOINT_BASE+"/database/getGJUsers20.php", data=data2, headers=headers, timeout=30)
+    req = await client.post(GD_ENDPOINT_BASE+"/database/getGJUsers20.php", data=data2)
     # logger.debug(f"getGJUsers20.php raw response: {req.text}")
     spl=req.text.split("#")
     if spl.__len__()<2:
@@ -278,7 +334,7 @@ def getUser(search:int|str):
     data["targetAccountID"]=str(userid)
     
     # logger.info(f"Getting user info for {search}...")
-    req = requests.post(GD_ENDPOINT_BASE+"/database/getGJUserInfo20.php", data=data, headers=headers, timeout=30)
+    req = await client.post(GD_ENDPOINT_BASE+"/database/getGJUserInfo20.php", data=data)
     
     # print(req.text)
     # print(parseDict(req.text))
@@ -289,17 +345,15 @@ def getUser(search:int|str):
     return player_info
 
 
-def getSong(musicID:int):
-    headers = {
-        "User-Agent": ""  # Empty User-Agent
-    }
+async def getSong_async(musicID:int):
+    client = await get_client()
     data = {
         "secret": "Wmfd2893gb7",
         "songID": musicID
     }
 
     logger.info(f"Finding Song {musicID}...")
-    req = requests.post(GD_ENDPOINT_BASE+"/database/getGJSongInfo.php", data=data, headers=headers)
+    req = await client.post(GD_ENDPOINT_BASE+"/database/getGJSongInfo.php", data=data)
     if req.status_code!=200:
         return None
     
@@ -311,49 +365,51 @@ def getSong(musicID:int):
 
 # Test code
 if __name__ == "__main__":
-    # lists=getList(754820)
-    # for l in lists:
-    #     print(l.name,l.creator,l.levels)
+    async def _test():
+        # lists=await getList_async(754820)
+        # for l in lists:
+        #     print(l.name,l.creator,l.levels)
+            
+        # print(await getLevel_async(lists[0].levels[0]))
         
-    # print(getLevel(lists[0].levels[0]))
-    
-    # print(getLevel("CATHARSIS",True))
-    
-    print(getLevel("",rated=True,diff="-2"))
-    
-    # print(getLevel("645883",rated=True,type=25))
-    
-    # print(getLevelsFromList(645883))
-    
-    # print(getLevel(searchType=LevelSearchType.WEEKLY))
-
-    # print(getUser("BlueBeaker"))
-
-    # print(getUser("xioayang"))
-
-    # print(getUser("194268237"))
-
-    # print(getSong(803223))
-    # print(getSong(10011122))
-
-    # Test downloadLevel
-    
-    if False:
-        print("\n=== Testing downloadLevel ===")
-        level = downloadLevel(126461421)
-        print(f"Level: {level}")
-        if level:
-            print(f"  description: {level.get_description()}")
-            print(f"  version: {level.version}")
-            print(f"  game_version: {level.game_version}")
-            print(f"  objects: {level.objects}")
-            print(f"  has level_string: {bool(level.level_string)}")
-            print(f"  level_string length: {len(level.level_string) if level.level_string else 0}")
-            print(f"  password: {level.password}")
-            print(f"  upload_date: {level.upload_date}")
-            print(f"  update_date: {level.update_date}")
-            print(f"  song_ids: {level.song_ids}")
-            print(f"  sfx_ids: {level.sfx_ids}")
-            print(f"  verification_time: {level.verification_time}")
+        # print(await getLevel_async("CATHARSIS",True))
+        
+        print(await getLevel_async("",rated=True,diff="-2"))
+        
+        # print(await getLevel_async("645883",rated=True,type=25))
+        
+        # print(await getLevelsFromList_async(645883))
+        
+        # print(await getLevel_async(searchType=LevelSearchType.WEEKLY))
+        
+        # print(await getUser_async("BlueBeaker"))
+        
+        # print(await getUser_async("xioayang"))
+        
+        # print(await getUser_async("194268237"))
+        
+        # print(await getSong_async(803223))
+        # print(await getSong_async(10011122))
+        
+        # Test downloadLevel
+        
+        if False:
+            print("\n=== Testing downloadLevel ===")
+            level = await downloadLevel_async(126461421)
+            print(f"Level: {level}")
+            if level:
+                print(f"  description: {level.get_description()}")
+                print(f"  version: {level.version}")
+                print(f"  game_version: {level.game_version}")
+                print(f"  objects: {level.objects}")
+                print(f"  has level_string: {bool(level.level_string)}")
+                print(f"  level_string length: {len(level.level_string) if level.level_string else 0}")
+                print(f"  password: {level.password}")
+                print(f"  upload_date: {level.upload_date}")
+                print(f"  update_date: {level.update_date}")
+                print(f"  song_ids: {level.song_ids}")
+                print(f"  sfx_ids: {level.sfx_ids}")
+                print(f"  verification_time: {level.verification_time}")
+    asyncio.run(_test())
         
     

@@ -1,7 +1,7 @@
-import time
+import asyncio
 from typing import Any, TypeVar
 from nonebot import logger
-import requests
+import httpx
 
 class GDDLSearchResult:
     total:int
@@ -19,20 +19,21 @@ class GDDLSearchResult:
     def __repr__(self) -> str:
         return f"[{self.__class__.__name__}]{self.__dict__}"
 
-def getGDDLResponse(page:int=0,limit:int=25):
+async def getGDDLResponse(page:int=0,limit:int=25):
     url=f"https://gdladder.com/api/level/search?limit={limit}&page={page}&sort=ID&sortDirection=asc&length=6"
     headers = {
         "User-Agent": "",
         "accept": "application/json"
     }
     
-    resp = requests.get(url, headers=headers,timeout=30)
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.get(url, headers=headers)
     if resp.status_code!=200:
         return None
     else:
         return GDDLSearchResult().load(resp.json())
     
-def fetch_gddl_all_plat():
+async def fetch_gddl_all_plat():
     levels:list[dict[str,Any]]=[]
     page=0
     total=0
@@ -43,13 +44,13 @@ def fetch_gddl_all_plat():
         
         result=None
         for i in range(0,10):
-            result=getGDDLResponse(page=page,limit=limit)
+            result=await getGDDLResponse(page=page,limit=limit)
             if result:
                 break
             
             retry_delay=i*5
             logger.info(f"GDDL Page {page} loading failed ({i+1}/10), retrying in {retry_delay} secs...")
-            time.sleep(retry_delay)
+            await asyncio.sleep(retry_delay)
             
         if not result:
             return None
@@ -81,14 +82,11 @@ def safeFloat(i:Any,fallback:_A=-1) -> float|_A:
         return fallback
 
 if __name__ == "__main__":
-    # all_levels=fetch_gddl_all_plat()
-    # if not all_levels:
-    #     all_levels=[]
-    # for i in all_levels:
-    #     print(f"{i.get("ID")}: {i.get("Meta",{}).get("Name","")}")
-    resp=getGDDLResponse()
-    if resp:
-        for i in resp.levels:
-            print(f"{i.get("ID")}: {i.get("Meta",{}).get("Name","")}")
+    async def _test():
+        resp=await getGDDLResponse()
+        if resp:
+            for i in resp.levels:
+                print(f"{i.get("ID")}: {i.get("Meta",{}).get("Name","")}")
+    asyncio.run(_test())
         
         

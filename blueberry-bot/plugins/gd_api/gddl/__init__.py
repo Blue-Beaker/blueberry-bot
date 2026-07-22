@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+from .. import run_async
 
 # 直接运行时将 blueberry-bot/ 加入 sys.path，使 plugins 包可导入
 if __name__ == "__main__" and __package__ is None:
@@ -8,9 +9,11 @@ if __name__ == "__main__" and __package__ is None:
         sys.path.insert(0, str(_root))
     from plugins.gd_api.file_based_cache import FileBasedCache
     from gddl_internal import GDDLSearchResult,getGDDLResponse,fetch_gddl_all_plat,safeFloat,safeInt
+    from plugins.gd_api import run_async
 else:
     from ..file_based_cache import FileBasedCache
     from .gddl_internal import GDDLSearchResult,getGDDLResponse,fetch_gddl_all_plat,safeFloat,safeInt
+    from .. import run_async
     
     from nonebot import require
     require("nonebot_plugin_apscheduler")
@@ -52,8 +55,8 @@ class GDDLLevel:
 
 CACHE=FileBasedCache(list,fetch_gddl_all_plat,Path("cache")/"gddl_plat.json",cache_name="GDDL Platformer Cache",expiration=8640000)
 
-def getGDDLPlat():
-    data=CACHE.getOrUpdate()
+async def getGDDLPlat_async():
+    data=await CACHE.getOrUpdate()
     if not data:
         return None
     levels:dict[int,GDDLLevel]={}
@@ -61,13 +64,19 @@ def getGDDLPlat():
         level=GDDLLevel().load(l)
         levels[level.ID]=level
     return levels
+
+def getGDDLPlat():
+    return run_async(getGDDLPlat_async())
     
 if __name__ == "__main__":
-    levels=getGDDLPlat()
-    if levels:
-        print(levels)
+    import asyncio
+    async def _test():
+        levels=await getGDDLPlat_async()
+        if levels:
+            print(levels)
+    asyncio.run(_test())
 else:
-    def update():
-        CACHE.updateNow()
+    async def update():
+        await CACHE.updateNow()
     trigger=CronTrigger.from_crontab('0 5 * * *') # Update every day at 5:00
     scheduler.add_job(update, trigger=trigger, id="GDDL_UPDATE", misfire_grace_time=86400)

@@ -129,10 +129,10 @@ def sortWeight(l:plat_sheets.PlatChartEntry):
 def sortTierWeight(l:plat_sheets.PlatChartEntry):
     return safeInt(l.tier,0)*100000 + (99999-l.weight if l.weight else 0)
 
-def get_levels_from_lists(lists_arg:list[str]):
+async def get_levels_from_lists(lists_arg:list[str]):
     levels:set[int]=set()
     for l in lists_arg:
-        lists1=gd.getList(l)
+        lists1=await gd.getList_async(l)
         if not lists1 or lists1.__len__()!=1:
             continue
         lists1=lists1[0]
@@ -172,7 +172,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     all_levels=PLAT_CHART_CACHE.get()
     
     if lists_arg:
-        levels_from_lists=get_levels_from_lists(lists_arg)
+        levels_from_lists=await get_levels_from_lists(lists_arg)
         results.extend([l for l in all_levels if l.id in levels_from_lists])
             
     for s in search:
@@ -277,7 +277,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     all_levels=PLAT_CHART_CACHE.get()
     
     if lists_arg:
-        levels_from_lists=get_levels_from_lists(lists_arg)
+        levels_from_lists=await get_levels_from_lists(lists_arg)
         results.extend([l for l in all_levels if l.id in levels_from_lists])
             
     for sk in search:
@@ -492,7 +492,7 @@ async def _(bot:Bot, args: Message = CommandArg()):
     if supportsImage(bot) and level_ids.__len__()==1:
         if(show_thumbs):
             id=level_ids[0]
-            img=thumbs.getThumbnail(id)
+            img=await thumbs.getThumbnail_async(id)
             if img:
                 msg.addImage(img,f"{id}.png")
                 await msg.finish(platsearch)
@@ -581,7 +581,7 @@ async def _(bot:Bot, search_args: Message = CommandArg()):
     msg.append(''.join(line))
     
     if supportsImage(bot):
-        img=thumbs.getThumbnail(l.id)
+        img=await thumbs.getThumbnail_async(l.id)
         if img:
             msg2=TextImageMessage.build(bot)
             msg2.addText("\n".join(msg))

@@ -1,8 +1,8 @@
 from pathlib import Path
 import sys
 from typing import Any
-import requests
-from cachetools import cached, TTLCache
+import httpx
+from .. import run_async
 
 # 直接运行时将 blueberry-bot/ 加入 sys.path，使 plugins 包可导入
 if __name__ == "__main__" and __package__ is None:
@@ -10,8 +10,10 @@ if __name__ == "__main__" and __package__ is None:
     if str(_root) not in sys.path:
         sys.path.insert(0, str(_root))
     from plugins.gd_api.file_based_cache import FileBasedCache
+    from plugins.gd_api import run_async
 else:
     from ..file_based_cache import FileBasedCache
+    from .. import run_async
 
 class Level:
     level_id:int
@@ -39,29 +41,30 @@ class Level:
     def __str__(self):
         return f"{self.name} by {self.publisher_id} {self.level_id}"
 
-def getResp(url:str):
+async def getResp(url:str):
     headers = {
         "User-Agent": "",
         'accept': 'application/json' 
     }
-    req = requests.get(url, headers=headers,timeout=30)
+    async with httpx.AsyncClient(timeout=30) as client:
+        req = await client.get(url, headers=headers)
     if req.status_code!=200:
         return None
     else:
         return req.json()
-def aredlResp():
-    return getResp(f"https://api.aredl.net/v2/api/aredl/levels")
-def areplResp():
-    return getResp(f"https://api.aredl.net/v2/api/arepl/levels")
+async def aredlResp():
+    return await getResp("https://api.aredl.net/v2/api/aredl/levels")
+async def areplResp():
+    return await getResp("https://api.aredl.net/v2/api/arepl/levels")
 
 CACHE_CLASSIC=FileBasedCache(dict,aredlResp,Path("cache")/"aredl_classic.json",cache_name="AREDL_Classic Cache")
 CACHE_PLAT=FileBasedCache(dict,areplResp,Path("cache")/"aredl_plat.json",cache_name="AREDL_Plat Cache")
 
-def getAREDLLevels(plat:bool=False):
+async def getAREDLLevels_async(plat:bool=False):
     if plat:
-        data=CACHE_PLAT.getOrUpdate()
+        data=await CACHE_PLAT.getOrUpdate()
     else:
-        data=CACHE_CLASSIC.getOrUpdate()
+        data=await CACHE_CLASSIC.getOrUpdate()
     if not data:
         return None
     
@@ -75,6 +78,12 @@ def getAREDLLevels(plat:bool=False):
         return None
     return levels
 
+def getAREDLLevels(plat:bool=False):
+    return run_async(getAREDLLevels_async(plat))
+
 if __name__ == "__main__":
-    print(getAREDLLevels())
-    print(getAREDLLevels(True))
+    import asyncio
+    async def _test():
+        print(await getAREDLLevels_async())
+        print(await getAREDLLevels_async(True))
+    asyncio.run(_test())

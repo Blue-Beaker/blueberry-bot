@@ -5,6 +5,7 @@ from nonebot.params import CommandArg
 from nonebot import require
 from nonebot.adapters.discord import Bot as DCBot
 from nonebot.adapters.onebot.v11 import Bot as OBBot, MessageSegment as OBMessageSegment
+from nonebot.adapters.qq import Bot as QQBot
 from nonebot.internal.adapter import Event,Bot
 from nonebot.exception import FinishedException
 import httpx
@@ -14,7 +15,7 @@ from ..bbot_api.argparse import ArgParser
 from ..bbot_api import message_compat
 from .. import bbot_api
 require("gd_api")
-from ..gd_api.gd import getSong
+from ..gd_api.gd import getSong_async
 
 try:
     require("orb_api")
@@ -47,7 +48,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     
     await bbot_api.trigger_typing(bot,event)
     
-    song_def=getSong(music_id)
+    song_def=await getSong_async(music_id)
     if not song_def or song_def.id<0:
         await gdmusic.finish(f"未找到曲目, 或发生错误. ")
         
@@ -90,7 +91,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     try:
         logger.info(f"Fetching music {music_id} from: {link}")
         async with httpx.AsyncClient(timeout=30) as client:
-            resp=await client.get(link)
+            resp=await client.get(link,headers={"User-Agent": ""})
         if resp.status_code!=200:
             logger.error(f"连接出错: {resp.status_code}")
             await on_error(f"连接出错: {resp.status_code}")
@@ -102,34 +103,41 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
             
         if not music:
             logger.error(f"music is empty.")
-            await on_error()
+            await on_error("未获取到音乐.")
             return
         
         if isinstance(bot,OBBot):
             ffmpeg_args=["ffmpeg", "-i", "pipe:0", "-t", "120", "-c:a", "libvorbis", "-f", "ogg", "pipe:1"]
+        elif isinstance(bot,QQBot):
+            ffmpeg_args=[]
         else:
             ffmpeg_args=["ffmpeg", "-i", "pipe:0", "-c:a", "libvorbis", "-f", "ogg", "pipe:1"]
         
-        proc=await asyncio.create_subprocess_exec(
-            *ffmpeg_args,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout,stderr=await proc.communicate(input=music)
-        if proc.returncode!=0:
-            logger.error(f"ffmpeg error: {stderr.decode(errors='ignore')}")
-            await on_error("音频处理失败.")
-        music=stdout
+        if ffmpeg_args:
+            proc=await asyncio.create_subprocess_exec(
+                *ffmpeg_args,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout,stderr=await proc.communicate(input=music)
+            if proc.returncode!=0:
+                logger.error(f"ffmpeg error: {stderr.decode(errors='ignore')}")
+                await on_error("音频处理失败.")
+            music=stdout
         
-        await gdmusic.finish(message_compat.record(bot,music,f"{music_id}.ogg"))
+        logger.info(f"Sending music {music.__len__()/1000/1000:.2f}MB")
+        try:
+            await gdmusic.send(message_compat.record(bot,music,f"{music_id}.ogg"))
+        except:
+            await gdmusic.send(message_compat.record(bot,music,f"{music_id}.ogg",as_file=True))
         
     except Exception as e:
         if isinstance(e,FinishedException):
             raise e
         else:
-            await on_error()
             logger.error(e)
+            await on_error()
             
 def get_help(bot:Bot,event:Event):
     if bbot_api.supportsRecord(bot):

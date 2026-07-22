@@ -27,7 +27,7 @@ def file(bot:Bot,content:bytes,filename:str):
         return "无法发送文件: 不支持的平台."
     
 
-def record(bot:Bot,content:bytes,filename:str="say.wav",as_file:bool=False):
+def record(bot:Bot,content:bytes,filename:str,as_file:bool=False):
     if isinstance(bot,OBBot):
         return OBMessageSegment.record(content)
     elif isinstance(bot,DCBot):

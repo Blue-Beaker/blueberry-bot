@@ -19,6 +19,7 @@ from pathlib import Path
 
 from numpy import ndarray
 import requests
+import httpx
 
 from .guess_utils import random_crop,isnonsense_cv2
 from .config import Config
@@ -31,8 +32,8 @@ from ..bbot_api.profile_link.events import on_link, LinkUserEvent, UnlinkUserEve
 from ..bbot_api.argparse import ArgParser
 from .. import bbot_api
 require("gd_api")
-from ..gd_api.pemonlist import getPemonlistLevels
-from ..gd_api.aredl import getAREDLLevels
+from ..gd_api.pemonlist import getPemonlistLevels_async
+from ..gd_api.aredl import getAREDLLevels_async
 from ..gd_api import thumbs
 from ..gd_api import gd
 
@@ -192,19 +193,19 @@ class GuessArgs:
 # 用于获取Guess关卡池
 class LevelProvider:
     '''获取关卡的方法. text为文本参数, 返回关卡list与信息.'''
-    def get_levels(self,text:str):
+    async def get_levels(self,text:str):
         return [],None
     
 class LevelProviderLast(LevelProvider):
     def __init__(self,session:GuessSession) -> None:
         self.session=session
-    def get_levels(self,text:str):
+    async def get_levels(self,text:str):
         return self.session.level_pool,"继续使用上次的关卡池进行游戏!"
     
 class LevelProviderPemonlist(LevelProvider):
-    def get_levels(self,text:str):
+    async def get_levels(self,text:str):
         count=safeInt(text,None)
-        pemonlist_levels=getPemonlistLevels()
+        pemonlist_levels=await getPemonlistLevels_async()
         if not pemonlist_levels:
             return None,"无法获取Pemonlist的关卡数据."
         if count:
@@ -224,9 +225,9 @@ class LevelProviderAREDL(LevelProvider):
     def classic(cls):
         return cls(False)
     
-    def get_levels(self,text:str):
+    async def get_levels(self,text:str):
         count=safeInt(text,None)
-        levels=getAREDLLevels(self.is_plat)
+        levels=await getAREDLLevels_async(self.is_plat)
         if not levels:
             return None,"无法获取AREDL的关卡数据."
         if count:
@@ -239,15 +240,15 @@ class LevelProviderSearch(LevelProvider):
         super().__init__()
         self.searchArgs=searchArgs
         
-    def get_levels_in_page(self,page:int):
-        return gd.getLevel(**self.searchArgs) or []
+    async def get_levels_in_page(self,page:int):
+        return await gd.getLevel_async(**self.searchArgs) or []
     
-    def get_internal_levels(self,count:int):
+    async def get_internal_levels(self,count:int):
         levels:list[gd.Level]=[]
         page=0
         
         while levels.__len__()<count:
-            new_levels=self.get_levels_in_page(page)
+            new_levels=await self.get_levels_in_page(page)
             if not new_levels:
                 return levels
             levels.extend(new_levels)
@@ -256,30 +257,30 @@ class LevelProviderSearch(LevelProvider):
         return levels[0:min(count,len(levels))]
     
 class LevelProviderWeekly(LevelProviderSearch):
-    def get_levels_in_page(self,page:int):
-        return gd.getLevel(page=page,searchType=gd.LevelSearchType.WEEKLY.value) or []
+    async def get_levels_in_page(self,page:int):
+        return await gd.getLevel_async(page=page,searchType=gd.LevelSearchType.WEEKLY.value) or []
     
-    def get_levels(self,text:str):
+    async def get_levels(self,text:str):
         count=safeInt(text,30)
-        levels=self.get_internal_levels(count)
+        levels=await self.get_internal_levels(count)
         
         if not levels:
             return None,"无法获取Weekly的关卡数据."
         return [l.id for l in levels],f"关卡池已设置为近{levels.__len__()}个Weekly关卡!"
     
 class LevelProviderDaily(LevelProviderSearch):
-    def get_levels_in_page(self,page:int):
-        return gd.getLevel(page=page,searchType=gd.LevelSearchType.DAILY.value) or []
-    def get_levels(self,text:str):
+    async def get_levels_in_page(self,page:int):
+        return await gd.getLevel_async(page=page,searchType=gd.LevelSearchType.DAILY.value) or []
+    async def get_levels(self,text:str):
         count=safeInt(text,30)
-        levels=self.get_internal_levels(count)
+        levels=await self.get_internal_levels(count)
         
         if not levels:
             return None,"无法获取Daily的关卡数据."
         return [l.id for l in levels],f"关卡池已设置为近{levels.__len__()}个Daily关卡!"
 
 class LevelProviderList(LevelProvider):
-    def get_levels(self,text:str):
+    async def get_levels(self,text:str):
         args_text=[i.strip() for i in text.split(",")]
         if not args_text or args_text==[""]:
             return None,"请输入至少一个List ID! 多个ID请用,分隔"
@@ -288,7 +289,7 @@ class LevelProviderList(LevelProvider):
         for i in args_text:
             if not i:
                 continue
-            lists=gd.getList(i)
+            lists=await gd.getList_async(i)
             if lists.__len__()==0:
                 return None,f"关键词 {i} 没有查找到任何List."
             if lists.__len__()>1:
@@ -302,7 +303,7 @@ class LevelProviderList(LevelProvider):
             return None,"在你提供的List中没有找到任何关卡."
         return levels,"关卡池已设置为你提供的List中的关卡!"
         
-def get_levels_from_args(args:GuessArgs,session:Optional[GuessSession]):
+async def get_levels_from_args(args:GuessArgs,session:Optional[GuessSession]):
     sources:dict[GuessSource,Callable[[],LevelProvider]]={
         GuessSource.PEMONLIST:LevelProviderPemonlist,
         GuessSource.WEEKLY:LevelProviderWeekly,
@@ -314,13 +315,13 @@ def get_levels_from_args(args:GuessArgs,session:Optional[GuessSession]):
     
     if args.source == GuessSource.LAST:
         if session:
-            return LevelProviderLast(session).get_levels(args.text)
+            return await LevelProviderLast(session).get_levels(args.text)
         else:
-            return LevelProviderList().get_levels(args.text)
+            return await LevelProviderList().get_levels(args.text)
         
     provider=sources.get(args.source,LevelProviderList)
     
-    return provider().get_levels(args.text)
+    return await provider().get_levels(args.text)
     
 gdguess_cmd = on_command("gdguess")
 @gdguess_cmd.handle()
@@ -362,7 +363,7 @@ async def gdguess_logic(matcher:Type[Matcher],bot:Bot,event:Event,raw_args: Mess
     id=getid(event)
     session=session_manager.entries.get(id)
     if session and not session.completed:
-        recover_cache_img(id,session)
+        await recover_cache_img(id,session)
     
     if args.action == GuessAction.GIVEUP:
         await giveup(bot,matcher,event)
@@ -472,7 +473,7 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     # Find levels
     lines=[]
     
-    levels,msg=get_levels_from_args(args,session)
+    levels,msg=await get_levels_from_args(args,session)
     
     if msg:
         lines.append(msg)
@@ -496,8 +497,8 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
     levelID=None
     img=None
     try:
-        levelID,img=roll_until_level(levels)
-    except requests.ConnectionError as e:
+        levelID,img=await roll_until_level(levels)
+    except (requests.ConnectionError, httpx.ConnectError, httpx.TimeoutException) as e:
         logger.error(f"Error fetching level thumbnail: {e}")
         await matcher.send("获取关卡截图时发生错误.")
         on_error()
@@ -508,7 +509,7 @@ async def guess_start(bot:Bot,matcher:type[Matcher],event:Event,args:GuessArgs,c
         return
         
     # Chosen level
-    fetched_levels=gd.getLevel(levelID)
+    fetched_levels=await gd.getLevel_async(levelID)
     
     if not fetched_levels:
         await matcher.send("错误:未找到关卡信息")
@@ -630,19 +631,19 @@ gdguess_cfg=on_command("gdguess-cfg",permission=SUPERUSER)
 config_handler=group_config.make_config_handler("gdguess-cfg",GDGuessConfigItem,config_manager,getid)
 gdguess_cfg.handle()(config_handler)
  
-def roll_until_level(levels:list[int]):
+async def roll_until_level(levels:list[int]):
     levels2=levels.copy()
     img=None
     levelID=None
     while levels2 and not img:
         levelID = random.choice(levels2)
-        img=thumbs.getThumbnail(levelID,plugin_config.level_thumbnails_api_base)
+        img=await thumbs.getThumbnail_async(levelID,plugin_config.level_thumbnails_api_base)
         if not img:
             levels2.remove(levelID)
             
     return levelID,img
 
-def recover_cache_img(id:str,session:GuessSession):
+async def recover_cache_img(id:str,session:GuessSession):
     cachepath=IMAGES_PATH/f"{id}.webp"
     cropped_path = IMAGES_PATH/f"{id}.png"
     
@@ -650,8 +651,8 @@ def recover_cache_img(id:str,session:GuessSession):
     if not os.path.exists(cachepath):
         logger.error(f"Recovering thumbnail for {id}")
         try:
-            rawimg=thumbs.getThumbnail(session.level_id,plugin_config.level_thumbnails_api_base)
-        except requests.ConnectionError as e:
+            rawimg=await thumbs.getThumbnail_async(session.level_id,plugin_config.level_thumbnails_api_base)
+        except Exception as e:
             logger.error(f"Error fetching level thumbnail: {e}")
             return False
     

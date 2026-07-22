@@ -23,9 +23,9 @@ require('bbot_api')
 from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons
+from ..gd_api.gd import getLevel2_async,getList2_async,getUser_async,getLevelsFromList_async,ListSearchType,LevelSearchType,PlayerIcons
 from ..gd_api import gd
-from ..gd_api.thumbs import getThumbnail
+from ..gd_api.thumbs import getThumbnail_async
 
 driver=get_driver()
 plugin_cfg=get_plugin_config(Config)
@@ -64,7 +64,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     
     await bbot_api.trigger_typing(bot,event)
     
-    user=getUser(search)
+    user=await getUser_async(search)
     if not user or not user.account_id:
         await gduser.finish("未找到玩家, 或发生错误.")
         return

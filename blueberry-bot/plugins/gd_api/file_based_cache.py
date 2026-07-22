@@ -1,19 +1,23 @@
+import asyncio
 import json
 import os,sys
 from pathlib import Path
 import time
 import traceback
 import threading
-from typing import Callable, Generic, Literal, TypeVar, cast
+from typing import Awaitable, Callable, Generic, Literal, TypeVar, Union, cast
 from nonebot import logger
 
 _D = TypeVar("_D")
+
+# 支持同步和异步更新函数的类型
+UpdateFunc = Union[Callable[[], _D], Callable[[], Awaitable[_D]]]
 
 class FileBasedCache(Generic[_D]):
     cache_path:Path|Literal['']|None=None
     expiration:float=3600
     data_type:type[_D]
-    updateFunction:Callable[[],_D]
+    updateFunction:UpdateFunc
     cache_name:str="cache"
     
     failure_cooldown:float=300
@@ -21,7 +25,7 @@ class FileBasedCache(Generic[_D]):
     
     _lock:threading.Lock
     
-    def __init__(self,data_type:type[_D],updateFunction:Callable[[],_D],cache_path:str|Path|None=None,expiration:float=3600,cache_name:str="cache") -> None:
+    def __init__(self,data_type:type[_D],updateFunction:UpdateFunc,cache_path:str|Path|None=None,expiration:float=3600,cache_name:str="cache") -> None:
         self.data_type=data_type
         self.updateFunction=updateFunction
         self.expiration=expiration
@@ -77,31 +81,45 @@ class FileBasedCache(Generic[_D]):
         else:
             with open(self.cache_path,"r") as f:
                 return json.load(f)
-            
-    def updateNow(self):
-        with self._lock:
-            try:
-                data=self.updateFunction()
-                if data:
-                    self.update(data)
-                    return cast(_D,data)
-                else:
-                    self.fail_try_time=time.time()+self.failure_cooldown
-            except Exception as e:
-                logger.error(f"Error updating {self.cache_name}: {traceback.format_exc()}")
+    
+    async def _call_update(self) -> _D:
+        """调用 updateFunction，支持同步和异步函数。"""
+        result = self.updateFunction()
+        if isinstance(result, Awaitable):
+            return await result
+        return cast(_D, result)
+    
+    async def _wait_lock(self, interval: float = 0.1):
+        """轮询等待锁释放，不阻塞事件循环。"""
+        while not self._lock.acquire(blocking=False):
+            await asyncio.sleep(interval)
+    
+    async def updateNow(self):
+        await self._wait_lock()
+        try:
+            data=await self._call_update()
+            if data:
+                self.update(data)
+                return cast(_D,data)
+            else:
                 self.fail_try_time=time.time()+self.failure_cooldown
-                
-            return cast(_D,self.get())
+        except Exception as e:
+            logger.error(f"Error updating {self.cache_name}: {traceback.format_exc()}")
+            self.fail_try_time=time.time()+self.failure_cooldown
+        finally:
+            self._lock.release()
+            
+        return cast(_D,self.get())
         
-    def getOrUpdate(self):
-        # 先尝试非阻塞获取锁——如果锁被占用，说明有别的线程正在更新
+    async def getOrUpdate(self):
+        # 先尝试非阻塞获取锁——如果锁被占用，说明有别的线程/协程正在更新
         locked=self._lock.acquire(blocking=False)
         if locked:
             try:
                 if self.shouldUpdate():
                     logger.info(f"Updating {self.cache_name}...")
                     try:
-                        data=self.updateFunction()
+                        data=await self._call_update()
                         if data:
                             self.update(data)
                             return cast(_D,data)
@@ -118,6 +136,9 @@ class FileBasedCache(Generic[_D]):
             # 锁被占用，不等待更新，直接尝试读缓存
             if self.cache_path and self.cache_path.exists() and self.cache_path.stat().st_size > 0:
                 return cast(_D,self.get())
-            # 缓存不存在/为空 → 阻塞等待更新完成
-            with self._lock:
+            # 缓存不存在/为空 → 轮询等待锁释放
+            await self._wait_lock()
+            try:
                 return cast(_D,self.get())
+            finally:
+                self._lock.release()

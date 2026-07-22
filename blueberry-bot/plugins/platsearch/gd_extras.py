@@ -17,9 +17,9 @@ require('bbot_api')
 from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2,getList2,getUser,getLevelsFromList,ListSearchType,LevelSearchType,PlayerIcons,PageInfo
+from ..gd_api.gd import getLevel2_async,getList2_async,getUser_async,getLevelsFromList_async,ListSearchType,LevelSearchType,PlayerIcons,PageInfo
 from ..gd_api import gd
-from ..gd_api.thumbs import getThumbnail
+from ..gd_api.thumbs import getThumbnail_async
 
 from .utils import repr_level,repr_list,ensure_gd_level,SearchException
 
@@ -57,7 +57,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
         if fromuser:
             searchType=gd.ListSearchType.FROM_USER
-            user=getUser(search)
+            user=await getUser_async(search)
             if not user:
                 lines.append("未找到指定用户.")
                 await gdlist.finish("\n".join(lines))
@@ -73,12 +73,12 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
         if listID is not None:
             page_size=10
-            lists,pageinfo=getList2(search,page-1)
+            lists,pageinfo=await getList2_async(search,page-1)
                 
             if not lists:
                 lines.append("没有查找到List.")
                 await gdlist.finish("\n".join(lines))
-            levels = getLevelsFromList(listID)
+            levels = await getLevelsFromList_async(listID)
             if not levels:
                 lines.append("List为空.")
                 await gdlist.finish("\n".join(lines))
@@ -125,7 +125,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             await gdlist.finish("\n".join(lines))
             
         else:   
-            lists,pageinfo=getList2(search,page-1,searchType=searchType)
+            lists,pageinfo=await getList2_async(search,page-1,searchType=searchType)
             
             if not pageinfo.success():
                 lines.append("查找出错.")
@@ -176,14 +176,14 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     
     await bbot_api.trigger_typing(bot,event)
     
-    levels,pageinfo=getLevel2(search,page-1,rated)
+    levels,pageinfo=await getLevel2_async(search,page-1,rated)
     
     try:
         l = ensure_gd_level(levels,pageinfo)
     except SearchException as e:
         await gdthumb.finish(e.msg)
     
-    thumb=getThumbnail(l.id)
+    thumb=await getThumbnail_async(l.id)
     if not thumb:
         await gdthumb.finish(f"未找到该关卡截图: {l.name} by {l.creator} ({l.repr_difficulty()})")
         return

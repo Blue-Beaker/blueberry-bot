@@ -1,8 +1,7 @@
 from pathlib import Path
 import sys
 from typing import Any
-import requests
-from cachetools import cached, TTLCache
+import httpx
 
 # 直接运行时将 blueberry-bot/ 加入 sys.path，使 plugins 包可导入
 if __name__ == "__main__" and __package__ is None:
@@ -10,8 +9,10 @@ if __name__ == "__main__" and __package__ is None:
     if str(_root) not in sys.path:
         sys.path.insert(0, str(_root))
     from plugins.gd_api.file_based_cache import FileBasedCache
+    from plugins.gd_api import run_async
 else:
     from ..file_based_cache import FileBasedCache
+    from .. import run_async
 
 class Level:
     name:str
@@ -35,13 +36,14 @@ class Level:
     def __str__(self):
         return f"{self.name} by {self.creator} {self.level_id}"
 
-def getPemonlistResponse():
+async def getPemonlistResponse():
     url="https://pemonlist.com/api/list?version=3&page=1&limit=5000"
     headers = {
         "User-Agent": ""
     }
     
-    req = requests.get(url, headers=headers,timeout=30)
+    async with httpx.AsyncClient(timeout=30) as client:
+        req = await client.get(url, headers=headers)
     if req.status_code!=200:
         return None
     else:
@@ -49,8 +51,8 @@ def getPemonlistResponse():
 
 CACHE=FileBasedCache(dict,getPemonlistResponse,Path("cache")/"pemonlist.json",cache_name="Pemonlist Cache")
 
-def getPemonlistLevels():
-    data=CACHE.getOrUpdate()
+async def getPemonlistLevels_async():
+    data=await CACHE.getOrUpdate()
     if not data:
         return None
     
@@ -65,5 +67,11 @@ def getPemonlistLevels():
         return None
     return levels
 
+def getPemonlistLevels():
+    return run_async(getPemonlistLevels_async())
+
 if __name__ == "__main__":
-    print(getPemonlistLevels())
+    import asyncio
+    async def _test():
+        print(await getPemonlistLevels_async())
+    asyncio.run(_test())
