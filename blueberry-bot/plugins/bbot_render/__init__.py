@@ -14,6 +14,8 @@ import json
 import asyncio
 from pathlib import Path
 import sys
+import time
+from nonebot import logger
 
 try:
     import httpx
@@ -204,9 +206,14 @@ class RenderAPI:
 
         bytes 参数自动转为 ``base64://`` 内联编码，Godot 的 TextureHelper 原生支持。
         """
+        logger.info(f"Rendering scene {scene}...")
+        time_ns=time.time_ns()
         if self._is_ws:
-            return await self._render_websocket(scene, request_id, params, _retries)
-        return await self._render_http(scene, request_id, params, _retries)
+            result = await self._render_websocket(scene, request_id, params, _retries)
+        result = await self._render_http(scene, request_id, params, _retries)
+
+        logger.info(f"Render took {(time.time_ns()-time_ns)/1000000:.1f}ms.")
+        return result
 
     async def render_player_info(self, request_id: str,
                                  playername: str,
