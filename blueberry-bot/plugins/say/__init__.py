@@ -1,6 +1,7 @@
 import math
 import shutil
 from typing import Type
+import httpx
 from nonebot import get_plugin_config
 from nonebot.plugin import PluginMetadata
 from nonebot.adapters import Bot,Message,Event
@@ -200,7 +201,9 @@ async def _(bot:Bot,event: Event, arg: Message = CommandArg()):
                 
             orb_api.add_balance(orb_id,-orb_cost)
     try:
-        res = requests.get(plugin_config.say_request_url.replace("{$text}",text))
+        async with httpx.AsyncClient(timeout=30) as client:
+            res=await client.get(plugin_config.say_request_url.replace("{$text}",text))
+        # res = requests.get(plugin_config.say_request_url.replace("{$text}",text))
     except Exception as e:
         logger.error(f"Request say failed: {e}")
         res=None
