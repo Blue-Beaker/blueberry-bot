@@ -1,3 +1,4 @@
+from argparse import Namespace
 import json
 import os
 import random
@@ -77,12 +78,8 @@ def threaded_update_cache(cache:BaseCache,name:str):
     logger.info(f"Loaded {cache.entries.__len__()} entries into {name}, expiring at {time.ctime(cache.expiration_time)}")
 
 class SearchArgs:
-    parser=ArgParser()
-    parser.add_argument('-p',help="Page",type=int,default=1)
-    parser.add_argument('-f',help="Fuzzy Search",action='store_true')
-    parser.add_argument('search', nargs='*', type=str, help='search string')
-    parser.add_argument('-t',help="Tier",type=str,default="")
-    parser.add_argument('-s',help="Skills",type=str,default=None)
+    parser:ArgParser
+    parsed:Namespace|None=None
     
     page:int
     fuzzy:bool
@@ -92,6 +89,13 @@ class SearchArgs:
     error:str|None=None
     
     def __init__(self) -> None:
+        self.parser=ArgParser()
+        self.parser.add_argument('-p',help="Page",type=int,default=1)
+        self.parser.add_argument('-f',help="Fuzzy Search",action='store_true')
+        self.parser.add_argument('search', nargs='*', type=str, help='search string')
+        self.parser.add_argument('-t',help="Tier",type=str,default="")
+        self.parser.add_argument('-s',help="Skills",type=str,default=None)
+        
         self.page=1
         self.fuzzy=False
         self.skills=[]
@@ -101,6 +105,7 @@ class SearchArgs:
     def parse(self,text:str):
         try:
             args=self.parser.parse_args(text.split(" "))
+            self.parsed=args
             self.page=args.p
             self.fuzzy=args.f
             self.skills=[t.strip().lower() for t in args.s.split(",")] if args.s else []
@@ -438,7 +443,9 @@ async def _(bot:Bot, args: Message = CommandArg()):
                 "举例: '-platsearch -f -p3 dash' 搜索名称包含dash的关卡, 并翻到第3页",
                 "举例: '-platsearch -t9' 列举 Tier 9 的关卡"
                 ]))
-    sa=SearchArgs().parse(args.extract_plain_text())
+    sa_work=SearchArgs()
+    sa_work.parser.add_argument("-i",help="Show Thumbnail",action="store_true")
+    sa=sa_work.parse(args.extract_plain_text())
     if sa.error:
         await platsearch.finish(sa.error)
         return
@@ -448,15 +455,17 @@ async def _(bot:Bot, args: Message = CommandArg()):
     tier=sa.tier
     fuzzy=sa.fuzzy
     
+    show_thumbs=bool(sa.parsed and sa.parsed.i)
+    
     search = text.strip().lower()
     
     if tier or skills:
         fuzzy=True
     
-    msg:list[str]=[]
+    msg:TextImageMessage=TextImageMessage.build(bot)
     
     if not fuzzy:
-        msg.append(f"Exact match, use -f [levelname] for fuzzy search")
+        msg.addLine(f"Exact match, use -f [levelname] for fuzzy search")
     
     results=[l for l in PLAT_CHART_CACHE.get() if (l.matchesName(search,fuzzy) or str(l.id)==search)]
     
@@ -472,25 +481,26 @@ async def _(bot:Bot, args: Message = CommandArg()):
     results,maxpages,page=select_page(results,count,entries_per_page,page)
     
     if not count:
-        msg.append(f"Not found")
+        msg.addLine(f"Not found")
     else:
-        msg.append(f"{count} found (Page {page}/{maxpages}):")
+        msg.addLine(f"{count} found (Page {page}/{maxpages}):")
         for l in results:
-            msg.append(formatters.formatDiffChart(l,count>3))
+            msg.addLine(formatters.formatDiffChart(l,count>3))
     
     level_ids:list[int]=[l.id for l in results if l.id>0]
     
     if supportsImage(bot) and level_ids.__len__()==1:
-        id=level_ids[0]
-        img=thumbs.getThumbnail(id)
-        if img:
-            msg2=TextImageMessage.build(bot)
-            msg2.addText("\n".join(msg))
-            msg2.addImage(img,f"{id}.png")
-            await platrandom.finish(msg2.msg)
-            return
+        if(show_thumbs):
+            id=level_ids[0]
+            img=thumbs.getThumbnail(id)
+            if img:
+                msg.addImage(img,f"{id}.png")
+                await msg.finish(platsearch)
+                return
+        else:
+            msg.addLine("-i 显示关卡缩略图.")
         
-    await platsearch.send("\n".join(msg))
+    await msg.send(platsearch)
  
 platrandom = on_command("platrandom")
 @platrandom.handle()
