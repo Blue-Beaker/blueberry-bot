@@ -49,18 +49,18 @@ class BaseCache(Generic[_T]):
                     if self.file_path:
                         self.save(self.file_path)
                 else:
-                    logger.warning("Failed to update cache, got empty data")
+                    logger.warning(f"Failed to update cache [{self.name}], got empty data")
             except Exception as e:
-                logger.error(f"Error while updating cache: {e}")
+                logger.error(f"Error while updating cache [{self.name}]: {e}")
                 logger.debug("Traceback:",traceback.format_exc())
         else:
-            logger.warning("No update function set for cache")
+            logger.warning(f"No update function set for cache [{self.name}]")
             
     def getOrUpdate(self) -> list[_T]:
         self.loadWhenNeeded()
         
         if self.should_update():
-            logger.info("Cache expired, updating...")
+            logger.info(f"[{self.name}]: Cache expired, updating...")
             self.update()
         return self.entries
     
