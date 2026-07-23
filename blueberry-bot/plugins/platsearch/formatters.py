@@ -1,5 +1,7 @@
 from .plat_sheets import PlatChartEntry,TheListsEntry,LevelEntry
 
+from .models import AREDLLevel,PemonlistLevel
+
 def formatDiffChart(l:PlatChartEntry,compact:bool=False,exclude_base_info:bool=False):
     lines:list[str]=[]
     l1=""
@@ -63,3 +65,29 @@ def formatListsLevel(l:TheListsEntry,compact:bool=False,exclude_base_info:bool=F
             line+=f" ◆{l.checkpoints}"
         lines.append(line)
     return "\n".join(lines)
+
+def formatAREDLLevel(l:AREDLLevel,compact:bool=False,exclude_base_info:bool=False):
+    lines:list[str]=[]
+    if not exclude_base_info:
+        lines.append(f"{l.name} ({l.level_id}) AREDL #{l.position} Points: {l.points}")
+    else:
+        line=f"#{l.position} Points: {l.points}"
+        if l.name.__contains__("(2P)"):
+            line="2P "+line
+        lines.append(line)
+        
+    if not compact:
+        lines.append(f"Tags: {", ".join(l.tags)}")
+        
+    return "\n".join(lines)
+
+def formatPemonlist(l:PemonlistLevel,compact:bool=False,exclude_base_info:bool=False):
+    lines:list[str]=[]
+    if not exclude_base_info:
+        lines.append(f"{l.name} ({l.level_id}) Pemonlist #{l.placement}")
+    else:
+        line=f"#{l.placement}"
+        lines.append(line)
+        
+    return "\n".join(lines)
+    

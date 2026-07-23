@@ -20,6 +20,7 @@ from ..gd_api import gd,thumbs,gddl,aredl,pemonlist
 
 from .underrated_data import UnderratedLevel,get_all_underrated
 from .models import GDDLLevel,AREDLLevel,PemonlistLevel
+from .plat_sheets import PlatChartEntry
 
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
@@ -36,11 +37,11 @@ PLAT_SHEET_CACHE = CacheWithIDMap(plat_sheets.TheListsEntry,"platsearch_cache/pl
 UNDERRATED_CACHE = CacheWithIDMap(UnderratedLevel,"platsearch_cache/underrated_cache.json",
     plugin_config.sheets_update_interval,"Underrated Cache").set_update_function(get_all_underrated)
 PEMONLIST_CACHE = CacheWithIDMap(PemonlistLevel,"",3600,"Pemonlist Levels")
-AREDL_CLASSIC = CacheWithIDMap(AREDLLevel,"",3600,"AREDL Classic Levels")
-AREDL_PLAT = CacheWithIDMap(AREDLLevel,"",3600,"AREDL Platformer Levels")
+
+AREDL_CACHE = CacheWithIDMap(AREDLLevel,"",3600,"AREDL Levels")
 
 caches:list[BaseCache]=[PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE,
-                        PEMONLIST_CACHE,AREDL_CLASSIC,AREDL_PLAT]
+                        PEMONLIST_CACHE,AREDL_CACHE]
 
 @driver.on_startup
 async def load():
@@ -75,6 +76,14 @@ def get_plat_chart():
     match_ids_for_levels(results,"cache/plat_chart_unmatched.json")
     return results
 
+def fill_pemonlist_for_levels(levels:list[PlatChartEntry]):
+    for l in levels:
+        pemonlist_levels=PEMONLIST_CACHE.get_for_id(l.id)
+        if not pemonlist_levels: continue
+        p=pemonlist_levels[0]
+        l.pemon=p.placement
+    return
+
 @PLAT_SHEET_CACHE.set_update_function
 def get_3_lists():
     results=plat_sheets.get_3_lists()
@@ -88,16 +97,11 @@ def getPemonlistLevels():
         return []
     return [PemonlistLevel(l) for l in results]
 
-@AREDL_CLASSIC.set_update_function
-def getAREDLClassic():
-    results=aredl.getAREDLLevels(False)
-    if not results:
-        return []
-    return [AREDLLevel(l) for l in results]
-
-@AREDL_PLAT.set_update_function
-def getAREDLPlat():
-    results=aredl.getAREDLLevels(True)
+@AREDL_CACHE.set_update_function
+def getAREDLMerged():
+    results=[]
+    results.extend(aredl.getAREDLLevels(False) or [])
+    results.extend(aredl.getAREDLLevels(True) or [])
     if not results:
         return []
     return [AREDLLevel(l) for l in results]

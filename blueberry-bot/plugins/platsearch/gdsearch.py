@@ -21,7 +21,7 @@ from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGro
 from .config import Config
 from .gd_icon import IconType, construct_icon_url,get_icon,ICON_TYPES
 from .utils import repr_level,repr_list
-from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE
+from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,PEMONLIST_CACHE,AREDL_CACHE,AREDLLevel,PemonlistLevel
 from .underrated_data import formatUnderrated,UnderratedLevel
 from .plat_sheets import LevelEntry,TheListsEntry,PlatChartEntry
 from . import formatters
@@ -47,6 +47,11 @@ def get_level_line(level:Level) -> str:
     levelstr=repr_level(level)
     if level.is_plat():
         levelstr+=("".join([f" E{l2.enj or '-'} W{l2.weight or '-'} P{l2.pemon or '-'}" for l2 in PLAT_CHART_CACHE.get_for_id(level.id)]))
+    if level.demon:
+        aredl_levels=AREDL_CACHE.get_for_id(level.id)
+        if aredl_levels:
+            l2=aredl_levels[0]
+            levelstr+=f" A#{l2.position}"
     return levelstr
 
 utils.REPR_LEVEL_FUNC=get_level_line
@@ -314,6 +319,18 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         underrated_entries=UNDERRATED_CACHE.get_for_id(level.id)
         if underrated_entries:
             underrated_entry=underrated_entries[0]
+            
+    aredl_entry=None
+    aredl_entries:list[AREDLLevel]=[]
+    if level.demon:
+        aredl_entries=AREDL_CACHE.get_for_id(level.id)
+        aredl_entry=aredl_entries[0] if aredl_entries else None
+        
+    pemonlist_entry=None
+    pemonlist_entries:list[PemonlistLevel]=[]
+    if level.demon and level.is_plat():
+        pemonlist_entries=PEMONLIST_CACHE.get_for_id(level.id)
+        pemonlist_entry=pemonlist_entries[0] if pemonlist_entries else None
     
     # Image Sections
     if enable_image:
@@ -325,6 +342,16 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 "pemonlist":str(dc_entry.pemon or '-'),
                 "diffchart_tier":dc_entry.tier or '',
                 "diffchart_tags":','.join(dc_entry.tags)
+            })
+            
+        if pemonlist_entry:
+            extra_render_args.update({
+                "pemonlist":str(pemonlist_entry.placement or '-')
+            })
+            
+        if aredl_entry:
+            extra_render_args.update({
+                "aredl":str(aredl_entry.position or '-')
             })
             
         if underrated_entry:
@@ -421,11 +448,20 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             lines.addLine("--Difficulty Chart--")
         for e in dc_entries:
             lines.addLine(formatters.formatDiffChart(e,False,True))
+            
+        if (not dc_entries) and pemonlist_entry:
+            lines.addLine(formatters.formatPemonlist(pemonlist_entry,False,True)) 
         
         if nlwlike_entries:
             lines.addLine("--NLW/IDS/HDS--")
         for e in nlwlike_entries:
             lines.addLine(formatters.formatListsLevel(e,False,True))
+            
+    if aredl_entries:
+        lines.addLine("--AREDL--")
+        for e in aredl_entries:
+            lines.addLine(formatters.formatAREDLLevel(e,False,True))
+        
 
     if lines.msg.__len__():
         await gdsearch.finish(await bbot_api.auto_pack_message(bot,lines.msg,6))
