@@ -43,13 +43,15 @@ def run_async(coro):
         raise exception_container[0]
     return result_container[0]
 
+try:
+    driver = get_driver()
 
-driver = get_driver()
-
-@driver.on_shutdown
-async def _close_http_clients():
-    from .gd import close_client as close_gd_client
-    await close_gd_client()
+    @driver.on_shutdown
+    async def _close_http_clients():
+        from .gd import close_client as close_gd_client
+        await close_gd_client()
+except:
+    pass
 
 
 from . import gd

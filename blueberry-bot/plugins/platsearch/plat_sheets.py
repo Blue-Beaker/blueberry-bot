@@ -1,6 +1,6 @@
 
 import re
-from typing import Any, TypeVar
+from typing import Any, TypeVar, override
 from cachetools import cached, TTLCache
 from nonebot import require
 
@@ -9,6 +9,8 @@ from ..bbot_api.sheets_api import Sheet
 require('gd_api')
 from ..gd_api import gddl
 from ..gd_api.gddl import GDDLLevel 
+
+from .models import BaseLevelEntry
 
 PLAT_RANK_ID = "1uicngbhpej4PEmtYYeGmYlFsA28PwTzzouWb4EWQkTY"
 
@@ -21,19 +23,14 @@ NLW_PLAT = Sheet("1YxUE2kkvhT2E6AjnkvTf-o8iu_shSLbuFkEFcZOvieA","Tha Plevles!B2:
 
 UPI_SHEET = Sheet("13rpmCGCC8NKvRJhVcUuxixUdEuc_I6rm9LlwgB2HAsM","Levels!A2:E")
 DIFFICULTY_CHART = Sheet("1ApwiAVAcBmfyoPW3wvDzc8JvY4Lfg5tFsPlYg3DNWhc","The Chart!A4:G")
-
-class BaseLevelEntry:
-    id:int=0
-    def to_dict(self) -> dict:
-        return self.__dict__
-    @classmethod
-    def from_dict(cls,data:dict):
-        inst=cls()
-        inst.__dict__.update(data)
-        return inst
     
 class LevelEntry(BaseLevelEntry):
+    id:int=0
     name:str
+    
+    @override
+    def getID(self) -> int:
+        return self.id
     def exactMatch(self,search:str):
         return search.lower().replace("(","").replace(")","").strip() == self.name.lower().replace("(","").replace(")","").strip()
     def matchesName(self,search:str,fuzzy_match:bool=False):

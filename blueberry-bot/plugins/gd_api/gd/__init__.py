@@ -16,10 +16,12 @@ if __name__ == "__main__" and __package__ is None:
     from plugins.gd_api.gd.models import BaseLevel, Difficulty, Length, Level, LevelList, PageInfo, PlayerDemonLevels, PlayerIcons, PlayerInfo, PlayerLevels, Song, SearchStatus
     from plugins.gd_api.gd.search_args import LevelSearchArgs, LevelSearchType, ListSearchType
     from plugins.gd_api.gd.utils import safeBool, safeInt
+    from plugins.gd_api.gd import run_async
 else:
     from .models import BaseLevel, Difficulty, Length, Level, LevelList, PageInfo, PlayerDemonLevels, PlayerIcons, PlayerInfo, PlayerLevels, Song, SearchStatus
     from .search_args import LevelSearchArgs, LevelSearchType, ListSearchType
     from .utils import safeBool, safeInt
+    from .. import run_async
 
 class Config(BaseModel):
     gd_endpoint_base:str="https://www.boomlings.com"
@@ -48,7 +50,6 @@ async def close_client():
         await _client.aclose()
         _client = None
 
-from .. import run_async
 import asyncio
 
 def parseDict(s:str,splitter:str=":"):

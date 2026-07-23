@@ -16,9 +16,10 @@ from . import plat_sheets,levelid_filler
 from .data_cache import BaseCache,CacheWithIDMap
 
 require('gd_api')
-from ..gd_api import gd,thumbs,gddl
+from ..gd_api import gd,thumbs,gddl,aredl,pemonlist
 
 from .underrated_data import UnderratedLevel,get_all_underrated
+from .models import GDDLLevel,AREDLLevel,PemonlistLevel
 
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
@@ -28,24 +29,18 @@ plugin_config = get_plugin_config(Config)
 
 driver=get_driver()
 
-def get_plat_chart():
-    results=plat_sheets.get_plat_chart()
-    match_ids_for_levels(results,"cache/plat_chart_unmatched.json")
-    return results
-
-def get_3_lists():
-    results=plat_sheets.get_3_lists()
-    match_ids_for_levels(results,"cache/plat_sheet_unmatched.json")
-    return results
-
-PLAT_CHART_CACHE=CacheWithIDMap(plat_sheets.PlatChartEntry,"platsearch_cache/plat_chart_cache.json",
-    plugin_config.sheets_update_interval,name="Plat Chart cache").set_update_function(get_plat_chart)
-PLAT_SHEET_CACHE=CacheWithIDMap(plat_sheets.TheListsEntry,"platsearch_cache/plat_sheet_cache.json",
-    plugin_config.sheets_update_interval,name="Plat Sheet cache").set_update_function(get_3_lists)
+PLAT_CHART_CACHE = CacheWithIDMap(plat_sheets.PlatChartEntry,"platsearch_cache/plat_chart_cache.json",
+    plugin_config.sheets_update_interval,name="Plat Chart cache")
+PLAT_SHEET_CACHE = CacheWithIDMap(plat_sheets.TheListsEntry,"platsearch_cache/plat_sheet_cache.json",
+    plugin_config.sheets_update_interval,name="Plat Sheet cache")
 UNDERRATED_CACHE = CacheWithIDMap(UnderratedLevel,"platsearch_cache/underrated_cache.json",
     plugin_config.sheets_update_interval,"Underrated Cache").set_update_function(get_all_underrated)
+PEMONLIST_CACHE = CacheWithIDMap(PemonlistLevel,"",3600,"Pemonlist Levels")
+AREDL_CLASSIC = CacheWithIDMap(AREDLLevel,"",3600,"AREDL Classic Levels")
+AREDL_PLAT = CacheWithIDMap(AREDLLevel,"",3600,"AREDL Platformer Levels")
 
-caches:list[BaseCache]=[PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE]
+caches:list[BaseCache]=[PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE,
+                        PEMONLIST_CACHE,AREDL_CLASSIC,AREDL_PLAT]
 
 @driver.on_startup
 async def load():
@@ -66,10 +61,46 @@ async def update_caches(force_gddl:bool=False):
     os.makedirs("platsearch_cache",exist_ok=True)
     
     levelid_filler.FILLER_MAPPING.load()
-    await gddl.CACHE.getOrUpdate()
+    if force_gddl:
+        await gddl.CACHE.updateNow()
+    else:
+        await gddl.CACHE.getOrUpdate()
     
     for cache in caches:
         threading.Thread(target=threaded_update_cache,args=[cache],name=cache.name).start()
+        
+@PLAT_CHART_CACHE.set_update_function
+def get_plat_chart():
+    results=plat_sheets.get_plat_chart()
+    match_ids_for_levels(results,"cache/plat_chart_unmatched.json")
+    return results
+
+@PLAT_SHEET_CACHE.set_update_function
+def get_3_lists():
+    results=plat_sheets.get_3_lists()
+    match_ids_for_levels(results,"cache/plat_sheet_unmatched.json")
+    return results
+
+@PEMONLIST_CACHE.set_update_function
+def getPemonlistLevels():
+    results=pemonlist.getPemonlistLevels()
+    if not results:
+        return []
+    return [PemonlistLevel(l) for l in results]
+
+@AREDL_CLASSIC.set_update_function
+def getAREDLClassic():
+    results=aredl.getAREDLLevels(False)
+    if not results:
+        return []
+    return [AREDLLevel(l) for l in results]
+
+@AREDL_PLAT.set_update_function
+def getAREDLPlat():
+    results=aredl.getAREDLLevels(True)
+    if not results:
+        return []
+    return [AREDLLevel(l) for l in results]
 
 def match_ids_for_levels(entries:list[levelid_filler.ENTRY_TYPE],logfile:str=""):
     levels_not_matched=levelid_filler.fillIDsForEntries(entries)
@@ -101,9 +132,12 @@ async def _():
 gdupdate = on_command("gdupdate",permission=SUPERUSER)
 @gdupdate.handle()
 async def _():
+    logger.info("Updating GD cache...")
     await gdupdate.send("开始刷新gd缓存...")
+    msg=[]
     for cache in caches:
         cache.update()
-        await gdupdate.send(cache.getLogInfo())
-    await gdupdate.finish(f"刷新完毕.")
+        logger.info(cache.getLogInfo())
+        msg.append(cache.getLogInfo())
+    await gdupdate.finish(f"刷新完毕:\n"+("\n".join(msg)))
     return

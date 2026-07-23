@@ -2,7 +2,6 @@ from pathlib import Path
 import sys
 from typing import Any
 import httpx
-from .. import run_async
 
 # 直接运行时将 blueberry-bot/ 加入 sys.path，使 plugins 包可导入
 if __name__ == "__main__" and __package__ is None:

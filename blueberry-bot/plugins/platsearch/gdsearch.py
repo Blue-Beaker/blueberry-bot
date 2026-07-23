@@ -21,7 +21,7 @@ from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGro
 from .config import Config
 from .gd_icon import IconType, construct_icon_url,get_icon,ICON_TYPES
 from .utils import repr_level,repr_list
-from .platsearch import PLAT_CHART_CACHE,PLAT_SHEET_CACHE
+from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE
 from .underrated_data import formatUnderrated,UnderratedLevel
 from .plat_sheets import LevelEntry,TheListsEntry,PlatChartEntry
 from . import formatters

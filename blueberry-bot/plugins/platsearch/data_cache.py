@@ -1,7 +1,7 @@
 import time
 import traceback
-from typing import Callable, Generic, Sequence, Type,TypeVar
-from .plat_sheets import BaseLevelEntry
+from typing import Callable, Generic, Sequence, Type,TypeVar, override
+from .models import BaseLevelEntry
 import json
 from nonebot import logger
 
@@ -102,9 +102,9 @@ class IDMapCache(Generic[_T]):
     def update_data(self,entries:Sequence[_T]):
         self.id_map.clear()
         for e in entries:
-            if e.id not in self.id_map:
-                self.id_map[e.id]=[]
-            self.id_map[e.id].append(e)
+            if e.getID() not in self.id_map:
+                self.id_map[e.getID()]=[]
+            self.id_map[e.getID()].append(e)
     def get_for_id(self,id:int):
         return self.id_map.get(id,[])
     
@@ -118,6 +118,7 @@ class ManagedIDMapCache(IDMapCache[_T]):
             or self.last_expiration_time<self.parent.expiration_time):
             self.update_data(self.parent.getOrUpdate())
         self.last_expiration_time=self.parent.expiration_time
+    @override
     def get_for_id(self, id: int):
         self.try_update()
         return super().get_for_id(id)
@@ -126,6 +127,7 @@ class CacheWithIDMap(BaseCache[_T]):
     def __init__(self, t: type[_T], file_path: str | None = None, ttl: int = 3600, name: str = "UNNAMED") -> None:
         super().__init__(t, file_path, ttl, name)
         self.id_map:ManagedIDMapCache[_T]=ManagedIDMapCache(self)
+    @override
     def update(self):
         super().update()
         self.id_map.update_data(self.entries)
