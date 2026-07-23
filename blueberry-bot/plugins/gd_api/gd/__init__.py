@@ -17,11 +17,13 @@ if __name__ == "__main__" and __package__ is None:
     from plugins.gd_api.gd.search_args import LevelSearchArgs, LevelSearchType, ListSearchType
     from plugins.gd_api.gd.utils import safeBool, safeInt
     from plugins.gd_api.gd import run_async
+    from plugins.gd_api.gd.builtins import OfficialSong,getOfficialSong
 else:
     from .models import BaseLevel, Difficulty, Length, Level, LevelList, PageInfo, PlayerDemonLevels, PlayerIcons, PlayerInfo, PlayerLevels, Song, SearchStatus
     from .search_args import LevelSearchArgs, LevelSearchType, ListSearchType
     from .utils import safeBool, safeInt
     from .. import run_async
+    from .builtins import OfficialSong,getOfficialSong
 
 class Config(BaseModel):
     gd_endpoint_base:str="https://www.boomlings.com"
@@ -265,7 +267,9 @@ def downloadLevel2(levelID:int, **kwargs):
 def getUser(search:int|str):
     return run_async(getUser_async(search))
 
-def getSong(musicID:int):
+def getSong(musicID:int,official:bool=False):
+    if official:
+        return getOfficialSong(musicID)
     return run_async(getSong_async(musicID))
 
 
@@ -355,7 +359,9 @@ async def getUser_async(search:int|str):
     return player_info
 
 
-async def getSong_async(musicID:int):
+async def getSong_async(musicID:int,official:bool=False):
+    if official:
+        return getOfficialSong(musicID)
     client = await get_client()
     data = {
         "secret": "Wmfd2893gb7",

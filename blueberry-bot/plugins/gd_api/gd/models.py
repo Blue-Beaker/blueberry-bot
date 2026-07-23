@@ -142,6 +142,7 @@ class Level(BaseLevel):
         self.creator_id: int = 0         #: 6 — 作者 Player ID
         self.downloads: int = 0          #: 10 — 下载次数
         self.likes: int = 0              #: 14 — 点赞数 - 点踩数
+        self.official_song: bool=False
         self.songID: int = 0             #: 12/35 — 歌曲 ID。优先取 12(official)，否则取 35(custom)
         self.coins: int = 0              #: 37 — 用户硬币数量
         self.verifiedCoins: bool = False  #: 38 — 用户硬币是否已验证(银色)
@@ -219,6 +220,7 @@ class Level(BaseLevel):
         self.creator_id = safeInt(data.get('6'))
         self.downloads = safeInt(data.get('10'), 0)
         self.likes = safeInt(data.get('14'), 0)
+        self.official_song = data.__contains__('12')
         self.songID = safeInt(data.get('12'), None) or safeInt(data.get('35'), 0)
         self.coins = safeInt(data.get('37'), 0)
         self.verifiedCoins = safeBool(data.get('38'))
@@ -480,12 +482,12 @@ class PlayerInfo:
 
 
 class Song:
-    id: int
-    name: str
-    artistID: int
-    artistName: str
-    size: float
-    link: str
+    id: int=-1
+    name: str=""
+    artistID: int=-1
+    artistName: str=""
+    size: float=-1
+    link: str=""
 
     def __init__(self) -> None:
         pass

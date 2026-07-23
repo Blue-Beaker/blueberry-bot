@@ -292,7 +292,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     if show_thumbnail or enable_image:
         thumb=await getThumbnail_async(level.id)
         
-    song=await getSong_async(level.songID)
+    song=await getSong_async(level.songID,level.official_song)
     
     dc_entry=None
     dc_entries:list[PlatChartEntry]=[]
