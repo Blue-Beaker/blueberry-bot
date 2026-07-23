@@ -220,7 +220,7 @@ class Level(BaseLevel):
         self.creator_id = safeInt(data.get('6'))
         self.downloads = safeInt(data.get('10'), 0)
         self.likes = safeInt(data.get('14'), 0)
-        self.official_song = data.__contains__('12')
+        self.official_song = bool(safeInt(data.get('12'),0))
         self.songID = safeInt(data.get('12'), None) or safeInt(data.get('35'), 0)
         self.coins = safeInt(data.get('37'), 0)
         self.verifiedCoins = safeBool(data.get('38'))

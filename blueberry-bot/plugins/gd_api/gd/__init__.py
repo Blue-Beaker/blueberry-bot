@@ -202,6 +202,7 @@ async def getLevel2_async(search:int|str|None=None,page:int=0,rated:bool=False,s
     creator_to_level:dict[int,Level]={}
     
     for data in leveldata:
+        # print(leveldata)
         l=Level().load(data)
         if l.id==-1:
             continue
@@ -394,7 +395,7 @@ if __name__ == "__main__":
         
         # print(await getLevel_async("CATHARSIS",True))
         
-        print(await getLevel_async("",rated=True,diff="-2"))
+        # print(await getLevel_async("",rated=True,diff="-2"))
         
         # print(await getLevel_async("645883",rated=True,type=25))
         
@@ -410,6 +411,9 @@ if __name__ == "__main__":
         
         # print(await getSong_async(803223))
         # print(await getSong_async(10011122))
+        
+        print(await getLevel_async("77236592"))
+        print(await getLevel_async("126461421"))
         
         # Test downloadLevel
         
