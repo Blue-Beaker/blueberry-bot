@@ -118,7 +118,12 @@ async def getList2_async(search:int|str,page:int=0,searchType:ListSearchType|int
     url = GD_ENDPOINT_BASE+"/database/getGJLevelLists.php"
 
     logger.info(f"Searching list {search}...")
-    req = await client.post(url=url, data=data)
+    try:
+        req = await client.post(url=url, data=data)
+    except httpx.NetworkError as e:
+        logger.error(f"Error fetching list: {e}")
+        return [],PageInfo().setStatus(SearchStatus.NETWORK_ERROR)
+        
     logger.debug(f"Raw response: {req.text}")
     
     result:list[LevelList]=[]
@@ -165,7 +170,11 @@ async def getLevel2_async(search:int|str|None=None,page:int=0,rated:bool=False,s
     url = GD_ENDPOINT_BASE+"/database/getGJLevels21.php"
 
     logger.info(f"Searching level {search}...")
-    req = await client.post(url=url, data=data)
+    try:
+        req = await client.post(url=url, data=data)
+    except httpx.NetworkError as e:
+        logger.error(f"Error fetching level: {e}")
+        return None,PageInfo().setStatus(SearchStatus.NETWORK_ERROR)
     logger.debug(f"Raw response: {req.text}")
     
     
@@ -354,7 +363,11 @@ async def getSong_async(musicID:int):
     }
 
     logger.info(f"Finding Song {musicID}...")
-    req = await client.post(GD_ENDPOINT_BASE+"/database/getGJSongInfo.php", data=data)
+    try:
+        req = await client.post(GD_ENDPOINT_BASE+"/database/getGJSongInfo.php", data=data)
+    except httpx.NetworkError as e:
+        logger.error(f"Error fetching song: {e}")
+        return None
     if req.status_code!=200:
         return None
     

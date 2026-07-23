@@ -91,6 +91,7 @@ class LevelList(BaseLevel):
 class SearchStatus(Enum):
     SUCCESS=""
     PARSE_FAILED="解析失败"
+    NETWORK_ERROR="网络错误"
     EMPTY_RESULTS="无结果"
     USER_NOT_FOUND="未找到用户"
     NO_USER_ARG="未提供用户名/ID"

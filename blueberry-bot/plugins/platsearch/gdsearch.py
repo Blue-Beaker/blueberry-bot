@@ -351,7 +351,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             
         if aredl_entry:
             extra_render_args.update({
-                "aredl":str(aredl_entry.position or '-')
+                "aredl_pos":str(aredl_entry.position or '-'),
+                "aredl_tags": ", ".join(aredl_entry.tags)
             })
             
         if underrated_entry:
