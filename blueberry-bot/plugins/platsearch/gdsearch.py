@@ -22,9 +22,8 @@ from .config import Config
 from .gd_icon import IconType, construct_icon_url,get_icon,ICON_TYPES
 from .utils import repr_level,repr_list
 from .platsearch import PLAT_CHART_CACHE,PLAT_SHEET_CACHE
-from .underrated import UR_CACHE,formatUnderrated,UnderratedLevel
+from .underrated_data import formatUnderrated,UnderratedLevel
 from .plat_sheets import LevelEntry,TheListsEntry,PlatChartEntry
-from .data_cache import ManagedIDMapCache
 from . import formatters
 
 require('bbot_api')
@@ -42,18 +41,12 @@ from ..bbot_perms import get_perms
 from .utils import repr_level,repr_list,ensure_gd_level,SearchException
 from . import utils
 
-from .platsearch import PLAT_CHART_CACHE,PLAT_SHEET_CACHE
-from .underrated import UR_CACHE
-from .data_cache import ManagedIDMapCache
-
-PLAT_CHART_BY_ID=ManagedIDMapCache(PLAT_CHART_CACHE)
-PLAT_SHEET_BY_ID=ManagedIDMapCache(PLAT_SHEET_CACHE)
-UNDERRATED_BY_ID=ManagedIDMapCache(UR_CACHE)
+from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE
 
 def get_level_line(level:Level) -> str:
     levelstr=repr_level(level)
     if level.is_plat():
-        levelstr+=("".join([f" E{l2.enj or '-'} W{l2.weight or '-'} P{l2.pemon or '-'}" for l2 in PLAT_CHART_BY_ID.get_for_id(level.id)]))
+        levelstr+=("".join([f" E{l2.enj or '-'} W{l2.weight or '-'} P{l2.pemon or '-'}" for l2 in PLAT_CHART_CACHE.get_for_id(level.id)]))
     return levelstr
 
 utils.REPR_LEVEL_FUNC=get_level_line
@@ -300,7 +293,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     dc_entries:list[PlatChartEntry]=[]
     # Check Difficulty Chart for platformers
     if level.is_plat():
-        dc_entries=PLAT_CHART_BY_ID.get_for_id(level.id)
+        dc_entries=PLAT_CHART_CACHE.get_for_id(level.id)
         if dc_entries:
             dc_entry=dc_entries[0]
             
@@ -308,7 +301,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     nlwlike_entries:list[TheListsEntry]=[]
     # Check NLW-like for pemons
     if level.is_plat() and level.demon:
-        nlwlike_entries=PLAT_SHEET_BY_ID.get_for_id(level.id)
+        nlwlike_entries=PLAT_SHEET_CACHE.get_for_id(level.id)
         nlwlike_entries.sort(key=lambda x: 1 if x.is_legacy() else 0)
         
         if nlwlike_entries:
@@ -318,7 +311,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     underrated_entries:list[UnderratedLevel]=[]
     # Check underrated levels for non-demons
     if not level.demon:
-        underrated_entries=UNDERRATED_BY_ID.get_for_id(level.id)
+        underrated_entries=UNDERRATED_CACHE.get_for_id(level.id)
         if underrated_entries:
             underrated_entry=underrated_entries[0]
     

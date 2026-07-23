@@ -66,7 +66,14 @@ async def getGDDLPlat_async():
     return levels
 
 def getGDDLPlat():
-    return run_async(getGDDLPlat_async())
+    data=CACHE.get()
+    if not data:
+        return None
+    levels:dict[int,GDDLLevel]={}
+    for l in data:
+        level=GDDLLevel().load(l)
+        levels[level.ID]=level
+    return levels
     
 if __name__ == "__main__":
     import asyncio

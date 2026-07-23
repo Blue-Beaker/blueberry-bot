@@ -101,14 +101,3 @@ def fillIDsForEntries(entries:Sequence[ENTRY_TYPE]):
 
 # Name: (Publisher, ID)
 NAMES_TO_LEVEL:dict[str,list[tuple[str,int]]]={}
-
-
-def get_plat_chart():
-    results=plat_sheets.get_plat_chart()
-    fillIDsForEntries(results)
-    return results
-
-def get_3_lists():
-    results=plat_sheets.get_3_lists()
-    fillIDsForEntries(results)
-    return results

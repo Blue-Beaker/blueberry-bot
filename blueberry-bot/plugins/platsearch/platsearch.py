@@ -32,6 +32,7 @@ from . import underrated
 
 from . import gd_extras,gduser
 from . import formatters
+from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE
 
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
@@ -40,42 +41,6 @@ from apscheduler.triggers.cron import CronTrigger
 plugin_config = get_plugin_config(Config)
 
 driver=get_driver()
-
-PLAT_CHART_CACHE=BaseCache(plat_sheets.PlatChartEntry,"platsearch_cache/plat_chart_cache.json",
-                           plugin_config.sheets_update_interval).set_update_function(levelid_filler.get_plat_chart)
-PLAT_SHEET_CACHE=BaseCache(plat_sheets.TheListsEntry,"platsearch_cache/plat_sheet_cache.json",
-                           plugin_config.sheets_update_interval).set_update_function(levelid_filler.get_3_lists)
-
-@driver.on_startup
-async def load():
-    levelid_filler.FILLER_MAPPING.load()
-    os.makedirs("platsearch_cache",exist_ok=True)
-    trigger=CronTrigger.from_crontab('*/30 * * * *') # Update every 30 mins
-    scheduler.add_job(threaded_update_cache1,trigger,args=[PLAT_SHEET_CACHE,"Plat Sheet cache"],id="Plat Sheet cache",misfire_grace_time=1800)
-    scheduler.add_job(threaded_update_cache2,trigger,args=[PLAT_CHART_CACHE,"Plat Chart cache"],id="Plat Chart cache",misfire_grace_time=1800)
-
-
-def match_ids_for_levels(entries:list[levelid_filler.ENTRY_TYPE],logfile:str=""):
-    levels_not_matched=levelid_filler.fillIDsForEntries(entries)
-    if levels_not_matched:
-        jsondata=[]
-        for l in levels_not_matched:
-            jsondata.append({"level":l.to_dict(),"matches":levelid_filler.FILLER_MAPPING.getEntriesForName(l.name)})
-            
-        if logfile:
-            with open(logfile,"w") as f:
-                json.dump(jsondata,f,indent=2)
-            
-def threaded_update_cache1(cache:BaseCache,name:str):
-    threaded_update_cache(cache,name)
-    match_ids_for_levels(PLAT_SHEET_CACHE.entries,"cache/plat_sheet_unmatched.json")
-def threaded_update_cache2(cache:BaseCache,name:str):
-    threaded_update_cache(cache,name)
-    match_ids_for_levels(PLAT_CHART_CACHE.entries,"cache/plat_chart_unmatched.json")
-
-def threaded_update_cache(cache:BaseCache,name:str):
-    cache.update()
-    logger.info(f"Loaded {cache.entries.__len__()} entries into {name}, expiring at {time.ctime(cache.expiration_time)}")
 
 class SearchArgs:
     parser:ArgParser
@@ -169,7 +134,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     results:list[plat_sheets.PlatChartEntry]=[]
     errored:bool=False
     
-    all_levels=PLAT_CHART_CACHE.get()
+    all_levels=PLAT_CHART_CACHE.getOrUpdate()
     
     if lists_arg:
         levels_from_lists=await get_levels_from_lists(lists_arg)
@@ -274,7 +239,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     results:list[plat_sheets.PlatChartEntry]=[]
     errored:bool=False
     
-    all_levels=PLAT_CHART_CACHE.get()
+    all_levels=PLAT_CHART_CACHE.getOrUpdate()
     
     if lists_arg:
         levels_from_lists=await get_levels_from_lists(lists_arg)
@@ -406,7 +371,7 @@ async def _(args: Message = CommandArg()):
         msg.append(f"Exact match, use -f [levelname] for fuzzy search")
     # results=level_in_three_sheets(search)
     
-    results=[l for l in PLAT_SHEET_CACHE.get() if l.matchesName(search,fuzzy)]
+    results=[l for l in PLAT_SHEET_CACHE.getOrUpdate() if l.matchesName(search,fuzzy)]
     
     if skills:
         results = [r for r in results if r.has_skills(skills)]
@@ -467,7 +432,7 @@ async def _(bot:Bot, args: Message = CommandArg()):
     if not fuzzy:
         msg.addLine(f"Exact match, use -f [levelname] for fuzzy search")
     
-    results=[l for l in PLAT_CHART_CACHE.get() if (l.matchesName(search,fuzzy) or str(l.id)==search)]
+    results=[l for l in PLAT_CHART_CACHE.getOrUpdate() if (l.matchesName(search,fuzzy) or str(l.id)==search)]
     
     if skills:
         results = [r for r in results if r.has_skills(skills)]
@@ -547,7 +512,7 @@ async def _(bot:Bot, search_args: Message = CommandArg()):
         
         return True
     
-    levels=[l for l in PLAT_CHART_CACHE.get() if levelMatchesFilter(l)]
+    levels=[l for l in PLAT_CHART_CACHE.getOrUpdate() if levelMatchesFilter(l)]
     
     if not levels:
         await platrandom.finish("没有符合条件的关卡. 请调整参数重试.")
@@ -616,20 +581,6 @@ async def _(bot:Bot,event:Event):
     ]
     await plathelp.finish("\n".join(help_lines))
     return
-
-
-platupdate = on_command("platupdate",permission=SUPERUSER)
-@platupdate.handle()
-async def _():
-    await platupdate.send("开始刷新platsearch缓存...\n刷新DifficultyChart...")
-    PLAT_CHART_CACHE.update()
-    match_ids_for_levels(PLAT_CHART_CACHE.entries,"cache/plat_chart_unmatched.json")
-    await platupdate.send("刷新NLW/IDS/HDS...")
-    PLAT_SHEET_CACHE.update()
-    match_ids_for_levels(PLAT_SHEET_CACHE.entries,"cache/plat_sheet_unmatched.json")
-    await platupdate.finish(f"刷新完毕. DifficultyChart:{PLAT_CHART_CACHE.entries.__len__()}, NLW/IDS/HDS:{PLAT_SHEET_CACHE.entries.__len__()})")
-    return
-
 
 def get_help(bot:Bot,event:Event):
     help_lines=[

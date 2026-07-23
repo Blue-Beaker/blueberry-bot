@@ -1,11 +1,11 @@
 import time
 import traceback
 from typing import Callable, Generic, Sequence, Type,TypeVar
-from .plat_sheets import PlatWeight, TheListsEntry,LevelEntry
+from .plat_sheets import BaseLevelEntry
 import json
 from nonebot import logger
 
-_T = TypeVar("_T",covariant=True, bound=LevelEntry)
+_T = TypeVar("_T",covariant=True, bound=BaseLevelEntry)
     
 class BaseCache(Generic[_T]):
     expiration_time:int
@@ -16,13 +16,16 @@ class BaseCache(Generic[_T]):
     update_function:Callable[[],list[_T]]
     file_path:str|None
     
-    def __init__(self,t:Type[_T],file_path:str|None=None,ttl:int=3600) -> None:
+    name:str=""
+    
+    def __init__(self,t:Type[_T],file_path:str|None=None,ttl:int=3600,name:str="UNNAMED") -> None:
         self.expiration_time=0
         self.entries=[]
         self.entry_type=t
         
         self.ttl=ttl
         self.file_path=file_path
+        self.name=name
     
     def to_dict(self) -> dict:
         result={"expiration_time":self.expiration_time,"entries":[e.to_dict() for e in self.entries]}
@@ -53,14 +56,24 @@ class BaseCache(Generic[_T]):
         else:
             logger.warning("No update function set for cache")
             
-    def get(self) -> list[_T]:
-        if self.expiration_time==0 and self.file_path:
-            self.load(self.file_path)
+    def getOrUpdate(self) -> list[_T]:
+        self.loadWhenNeeded()
         
         if self.should_update():
             logger.info("Cache expired, updating...")
             self.update()
         return self.entries
+    
+    def get(self) -> list[_T]:
+        self.loadWhenNeeded()
+        return self.entries
+    
+    def loadWhenNeeded(self):
+        if self.expiration_time==0 and self.file_path:
+            self.load(self.file_path)
+    
+    def getLogInfo(self):
+        return f"[{self.name}]: {self.entries.__len__()} entries, expiring at {time.ctime(self.expiration_time)}"
     
     @classmethod
     def from_dict(cls,t,data:dict):
@@ -103,8 +116,20 @@ class ManagedIDMapCache(IDMapCache[_T]):
     def try_update(self):
         if (self.parent.should_update()
             or self.last_expiration_time<self.parent.expiration_time):
-            self.update_data(self.parent.get())
+            self.update_data(self.parent.getOrUpdate())
         self.last_expiration_time=self.parent.expiration_time
     def get_for_id(self, id: int):
         self.try_update()
         return super().get_for_id(id)
+    
+class CacheWithIDMap(BaseCache[_T]):
+    def __init__(self, t: type[_T], file_path: str | None = None, ttl: int = 3600, name: str = "UNNAMED") -> None:
+        super().__init__(t, file_path, ttl, name)
+        self.id_map:ManagedIDMapCache[_T]=ManagedIDMapCache(self)
+    def update(self):
+        super().update()
+        self.id_map.update_data(self.entries)
+    def get_for_id(self,id:int):
+        return self.id_map.get_for_id(id)
+        
+        

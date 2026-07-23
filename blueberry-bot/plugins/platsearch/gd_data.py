@@ -1,0 +1,109 @@
+from argparse import Namespace
+import json
+import os
+import threading
+import time
+from typing import Any, TypeVar
+from nonebot import on_command,logger,get_plugin_config
+from nonebot.permission import SUPERUSER
+from nonebot import get_driver,require
+from nonebot.internal.matcher import Matcher
+
+from .config import Config
+
+from . import plat_sheets,levelid_filler
+
+from .data_cache import BaseCache,CacheWithIDMap
+
+require('gd_api')
+from ..gd_api import gd,thumbs,gddl
+
+from .underrated_data import UnderratedLevel,get_all_underrated
+
+require("nonebot_plugin_apscheduler")
+from nonebot_plugin_apscheduler import scheduler
+from apscheduler.triggers.cron import CronTrigger
+
+plugin_config = get_plugin_config(Config)
+
+driver=get_driver()
+
+def get_plat_chart():
+    results=plat_sheets.get_plat_chart()
+    match_ids_for_levels(results,"cache/plat_chart_unmatched.json")
+    return results
+
+def get_3_lists():
+    results=plat_sheets.get_3_lists()
+    match_ids_for_levels(results,"cache/plat_sheet_unmatched.json")
+    return results
+
+PLAT_CHART_CACHE=CacheWithIDMap(plat_sheets.PlatChartEntry,"platsearch_cache/plat_chart_cache.json",
+    plugin_config.sheets_update_interval,name="Plat Chart cache").set_update_function(get_plat_chart)
+PLAT_SHEET_CACHE=CacheWithIDMap(plat_sheets.TheListsEntry,"platsearch_cache/plat_sheet_cache.json",
+    plugin_config.sheets_update_interval,name="Plat Sheet cache").set_update_function(get_3_lists)
+UNDERRATED_CACHE = CacheWithIDMap(UnderratedLevel,"platsearch_cache/underrated_cache.json",
+    plugin_config.sheets_update_interval,"Underrated Cache").set_update_function(get_all_underrated)
+
+caches:list[BaseCache]=[PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE]
+
+@driver.on_startup
+async def load():
+    os.makedirs("platsearch_cache",exist_ok=True)
+    levelid_filler.FILLER_MAPPING.load()
+    gddl.CACHE.get()
+    
+    for cache in caches:
+        cache.getOrUpdate()
+        logger.info(cache.getLogInfo())
+        
+    
+    trigger=CronTrigger.from_crontab('*/30 * * * *') # Update every 30 mins
+    scheduler.add_job(update_caches,trigger,args=[False],id="Plat Cache Update",misfire_grace_time=1800)
+    
+    
+async def update_caches(force_gddl:bool=False):
+    os.makedirs("platsearch_cache",exist_ok=True)
+    
+    levelid_filler.FILLER_MAPPING.load()
+    await gddl.CACHE.getOrUpdate()
+    
+    for cache in caches:
+        threading.Thread(target=threaded_update_cache,args=[cache],name=cache.name).start()
+
+def match_ids_for_levels(entries:list[levelid_filler.ENTRY_TYPE],logfile:str=""):
+    levels_not_matched=levelid_filler.fillIDsForEntries(entries)
+    if levels_not_matched:
+        jsondata=[]
+        for l in levels_not_matched:
+            jsondata.append({"level":l.to_dict(),"matches":levelid_filler.FILLER_MAPPING.getEntriesForName(l.name)})
+            
+        if logfile:
+            with open(logfile,"w") as f:
+                json.dump(jsondata,f,indent=2)
+
+def threaded_update_cache(cache:BaseCache):
+    cache.update()
+    logger.info(f"Loaded {cache.entries.__len__()} entries into {cache.name}, expiring at {time.ctime(cache.expiration_time)}")
+    
+
+    
+platupdate = on_command("platupdate",permission=SUPERUSER)
+@platupdate.handle()
+async def _():
+    await platupdate.send("开始刷新platsearch缓存...\n刷新DifficultyChart...")
+    PLAT_CHART_CACHE.update()
+    await platupdate.send("刷新NLW/IDS/HDS...")
+    PLAT_SHEET_CACHE.update()
+    await platupdate.finish(f"刷新完毕. DifficultyChart:{PLAT_CHART_CACHE.entries.__len__()}, NLW/IDS/HDS:{PLAT_SHEET_CACHE.entries.__len__()})")
+    return
+
+gdupdate = on_command("gdupdate",permission=SUPERUSER)
+@gdupdate.handle()
+async def _():
+    await gdupdate.send("开始刷新gd缓存...")
+    for cache in caches:
+        cache.update()
+        await gdupdate.send(cache.getLogInfo())
+    await gdupdate.finish(f"刷新完毕.")
+    return
