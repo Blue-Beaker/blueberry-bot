@@ -5,9 +5,9 @@ from typing import Any
 
 
 class GusEntry:
-    file:str
-    name:str
-    desc:str
+    file:str=""
+    name:str=""
+    desc:str=""
     def update(self,data:dict[str,str]):
         self.__dict__.update(data)
         return self

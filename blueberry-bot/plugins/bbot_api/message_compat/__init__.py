@@ -5,6 +5,7 @@ from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent
 from nonebot.adapters.qq import Bot as QQBot, Message as QQMessage, MessageSegment as QQMessageSegment
 from nonebot.adapters.minecraft import BaseChatEvent as MCBaseChatEvent
 from nonebot.matcher import Matcher
+from .images import get_images_from_message,ImageFile
 
 def supportsRecord(bot:Bot):
     return isinstance(bot,OBBot) or isinstance(bot,DCBot) or isinstance(bot,QQBot)

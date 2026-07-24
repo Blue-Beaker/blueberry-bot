@@ -27,6 +27,7 @@ require("bbot_api")
 from ..bbot_api import TextImageMessage,getid,get_group_id
 from ..bbot_api.group_config import GroupConfig,ConfigItem,make_config_handler
 from ..bbot_api.profile_link.events import on_link, LinkUserEvent, LinkGroupEvent, UnlinkUserEvent, UnlinkGroupEvent
+from ..bbot_api.message_compat.images import ImageFile,get_images_from_message,make_image_filename
 
 require("gdguess")
 from ..gdguess import gdguess_logic
@@ -204,39 +205,19 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
     elif update:
         await gus_add.finish(f"未找到 ID '{key}'.")
         
-    imgs=None
-    if isinstance(msg,OBMessage):
-        imgs=msg.get("image",1)
-    elif isinstance(event,GuildMessageCreateEvent):
-        imgs=[atta for atta in event.attachments if isinstance(atta.content_type,str) and atta.content_type.startswith('image')]
+    imgs,errors = await get_images_from_message(bot,event,msg,1)
+    
+    if errors:
+        await gus_add.finish('发生错误: '+(','.join(errors)))
     if not imgs:
         await gus_add.finish("请包含一张图片用于添加.")
-    
-    img=imgs[0]
-    
-    filename=None
-    imageFile=None
-    
-    if isinstance(img,OBMessageSegment) and isinstance(bot,OBBot):
-        filename=img.data.get("file")
-        if filename:
-            imgdata = await bot.get_image(file=filename)
-            url=imgdata.get('url')
-            if not url:
-                await gus_add.finish("内部错误: 找不到URL.")
-                
-            resp=requests.get(url)
-            imageFile=resp.content
-            entry.file=filename
-            
-    elif isinstance(img,Attachment) and isinstance(bot,DCBot):
-        resp=requests.get(img.url)
         
-        filename=img.filename
-        imageFile=resp.content
-        entry.file=img.filename
-            
-            # logger.info(repr(type(img))+repr(img))
+    img=imgs[0]
+    filename=make_image_filename(img.image)
+    imageFile=img.image
+    
+    entry.file=filename
+    
     if filename and isinstance(imageFile,bytes):
         gus__data.add_entry(key,entry,imageFile)
         logger.info(f"Adding gus entry: {entry}")
