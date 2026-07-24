@@ -297,15 +297,15 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     dc_entry=None
     dc_entries:list[PlatChartEntry]=[]
     # Check Difficulty Chart for platformers
-    if level.is_plat():
-        dc_entries=PLAT_CHART_CACHE.get_for_id(level.id)
-        if dc_entries:
-            dc_entry=dc_entries[0]
+    # if level.is_plat():
+    dc_entries=PLAT_CHART_CACHE.get_for_id(level.id)
+    if dc_entries:
+        dc_entry=dc_entries[0]
             
     nlwlike_entry=None
     nlwlike_entries:list[TheListsEntry]=[]
     # Check NLW-like for pemons
-    if level.is_plat() and level.demon:
+    if level.demon:
         nlwlike_entries=PLAT_SHEET_CACHE.get_for_id(level.id)
         nlwlike_entries.sort(key=lambda x: 1 if x.is_legacy() else 0)
         
@@ -443,20 +443,18 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         for e in underrated_entries:
             lines.addLine(formatUnderrated(e,False,True))
     
-    if level.is_plat():
+    if dc_entries:
+        lines.addLine("--Difficulty Chart--")
+    for e in dc_entries:
+        lines.addLine(formatters.formatDiffChart(e,False,True))
         
-        if dc_entries:
-            lines.addLine("--Difficulty Chart--")
-        for e in dc_entries:
-            lines.addLine(formatters.formatDiffChart(e,False,True))
-            
-        if (not dc_entries) and pemonlist_entry:
-            lines.addLine(formatters.formatPemonlist(pemonlist_entry,False,True)) 
-        
-        if nlwlike_entries:
-            lines.addLine("--NLW/IDS/HDS--")
-        for e in nlwlike_entries:
-            lines.addLine(formatters.formatListsLevel(e,False,True))
+    if (not dc_entries) and pemonlist_entry:
+        lines.addLine(formatters.formatPemonlist(pemonlist_entry,False,True)) 
+    
+    if nlwlike_entries:
+        lines.addLine("--NLW/IDS/HDS--")
+    for e in nlwlike_entries:
+        lines.addLine(formatters.formatListsLevel(e,False,True))
             
     if aredl_entries:
         lines.addLine("--AREDL--")
