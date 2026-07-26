@@ -572,7 +572,7 @@ plathelp = on_command("plathelp")
 async def _(bot:Bot,event:Event):
     help_lines=[
         "plathelp 显示Plat搜索功能相关帮助",
-        "platsearch 搜索Plat关卡",
+        "platsearch 在Difficulty Chart中搜索Plat关卡",
         "platsheet 在NLW/IDS/HDS中搜索Plat关卡",
         "platweight <关卡1>,<关卡2>... 计算Plat关卡的Weight之和",
         "platrandom [-t Tier] [-s Tags] 随机抽取Plat关卡",
@@ -585,7 +585,7 @@ async def _(bot:Bot,event:Event):
 def get_help(bot:Bot,event:Event):
     help_lines=[
             "plathelp 显示Plat搜索功能相关帮助",
-            "platsearch 搜索Plat关卡",
+            "platsearch 在Difficulty Chart中搜索Plat关卡",
             "platsheet 在NLW/IDS/HDS中搜索Plat关卡",
             "platweight 根据提供关卡/list计算Plat Top10",
             "platskill 根据提供关卡/list计算Plat Skillset分布",
