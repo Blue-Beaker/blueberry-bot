@@ -65,18 +65,21 @@ class TextImageMessage:
             return cls(QQMessage(),type(bot))
         else:
             return cls("",type(bot))
-    def append(self,text:str):
-        return self.addLine(text)
-    def addText(self,text:str):
+    def append(self,text:str,markdown:bool=False):
+        return self.addLine(text,markdown=markdown)
+    def addText(self,text:str,markdown:bool=False):
         if isinstance(self.msg,Message):
-            self.msg.append(text)
+            if not markdown and isinstance(self.msg,DCMessage):
+                self.msg.append(escapeMarkdown(text))
+            else:
+                self.msg.append(text)
         else:
             self.msg+=text
         return self
-    def addLine(self,text:str):
+    def addLine(self,text:str,markdown:bool=False):
         if self.msg.__len__()>0 and (isinstance(self.msg,str) or self.msg[-1].is_text()):
             self.addText("\n")
-        self.addText(text)
+        self.addText(text,markdown=markdown)
         return self
     
     def addImage(self,image:bytes,image_name:str="",small:bool=False):
@@ -125,3 +128,10 @@ class TextImageMessage:
     async def finish(self,matcher:type[Matcher],**kwargs):
         await self.send(matcher,**kwargs)
         await matcher.finish()
+        
+        
+def escapeMarkdown(text:str):
+    escapeCharactors="\\`()[]*!#"
+    for c in escapeCharactors:
+        text=text.replace(c,"\\"+c)
+    return text

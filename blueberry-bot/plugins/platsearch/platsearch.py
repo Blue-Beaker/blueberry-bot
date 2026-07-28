@@ -130,7 +130,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     
     search = [s.strip() for s in text.lower().split(",")]
     
-    msg:list[str]=[]
+    msg:TextImageMessage=TextImageMessage.build(bot)
     results:list[plat_sheets.PlatChartEntry]=[]
     errored:bool=False
     
@@ -158,7 +158,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 msg.append(f"({l.id}) {l.name} by {l.creator} ({l.weight})")
     if errored:
         msg.append("请解决上述问题再重新运行本指令.")
-        await platweight.finish("\n".join(msg))
+        await msg.finish(platweight)
         return
     
     
@@ -201,9 +201,9 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 pass
         msg.append(f"{results.__len__()} 项的原始权重和为 {total_weight}.\n提供10项以计算你的点数.")
     
-    if supportsMarkdown(bot):
-        msg=[line.replace("*","\\*") for line in msg]
-    await platweight.finish("\n".join(msg))
+    # if supportsMarkdown(bot):
+    #     msg=[line.replace("*","\\*") for line in msg]
+    await msg.finish(platweight)
     
 
 platskill = on_command("platskill")
