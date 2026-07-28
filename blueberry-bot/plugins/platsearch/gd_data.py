@@ -50,12 +50,20 @@ async def load():
     gddl.CACHE.get()
     
     for cache in caches:
-        cache.getOrUpdate()
+        cache.get()
         logger.info(cache.getLogInfo())
         
     
     trigger=CronTrigger.from_crontab('*/30 * * * *') # Update every 30 mins
     scheduler.add_job(update_caches,trigger,args=[False],id="Plat Cache Update",misfire_grace_time=1800)
+    
+    update_thread = threading.Thread(target=update_all,name="update_all")
+    update_thread.start()
+    
+def update_all():
+    for cache in caches:
+        cache.getOrUpdate()
+        logger.info(cache.getLogInfo())
     
     
 async def update_caches(force_gddl:bool=False):
