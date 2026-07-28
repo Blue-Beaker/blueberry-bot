@@ -53,8 +53,8 @@ class SearchArgs:
     skills:list[str]
     error:str|None=None
     
-    def __init__(self) -> None:
-        self.parser=ArgParser()
+    def __init__(self,command_name:str) -> None:
+        self.parser=ArgParser(command_name=command_name)
         self.parser.add_argument('-p',help="Page",type=int,default=1)
         self.parser.add_argument('-f',help="Fuzzy Search",action='store_true')
         self.parser.add_argument('search', nargs='*', type=str, help='search string')
@@ -351,7 +351,7 @@ async def _(args: Message = CommandArg()):
                 "举例: '-platsheet -t easy -s wavedash' 列举 Easy 且包含 wavedash skill 的关卡"
                 ]))
         
-    sa=SearchArgs().parse(args.extract_plain_text())
+    sa=SearchArgs("platsheet").parse(args.extract_plain_text())
     if sa.error:
         await platsheet.finish(sa.error)
         return
@@ -408,7 +408,7 @@ async def _(bot:Bot, args: Message = CommandArg()):
                 "举例: '-platsearch -f -p3 dash' 搜索名称包含dash的关卡, 并翻到第3页",
                 "举例: '-platsearch -t9' 列举 Tier 9 的关卡"
                 ]))
-    sa_work=SearchArgs()
+    sa_work=SearchArgs("platsearch")
     sa_work.parser.add_argument("-i",help="Show Thumbnail",action="store_true")
     sa=sa_work.parse(args.extract_plain_text())
     if sa.error:
