@@ -65,6 +65,8 @@ class TextImageMessage:
             return cls(QQMessage(),type(bot))
         else:
             return cls("",type(bot))
+    def append(self,text:str):
+        return self.addLine(text)
     def addText(self,text:str):
         if isinstance(self.msg,Message):
             self.msg.append(text)
@@ -116,8 +118,8 @@ class TextImageMessage:
                 msgpart.append(i)
                 if not i.is_text():
                     has_image=True
-                    
-        
+            await matcher.send(msgpart,**kwargs)
+            return
         await matcher.send(self.msg,**kwargs)
         
     async def finish(self,matcher:type[Matcher],**kwargs):
