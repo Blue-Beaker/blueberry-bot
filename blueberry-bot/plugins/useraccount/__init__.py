@@ -322,3 +322,9 @@ def _generate_profile_id(raw_id: str) -> str:
     short: str = core[:8]
     suffix: str = secrets.token_hex(3)  # 6 位十六进制
     return f"user_{short}_{suffix}"
+
+def get_help(bot,event)->str|None:
+    if isinstance(bot, Bot):
+        return "useraccount 管理帐户绑定 (可认领旧数据或绑定不同平台帐户)"
+    else:
+        return None
