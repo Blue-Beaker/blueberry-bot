@@ -30,8 +30,10 @@ class GroupConfig(Generic[_C]):
     
     层说明：
     - global_config: 全局默认配置实例
-    - permgroup_overrides: 权限组覆盖（id 以 permgroup_ 开头），在 global 之后、group 之前应用
+    - permgroup 条目以 permgroup_<name> 为 key 存储在 group_overrides 中，
+      在 global 之后、group 之前应用
     - group_overrides: 每个 group/群的覆盖字段 ConfigItem 实例（优先级最高）
+    - group_permgroup_map: 将群组 ID 映射到 permgroup 名称
     - get(group) 返回合并后的完整配置对象；group="global" 时返回 global 配置
     - set(group, **kwargs) 设置 group 层的覆盖字段
     - set_global(**kwargs) 设置 global 层默认值
@@ -42,15 +44,15 @@ class GroupConfig(Generic[_C]):
     
     config_class: type[_C]
     global_config: _C
-    permgroup_overrides: dict[str, _C]
     group_overrides: dict[str, _C]
+    group_permgroup_map: dict[str, str]  # group → permgroup_name
     config_path: str | None = None
     
     def __init__(self, config_class: type[_C], config_path: str | None = None) -> None:
         self.config_class = config_class
         self.global_config = config_class()
-        self.permgroup_overrides = {}
         self.group_overrides = {}
+        self.group_permgroup_map = {}
         self.config_path = config_path
     
     # ── 读取 ─────────────────────────────────────────────
@@ -60,7 +62,8 @@ class GroupConfig(Generic[_C]):
         
         合并顺序：group 覆盖 → permgroup 覆盖 → global → 类默认值。
         
-        如果 group 以 permgroup_ 开头，只返回该 permgroup 的覆盖值（不合并 global）。
+        permgroup 条目以 permgroup_<name> 为 key 存储在 group_overrides 中，
+        通过 group_permgroup_map 将群组 ID 映射到 permgroup。
         group="global" 时直接返回 global 配置。
         """
         if group == "global":
@@ -70,9 +73,9 @@ class GroupConfig(Generic[_C]):
         config.load_dict(self.global_config.to_dict())
         
         # 应用 permgroup 覆盖（在 global 之后、group 之前）
-        permgroup = self._find_matching_permgroup(group)
-        if permgroup is not None:
-            pg_overrides = self.permgroup_overrides.get(permgroup)
+        permgroup_key = self._find_matching_permgroup(group)
+        if permgroup_key is not None:
+            pg_overrides = self.group_overrides.get(permgroup_key)
             if pg_overrides is not None:
                 merged = {k: v for k, v in pg_overrides.to_dict().items() if v is not None}
                 config.load_dict(merged)
@@ -86,13 +89,19 @@ class GroupConfig(Generic[_C]):
         return config
     
     def _find_matching_permgroup(self, group: str) -> str | None:
-        """查找匹配 group 的 permgroup。
+        """查找匹配 group 的 permgroup key（如 permgroup_myperms）。
         
-        遍历 permgroup_overrides 的所有 key，按名称长度降序排列（最长匹配优先），
-        返回第一个 key 与 group 相同的 permgroup。
-        permgroup key 格式: permgroup_<name>
+        优先查 group_permgroup_map 映射；
+        如果 group 本身就是 permgroup_<name> 格式也直接匹配。
         """
-        if group in self.permgroup_overrides:
+        # 优先查映射
+        pg_name = self.group_permgroup_map.get(group)
+        if pg_name is not None:
+            key = f"permgroup_{pg_name}"
+            if key in self.group_overrides:
+                return key
+        # 直接匹配（group 本身就是 permgroup key）
+        if group.startswith("permgroup_") and group in self.group_overrides:
             return group
         return None
     
@@ -109,9 +118,9 @@ class GroupConfig(Generic[_C]):
                 return val
         # permgroup 覆盖
         if group != "global":
-            permgroup = self._find_matching_permgroup(group)
-            if permgroup is not None:
-                pg = self.permgroup_overrides.get(permgroup)
+            permgroup_key = self._find_matching_permgroup(group)
+            if permgroup_key is not None:
+                pg = self.group_overrides.get(permgroup_key)
                 if pg is not None:
                     val = getattr(pg, key, _UNSET)
                     if val is not _UNSET and val is not None:
@@ -122,30 +131,60 @@ class GroupConfig(Generic[_C]):
             return global_val
         return getattr(self.config_class, key, None)
     
+    # ── group ↔ permgroup 映射 ──────────────────────────
+    
+    def set_group_permgroup(self, group: str, permgroup_name: str | None) -> None:
+        """将权限组附加到群组。permgroup_name=None 时解除附加。"""
+        if permgroup_name is None:
+            self.group_permgroup_map.pop(group, None)
+        else:
+            self.group_permgroup_map[group] = permgroup_name
+    
+    def get_group_permgroup(self, group: str) -> str | None:
+        """获取群组附加的权限组名称（不含 permgroup_ 前缀）。"""
+        return self.group_permgroup_map.get(group)
+    
+    def list_group_permgroups(self) -> dict[str, str]:
+        """返回所有 group→permgroup 映射。"""
+        return dict(sorted(self.group_permgroup_map.items()))
+    
     # ── 权限组 (permgroup) ───────────────────────────────
     
     def get_permgroup(self, name: str) -> _C | None:
-        """获取指定权限组的配置（不合并 global 层）。"""
+        """获取指定权限组的配置（不合并 global 层）。
+        
+        返回 None 表示权限组不存在或没有任何覆盖字段。
+        """
         key = f"permgroup_{name}"
-        return self.permgroup_overrides.get(key)
+        val = self.group_overrides.get(key)
+        return val
     
     def set_permgroup(self, name: str, **kwargs: Any) -> None:
-        """设置权限组的覆盖字段。"""
+        """设置权限组的覆盖字段。
+        
+        权限组以 permgroup_<name> 为 key 存储在 group_overrides 中，
+        和普通 group 覆盖完全一样的存储方式。
+        不传 kwargs 时仅确保权限组存在。
+        """
         key = f"permgroup_{name}"
-        if key not in self.permgroup_overrides:
-            self.permgroup_overrides[key] = self.config_class()
+        if not kwargs:
+            if key not in self.group_overrides:
+                self.group_overrides[key] = self.config_class()
+            return
+        if key not in self.group_overrides:
+            self.group_overrides[key] = self.config_class()
         for k, v in kwargs.items():
             if v is None:
-                if hasattr(self.permgroup_overrides[key], k):
-                    setattr(self.permgroup_overrides[key], k, None)
+                if hasattr(self.group_overrides[key], k):
+                    setattr(self.group_overrides[key], k, None)
             else:
-                setattr(self.permgroup_overrides[key], k, v)
+                setattr(self.group_overrides[key], k, v)
     
     def delete_permgroup(self, name: str) -> bool:
         """删除权限组。返回是否实际删除。"""
         key = f"permgroup_{name}"
-        if key in self.permgroup_overrides:
-            del self.permgroup_overrides[key]
+        if key in self.group_overrides:
+            del self.group_overrides[key]
             return True
         return False
     
@@ -153,7 +192,8 @@ class GroupConfig(Generic[_C]):
         """返回所有权限组名称列表（不含 permgroup_ 前缀）。"""
         return sorted(
             key[len("permgroup_"):]
-            for key in self.permgroup_overrides
+            for key in self.group_overrides
+            if key.startswith("permgroup_")
         )
     
     # ── 写入 ─────────────────────────────────────────────
@@ -240,10 +280,7 @@ class GroupConfig(Generic[_C]):
             return
         data = {
             "global_config": self.global_config.to_dict(),
-            "permgroup_overrides": {
-                g: ov.to_dict()
-                for g, ov in self.permgroup_overrides.items()
-            },
+            "group_permgroup_map": dict(self.group_permgroup_map),
             "group_overrides": {
                 g: ov.to_dict()
                 for g, ov in self.group_overrides.items()
@@ -267,13 +304,11 @@ class GroupConfig(Generic[_C]):
         if isinstance(global_data, dict):
             self.global_config.load_dict(global_data)
         
-        permgroup_data = data.get("permgroup_overrides")
-        if isinstance(permgroup_data, dict):
-            for g, d in permgroup_data.items():
-                if isinstance(d, dict):
-                    obj = self.config_class()
-                    obj.load_dict(d)
-                    self.permgroup_overrides[g] = obj
+        map_data = data.get("group_permgroup_map")
+        if isinstance(map_data, dict):
+            self.group_permgroup_map = {
+                k: v for k, v in map_data.items() if isinstance(v, str)
+            }
         
         overrides = data.get("group_overrides")
         if isinstance(overrides, dict):
@@ -357,7 +392,33 @@ def make_config_handler(
     
     pg_sub.add_parser("list", help="列出所有权限组", add_help=False)
     
-    help_text = parser.format_help()
+    pg_bind = pg_sub.add_parser("bind", help="将权限组附加到群组", add_help=False)
+    pg_bind.add_argument("name", help="权限组名")
+    pg_bind.add_argument("group", help="群组 ID")
+    
+    pg_unbind = pg_sub.add_parser("unbind", help="解除群组的权限组附加", add_help=False)
+    pg_unbind.add_argument("group", help="群组 ID")
+    
+    pg_sub.add_parser("show-bind", help="查看所有附加关系", add_help=False)
+    
+    help_text = (
+        f"{cmd_name} get [-g <group>] [-p <permgroup>] <field>\n"
+        f"{cmd_name} set [-g <group>] [-p <permgroup>] <field> <value>\n"
+        f"{cmd_name} list [-g <group>] [-p <permgroup>]\n"
+        f"{cmd_name} list-groups\n"
+        f"{cmd_name} permgroup create <name>\n"
+        f"{cmd_name} permgroup delete <name>\n"
+        f"{cmd_name} permgroup list\n"
+        f"{cmd_name} permgroup bind <name> <group>\n"
+        f"{cmd_name} permgroup unbind <group>\n"
+        f"{cmd_name} permgroup show-bind\n"
+        f"\n"
+        f"-g <group>      群 ID（不指定时默认当前群）\n"
+        f"-p <permgroup>  权限组名（不含 permgroup_ 前缀）\n"
+        f"\n"
+        f"group 名为 global 时直接操作 global 层\n"
+        f"permgroup 在 global 之后、group 之前应用"
+    )
 
     async def handler(
         bot: Bot,
@@ -372,30 +433,25 @@ def make_config_handler(
         # ── 用 ArgParser 解析 ──────────────────────────
         try:
             parsed = parser.parse_args(raw_text.split())
-        except (ArgumentError, ArgShowHelp) as e:
+        except Exception as e:
             await matcher.finish(str(e))
         
         subcmd = parsed.subcmd
         
-        # ── 确定目标 group / permgroup ──────────────────
+        # ── 确定目标 group ───────────────────────────
+        # -p 参数转换为 -g permgroup_<name>，统一用 -g 逻辑处理
         group: str | None = getattr(parsed, "g", None)
         permgroup: str | None = getattr(parsed, "p", None)
+        if permgroup is not None:
+            group = f"permgroup_{permgroup}"
         
-        if group is None and permgroup is None and subcmd in ("get", "set", "list"):
+        if group is None and subcmd in ("get", "set", "list"):
             if get_groupid_function:
                 group = get_groupid_function(event)
             else:
                 group = get_group_id(event)
             if group == "private":
                 await matcher.finish("私聊中必须用 -g 参数指定 group")
-        
-        target: str | None = None
-        is_permgroup: bool = False
-        if permgroup is not None:
-            target = f"permgroup_{permgroup}"
-            is_permgroup = True
-        elif group is not None:
-            target = group
         
         # ── permgroup 子命令 ───────────────────────────
         if subcmd == "permgroup":
@@ -405,7 +461,10 @@ def make_config_handler(
                     f"用法:\n"
                     f"  {cmd_name} permgroup create <name>\n"
                     f"  {cmd_name} permgroup delete <name>\n"
-                    f"  {cmd_name} permgroup list"
+                    f"  {cmd_name} permgroup list\n"
+                    f"  {cmd_name} permgroup bind <name> <group>\n"
+                    f"  {cmd_name} permgroup unbind <group>\n"
+                    f"  {cmd_name} permgroup show-bind"
                 )
             if pg_action == "create":
                 pg_name = parsed.name
@@ -416,6 +475,10 @@ def make_config_handler(
                 await matcher.finish(f"已创建权限组: {pg_name}")
             elif pg_action == "delete":
                 pg_name = parsed.name
+                # 删除时自动清理所有引用该组的绑定
+                for g, pgn in list(config.group_permgroup_map.items()):
+                    if pgn == pg_name:
+                        del config.group_permgroup_map[g]
                 if config.delete_permgroup(pg_name):
                     config.save()
                     await matcher.finish(f"已删除权限组: {pg_name}")
@@ -426,6 +489,30 @@ def make_config_handler(
                 if not names:
                     await matcher.finish("没有权限组")
                 await matcher.finish("权限组:\n" + "\n".join(f"  {n}" for n in names))
+            elif pg_action == "bind":
+                pg_name = parsed.name
+                group_id = parsed.group
+                if config.get_permgroup(pg_name) is None:
+                    await matcher.finish(f"权限组 '{pg_name}' 不存在")
+                config.set_group_permgroup(group_id, pg_name)
+                config.save()
+                await matcher.finish(f"已将权限组 '{pg_name}' 附加到群组 '{group_id}'")
+            elif pg_action == "unbind":
+                group_id = parsed.group
+                old = config.get_group_permgroup(group_id)
+                if old is None:
+                    await matcher.finish(f"群组 '{group_id}' 未附加任何权限组")
+                config.set_group_permgroup(group_id, None)
+                config.save()
+                await matcher.finish(f"已解除群组 '{group_id}' 的权限组 '{old}' 附加")
+            elif pg_action == "show-bind":
+                mapping = config.list_group_permgroups()
+                if not mapping:
+                    await matcher.finish("没有附加关系")
+                lines = ["group → permgroup 映射:"]
+                for g, pgn in mapping.items():
+                    lines.append(f"  {g} → {pgn}")
+                await matcher.finish("\n".join(lines))
         
         # ── list-groups ────────────────────────────────
         if subcmd == "list-groups":
@@ -436,48 +523,35 @@ def make_config_handler(
         
         # ── list ────────────────────────────────────────
         if subcmd == "list":
-            if target is None:
+            if group is None:
                 await matcher.finish("请指定 -g 或 -p 参数")
-            cfg = config.get(target)
-            if is_permgroup:
-                overrides_obj = config.permgroup_overrides.get(target)
-            else:
-                overrides_obj = config.group_overrides.get(target) if target != "global" else None
-            label = f"permgroup:{permgroup}" if is_permgroup else target
-            lines = [f"配置项 ({label}):"]
+            cfg = config.get(group)
+            overrides_obj = config.group_overrides.get(group) if group != "global" else None
+            lines = [f"配置项 ({group}):"]
             for field in config_class.model_fields:
                 val = getattr(cfg, field)
                 is_overridden = overrides_obj is not None and getattr(overrides_obj, field, None) is not None
                 marker = " *" if is_overridden else ""
-                source = "(permgroup)" if is_permgroup and is_overridden else "(group)" if is_overridden else "(global/class)"
+                source = "(group)" if is_overridden else "(global/class)"
                 lines.append(f"  {field}: {val!r}{marker}  {source}")
             await matcher.finish("\n".join(lines))
         
         # ── get ─────────────────────────────────────────
         if subcmd == "get":
-            if target is None:
+            if group is None:
                 await matcher.finish("请指定 -g 或 -p 参数")
             field = parsed.field
             if field not in config_class.model_fields:
                 await matcher.finish(f"无效字段: {field}")
-            
-            if is_permgroup:
-                pg_obj = config.permgroup_overrides.get(target)
-                if pg_obj is None:
-                    await matcher.finish(f"权限组 '{permgroup}' 不存在")
-                val = getattr(pg_obj, field, None)
-                source = "permgroup" if val is not None else "global/class"
-                await matcher.finish(f"permgroup:{permgroup} 的 {field} = {val!r} ({source})")
-            else:
-                val = config.get_value(target, field)
-                overrides_obj = config.group_overrides.get(target) if target != "global" else None
-                ov_val = getattr(overrides_obj, field, None) if overrides_obj is not None else None
-                source = "group" if ov_val is not None else "global/class"
-                await matcher.finish(f"{target} 的 {field} = {val!r} ({source})")
+            val = config.get_value(group, field)
+            overrides_obj = config.group_overrides.get(group) if group != "global" else None
+            ov_val = getattr(overrides_obj, field, None) if overrides_obj is not None else None
+            source = "group" if ov_val is not None else "global/class"
+            await matcher.finish(f"{group} 的 {field} = {val!r} ({source})")
         
         # ── set ─────────────────────────────────────────
         if subcmd == "set":
-            if target is None:
+            if group is None:
                 await matcher.finish("请指定 -g 或 -p 参数")
             field = parsed.field
             raw_val = parsed.value
@@ -491,15 +565,9 @@ def make_config_handler(
                     value = TypeAdapter(field_type).validate_python(raw_val)
             except Exception as e:
                 await matcher.finish(f"无效值: {raw_val}\n错误: {e}")
-            
-            if is_permgroup:
-                assert permgroup is not None
-                config.set_permgroup(permgroup, **{field: value})
-            else:
-                config.set(target, **{field: value})
+            config.set(group, **{field: value})
             config.save()
-            label = f"permgroup:{permgroup}" if is_permgroup else target
-            await matcher.finish(f"已设置 {label} 的 {field} = {value!r}")
+            await matcher.finish(f"已设置 {group} 的 {field} = {value!r}")
         
         await matcher.finish(f"未知子命令: {subcmd}")
 
