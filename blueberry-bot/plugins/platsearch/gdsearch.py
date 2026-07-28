@@ -293,6 +293,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         thumb=await getThumbnail_async(level.id)
         
     song=await getSong_async(level.songID,level.official_song)
+    if song and song.id<0 :
+        song=None
     
     dc_entry=None
     dc_entries:list[PlatChartEntry]=[]
@@ -421,6 +423,9 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     lines.addLine(f"Version: {level.version} Game ver.: {level.game_version}")
     lines.addLine(f"2P: {level.two_player}, Objects: {level.objects}")
     
+    if song:
+        lines.addLine(f"Song: {song.name} by {song.artistName} ({song.id})")
+    
     if not info_image:
         lines.addLine(f"Length: {gd.Length(level.length).name}")
         if level2:
@@ -429,8 +434,6 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         lines.addLine(f"Coins: {level.coins}")
         if not level.verifiedCoins:
             lines.addText(" (Bronze)")
-        if song:
-            lines.addLine(f"Song: {song.name} by {song.artistName} ({song.id})")
             
         if level2:
             lines.addLine(f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}")
