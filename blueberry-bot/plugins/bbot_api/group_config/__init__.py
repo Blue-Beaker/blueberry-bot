@@ -45,14 +45,16 @@ class GroupConfig(Generic[_C]):
     config_class: type[_C]
     global_config: _C
     group_overrides: dict[str, _C]
-    group_permgroup_map: dict[str, list[str]]  # group → [permgroup_name, ...]
+    permgroup_groups_map: dict[str, list[str]]  # permgroup_name → [group_id, ...]
+    _group_permgroup_cache: dict[str, list[str]] | None  # group → [permgroup_name, ...], 懒构建
     config_path: str | None = None
     
     def __init__(self, config_class: type[_C], config_path: str | None = None) -> None:
         self.config_class = config_class
         self.global_config = config_class()
         self.group_overrides = {}
-        self.group_permgroup_map = {}
+        self.permgroup_groups_map = {}
+        self._group_permgroup_cache = None
         self.config_path = config_path
     
     # ── 读取 ─────────────────────────────────────────────
@@ -88,20 +90,37 @@ class GroupConfig(Generic[_C]):
         
         return config
     
+    def _build_group_permgroup_cache(self) -> dict[str, list[str]]:
+        """从 permgroup_groups_map 反转构建 group→[permgroup_name] 缓存。"""
+        cache: dict[str, list[str]] = {}
+        for pg_name, groups in self.permgroup_groups_map.items():
+            for g in groups:
+                if g not in cache:
+                    cache[g] = []
+                if pg_name not in cache[g]:
+                    cache[g].append(pg_name)
+        return cache
+    
+    def _get_group_permgroups(self, group: str) -> list[str]:
+        """获取群组附加的所有权限组名称。"""
+        if self._group_permgroup_cache is None:
+            self._group_permgroup_cache = self._build_group_permgroup_cache()
+        return list(self._group_permgroup_cache.get(group, []))
+    
+    def _invalidate_cache(self) -> None:
+        self._group_permgroup_cache = None
+    
     def _find_matching_permgroup(self, group: str) -> str | None:
         """查找匹配 group 的 permgroup key（如 permgroup_myperms）。
         
-        遍历 group_permgroup_map 中该群组绑定的所有权限组，
-        返回第一个有覆盖配置的 permgroup key；
+        遍历该群组绑定的所有权限组，返回第一个有覆盖配置的 permgroup key；
         如果 group 本身就是 permgroup_<name> 格式也直接匹配。
         """
-        # 遍历映射中该群组绑定的所有权限组
-        pg_names = self.group_permgroup_map.get(group)
-        if pg_names:
-            for pg_name in pg_names:
-                key = f"permgroup_{pg_name}"
-                if key in self.group_overrides:
-                    return key
+        pg_names = self._get_group_permgroups(group)
+        for pg_name in pg_names:
+            key = f"permgroup_{pg_name}"
+            if key in self.group_overrides:
+                return key
         # 直接匹配（group 本身就是 permgroup key）
         if group.startswith("permgroup_") and group in self.group_overrides:
             return group
@@ -133,41 +152,54 @@ class GroupConfig(Generic[_C]):
             return global_val
         return getattr(self.config_class, key, None)
     
-    # ── group ↔ permgroup 映射 ──────────────────────────
+    # ── permgroup ↔ group 映射 ──────────────────────────
     
     def bind_group_permgroup(self, group: str, permgroup_name: str) -> None:
         """将权限组附加到群组。"""
-        if group not in self.group_permgroup_map:
-            self.group_permgroup_map[group] = []
-        if permgroup_name not in self.group_permgroup_map[group]:
-            self.group_permgroup_map[group].append(permgroup_name)
+        if permgroup_name not in self.permgroup_groups_map:
+            self.permgroup_groups_map[permgroup_name] = []
+        if group not in self.permgroup_groups_map[permgroup_name]:
+            self.permgroup_groups_map[permgroup_name].append(group)
+        self._invalidate_cache()
     
     def unbind_group_permgroup(self, group: str, permgroup_name: str | None = None) -> list[str]:
         """解除群组的权限组附加。
         
-        permgroup_name=None 时解除所有绑定。
+        permgroup_name=None 时解除该群组所有绑定。
         返回实际解除了的权限组名称列表。
         """
-        if group not in self.group_permgroup_map:
-            return []
+        removed: list[str] = []
         if permgroup_name is None:
-            removed = list(self.group_permgroup_map[group])
-            del self.group_permgroup_map[group]
-            return removed
-        if permgroup_name in self.group_permgroup_map[group]:
-            self.group_permgroup_map[group].remove(permgroup_name)
-            if not self.group_permgroup_map[group]:
-                del self.group_permgroup_map[group]
-            return [permgroup_name]
-        return []
+            # 遍历所有权限组，移除该群组
+            for pg_name in list(self.permgroup_groups_map):
+                gs = self.permgroup_groups_map[pg_name]
+                if group in gs:
+                    gs.remove(group)
+                    removed.append(pg_name)
+                    if not gs:
+                        del self.permgroup_groups_map[pg_name]
+        else:
+            gs = self.permgroup_groups_map.get(permgroup_name)
+            if gs and group in gs:
+                gs.remove(group)
+                removed.append(permgroup_name)
+                if not gs:
+                    del self.permgroup_groups_map[permgroup_name]
+        if removed:
+            self._invalidate_cache()
+        return removed
     
     def get_group_permgroups(self, group: str) -> list[str]:
-        """获取群组附加的所有权限组名称（不含 permgroup_ 前缀）。"""
-        return list(self.group_permgroup_map.get(group, []))
+        """获取群组附加的所有权限组名称。"""
+        return self._get_group_permgroups(group)
     
     def list_group_permgroups(self) -> dict[str, list[str]]:
-        """返回所有 group→permgroup 映射。"""
-        return dict(sorted(self.group_permgroup_map.items()))
+        """返回所有 group→permgroup 映射（由 cache 构建）。"""
+        return dict(sorted(self._build_group_permgroup_cache().items()))
+    
+    def list_permgroup_binds(self, permgroup_name: str) -> list[str]:
+        """获取权限组绑定到的所有群组 ID。"""
+        return list(self.permgroup_groups_map.get(permgroup_name, []))
     
     # ── 权限组 (permgroup) ───────────────────────────────
     
@@ -293,7 +325,9 @@ class GroupConfig(Generic[_C]):
             return
         data = {
             "global_config": self.global_config.to_dict(),
-            "group_permgroup_map": dict(self.group_permgroup_map),
+            "permgroup_groups_map": {
+                pg: list(gs) for pg, gs in self.permgroup_groups_map.items()
+            },
             "group_overrides": {
                 g: ov.to_dict()
                 for g, ov in self.group_overrides.items()
@@ -317,15 +351,29 @@ class GroupConfig(Generic[_C]):
         if isinstance(global_data, dict):
             self.global_config.load_dict(global_data)
         
-        map_data = data.get("group_permgroup_map")
+        map_data = data.get("permgroup_groups_map")
         if isinstance(map_data, dict):
-            self.group_permgroup_map = {}
+            self.permgroup_groups_map = {}
             for k, v in map_data.items():
                 if isinstance(v, list):
-                    self.group_permgroup_map[k] = [str(x) for x in v]
+                    self.permgroup_groups_map[str(k)] = [str(x) for x in v]
                 elif isinstance(v, str):
-                    # v1 兼容：旧格式单值转为列表
-                    self.group_permgroup_map[k] = [v]
+                    # 旧格式兼容
+                    self.permgroup_groups_map[str(k)] = [v]
+        # 也尝试加载旧格式 group_permgroup_map（反转存储）
+        old_data = data.get("group_permgroup_map")
+        if isinstance(old_data, dict) and not map_data:
+            for g, pgns in old_data.items():
+                if isinstance(pgns, str):
+                    pgns = [pgns]
+                if isinstance(pgns, list):
+                    for pg_name in pgns:
+                        pg_name = str(pg_name)
+                        if pg_name not in self.permgroup_groups_map:
+                            self.permgroup_groups_map[pg_name] = []
+                        if g not in self.permgroup_groups_map[pg_name]:
+                            self.permgroup_groups_map[pg_name].append(g)
+        self._invalidate_cache()
         
         overrides = data.get("group_overrides")
         if isinstance(overrides, dict):
@@ -509,8 +557,8 @@ def make_config_handler(
             elif pg_action == "delete":
                 pg_name = parsed.name
                 # 删除时自动清理所有引用该权限组的绑定
-                for g in list(config.group_permgroup_map):
-                    config.unbind_group_permgroup(g, pg_name)
+                config.permgroup_groups_map.pop(pg_name, None)
+                config._invalidate_cache()
                 if config.delete_permgroup(pg_name):
                     config.save()
                     await matcher.finish(f"已删除权限组: {pg_name}")
@@ -567,10 +615,7 @@ def make_config_handler(
                 pg_name = parsed.name
                 if config.get_permgroup(pg_name) is None:
                     await matcher.finish(f"权限组 '{pg_name}' 不存在")
-                bound_groups = [
-                    g for g, pgns in config.group_permgroup_map.items()
-                    if pg_name in pgns
-                ]
+                bound_groups = config.list_permgroup_binds(pg_name)
                 if not bound_groups:
                     await matcher.finish(f"权限组 '{pg_name}' 未绑定到任何群组")
                 lines = [f"权限组 '{pg_name}' 绑定到的群组:"]
