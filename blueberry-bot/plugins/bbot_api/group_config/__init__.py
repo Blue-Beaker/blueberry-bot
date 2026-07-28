@@ -166,19 +166,7 @@ class GroupConfig(Generic[_C]):
         和普通 group 覆盖完全一样的存储方式。
         不传 kwargs 时仅确保权限组存在。
         """
-        key = f"permgroup_{name}"
-        if not kwargs:
-            if key not in self.group_overrides:
-                self.group_overrides[key] = self.config_class()
-            return
-        if key not in self.group_overrides:
-            self.group_overrides[key] = self.config_class()
-        for k, v in kwargs.items():
-            if v is None:
-                if hasattr(self.group_overrides[key], k):
-                    setattr(self.group_overrides[key], k, None)
-            else:
-                setattr(self.group_overrides[key], k, v)
+        self.set(f"permgroup_{name}", **kwargs)
     
     def delete_permgroup(self, name: str) -> bool:
         """删除权限组。返回是否实际删除。"""
@@ -228,7 +216,11 @@ class GroupConfig(Generic[_C]):
             self.set_global(**kwargs)
             return
         if group not in self.group_overrides:
+            # 新建条目，只保留传入的字段，其余设为 None 不产生覆盖
             self.group_overrides[group] = self.config_class()
+            for f in self.config_class.model_fields:
+                if f not in kwargs:
+                    setattr(self.group_overrides[group], f, None)
         for key, value in kwargs.items():
             if value is None:
                 # 设为 None → 从 override 中移除该字段
