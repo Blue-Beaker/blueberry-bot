@@ -248,7 +248,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     else:
         levels,pageinfo=await getLevelSearch2_async(searchArgs)
         
-    if not include_unrated:
+    if not include_unrated and not str.isdecimal(search):
         lines.addLine("默认只搜索 Rated 关卡. -a 以搜索全部关卡.")
         
     if levels and not get_perms(event).gd_unrated:
