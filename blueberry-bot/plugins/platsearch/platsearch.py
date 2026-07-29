@@ -346,9 +346,9 @@ async def _(args: Message = CommandArg()):
             [
                 "用法: -platsheet [参数] <关名/ID>"
                 "加入 -f 以模糊匹配, -p<页数> 以翻页",
-                "-t<Tier数> 按Tier过滤, -s<Tags> 按Skillset过滤(自动启用模糊匹配)",
+                "-t<Sheet:Tier> 按Tier过滤, -s<Tags> 按Skillset过滤(自动启用模糊匹配)",
                 "举例: '-platsheet -p3 -s dash' 搜索名称包含dash的关卡, 并翻到第3页",
-                "举例: '-platsheet -t easy -s wavedash' 列举 Easy 且包含 wavedash skill 的关卡"
+                "举例: '-platsheet -t nlw:easy -s wavedash' 列举 NLW Easy 且包含 wavedash skill 的关卡"
                 ]))
         
     sa=SearchArgs("platsheet").parse(args.extract_plain_text())
@@ -358,10 +358,28 @@ async def _(args: Message = CommandArg()):
     text=sa.text
     page=sa.page
     skills=sa.skills
-    tier=sa.tier.lower()
+    tier_arg=sa.tier.lower()
+    
+    sheet_filter=""
+    SHEET_FILTER_OPTIONS=["nlw","ids","hds"]
+    tier_filter=""
+    
+    if tier_arg in SHEET_FILTER_OPTIONS:
+        sheet_filter=tier_arg
+    elif ":" in tier_arg:
+        sheet_filter=tier_arg.split(":")[0]
+        tier_filter=tier_arg.split(":")[1]
+    else:
+        tier_filter=tier_arg
+        
+    if sheet_filter not in SHEET_FILTER_OPTIONS:
+        await platsearch.finish(f"未知数据表. 支持的数据表:{','.join(SHEET_FILTER_OPTIONS)}")
+        
+    logger.info(f"filter: {sheet_filter},{tier_filter}")
+    
     fuzzy=sa.fuzzy
     
-    if tier or skills:
+    if tier_filter or skills or sheet_filter:
         fuzzy=True
         
     search = text.strip().lower()
@@ -375,8 +393,11 @@ async def _(args: Message = CommandArg()):
     
     if skills:
         results = [r for r in results if r.has_skills(skills)]
-    if tier:
-        results = [r for r in results if r.section.lower()==tier]
+        
+    if sheet_filter:
+        results = [r for r in results if r.sheet.lower()==sheet_filter]
+    if tier_filter:
+        results = [r for r in results if r.section.lower()==tier_filter]
         
     count=results.__len__()
     
