@@ -27,7 +27,10 @@ async def getGDDLResponse(page:int=0,limit:int=25):
     }
     
     async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.get(url, headers=headers)
+        try:
+            resp = await client.get(url, headers=headers)
+        except httpx.ConnectError:
+            return None
     if resp.status_code!=200:
         return None
     else:

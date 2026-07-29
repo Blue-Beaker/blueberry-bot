@@ -23,7 +23,10 @@ async def getThumbnail_async(levelID:int,api_base:str="https://levelthumbs.prevt
     url=getThumbnailUrl(levelID,api_base,small)
     logger.info(f"Getting thumbnail for {levelID}: {url}")
     async with httpx.AsyncClient(timeout=10, headers={"User-Agent": ""}) as client:
-        req = await client.get(url=url)
+        try:
+            req = await client.get(url=url)
+        except httpx.ConnectError:
+            return None
     if req.status_code!=200:
         return None
     return req.content

@@ -91,7 +91,10 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     try:
         logger.info(f"Fetching music {music_id} from: {link}")
         async with httpx.AsyncClient(timeout=30) as client:
-            resp=await client.get(link,headers={"User-Agent": ""})
+            try:
+                resp=await client.get(link,headers={"User-Agent": ""})
+            except httpx.ConnectError as e:
+                await on_error(f"连接出错: {e}")
         if resp.status_code!=200:
             logger.error(f"连接出错: {resp.status_code}")
             await on_error(f"连接出错: {resp.status_code}")

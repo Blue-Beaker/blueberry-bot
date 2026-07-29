@@ -46,7 +46,10 @@ async def getResp(url:str):
         'accept': 'application/json' 
     }
     async with httpx.AsyncClient(timeout=30) as client:
-        req = await client.get(url, headers=headers)
+        try:
+            req = await client.get(url, headers=headers)
+        except httpx.ConnectError:
+            return None
     if req.status_code!=200:
         return None
     else:
