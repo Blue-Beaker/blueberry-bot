@@ -1,7 +1,7 @@
-from typing import override
+from typing import Generic, TypeVar, override
 from nonebot import get_driver,require
 require('gd_api')
-from ..gd_api import gd,thumbs,gddl,aredl,pemonlist
+from ..gd_api import gd,thumbs,gddl,aredl,pemonlist,platformerlist
 
 class BaseLevelEntry:
     def getID(self) -> int:
@@ -13,6 +13,14 @@ class BaseLevelEntry:
         inst=cls()
         inst.__dict__.update(data)
         return inst
+    
+_L = TypeVar("_L")
+    
+class GenericLevelEntry(BaseLevelEntry,Generic[_L]):
+    def __init__(self,level:_L) -> None:
+        super().__init__()
+        self.__dict__.update(level.__dict__)
+    
     
 class GDDLLevel(gddl.GDDLLevel,BaseLevelEntry):
     def __init__(self,level:gddl.GDDLLevel) -> None:
@@ -37,3 +45,8 @@ class PemonlistLevel(pemonlist.Level,BaseLevelEntry):
     @override
     def getID(self):
         return self.level_id
+    
+class TPLLevel(platformerlist.Level,GenericLevelEntry[platformerlist.Level]):
+    @override
+    def getID(self):
+        return self.levelID

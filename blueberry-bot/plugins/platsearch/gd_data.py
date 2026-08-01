@@ -16,10 +16,10 @@ from . import plat_sheets,levelid_filler
 from .data_cache import BaseCache,CacheWithIDMap
 
 require('gd_api')
-from ..gd_api import gd,thumbs,gddl,aredl,pemonlist
+from ..gd_api import gd,thumbs,gddl,aredl,pemonlist,platformerlist
 
 from .underrated_data import UnderratedLevel,get_all_underrated
-from .models import GDDLLevel,AREDLLevel,PemonlistLevel
+from .models import GDDLLevel,AREDLLevel,PemonlistLevel,TPLLevel
 from .plat_sheets import PlatChartEntry
 
 require("nonebot_plugin_apscheduler")
@@ -37,11 +37,12 @@ PLAT_SHEET_CACHE = CacheWithIDMap(plat_sheets.TheListsEntry,"platsearch_cache/pl
 UNDERRATED_CACHE = CacheWithIDMap(UnderratedLevel,"platsearch_cache/underrated_cache.json",
     plugin_config.sheets_update_interval,"Underrated Cache").set_update_function(get_all_underrated)
 PEMONLIST_CACHE = CacheWithIDMap(PemonlistLevel,"",3600,"Pemonlist Levels")
+TPL_CACHE = CacheWithIDMap(TPLLevel,"",3600,"TPL Levels")
 
 AREDL_CACHE = CacheWithIDMap(AREDLLevel,"",3600,"AREDL Levels")
 
 caches:list[BaseCache]=[PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE,
-                        PEMONLIST_CACHE,AREDL_CACHE]
+                        PEMONLIST_CACHE,TPL_CACHE,AREDL_CACHE]
 
 @driver.on_startup
 async def load():
@@ -104,6 +105,13 @@ def getPemonlistLevels():
     if not results:
         return []
     return [PemonlistLevel(l) for l in results]
+
+@TPL_CACHE.set_update_function
+def getTPLLevels():
+    results=platformerlist.getTPLLevels()
+    if not results:
+        return []
+    return [TPLLevel(l) for l in results]
 
 @AREDL_CACHE.set_update_function
 def getAREDLMerged():
