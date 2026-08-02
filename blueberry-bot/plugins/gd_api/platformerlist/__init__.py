@@ -1,6 +1,6 @@
 from pathlib import Path
 import sys
-from typing import Any
+from typing import Any, get_type_hints, override
 import httpx
 from pydantic import BaseModel
 
@@ -11,28 +11,23 @@ if __name__ == "__main__" and __package__ is None:
         sys.path.insert(0, str(_root))
     from plugins.gd_api.file_based_cache import FileBasedCache
     from plugins.gd_api import run_async
+    from plugins.gd_api.models import LevelWithID
 else:
     from ..file_based_cache import FileBasedCache
     from .. import run_async
+    from ..models import LevelWithID
 
-class Level:
+class Level(LevelWithID):
     name:str
     levelID:int
     author:str
     verifier:str
     verifierTime:float
     position:int
-    def to_dict(self) -> dict:
-        return self.__dict__
-    def load_dict(self,data:dict):
-        for level_key in ["name","levelID","author","verifier","verifierTime","position"]:
-            self.__dict__[level_key]=data.get(level_key)
-        return self
-    @classmethod
-    def from_dict(cls,data:dict):
-        inst=cls()
-        inst.load_dict(data)
-        return inst
+    
+    @override
+    def get_id(self) -> int:
+        return self.levelID
     
     def __repr__(self) -> str:
         return "Level:"+", ".join([f"{k}:{v}"for k,v in self.__dict__.items()])

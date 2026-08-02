@@ -41,8 +41,8 @@ TPL_CACHE = CacheWithIDMap(TPLLevel,"",3600,"TPL Levels")
 
 AREDL_CACHE = CacheWithIDMap(AREDLLevel,"",3600,"AREDL Levels")
 
-caches:list[BaseCache]=[PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE,
-                        PEMONLIST_CACHE,TPL_CACHE,AREDL_CACHE]
+caches:list[BaseCache]=[PLAT_SHEET_CACHE,UNDERRATED_CACHE,
+                        PEMONLIST_CACHE,TPL_CACHE,PLAT_CHART_CACHE,AREDL_CACHE]
 
 @driver.on_startup
 async def load():

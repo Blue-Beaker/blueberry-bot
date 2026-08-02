@@ -189,6 +189,11 @@ class PlatChartEntry(LevelEntry):
     weight:int|None
     weight_type:str|None
     tags:list[str]=[]
+    name:str=""
+    tier:str|None=None
+    creator:str=""
+    enj:str=""
+    
     def __init__(self) -> None:
         super().__init__()
         self.tpl=None
@@ -256,43 +261,63 @@ def get_plat_chart():
                 else:
                     duplicated_names.add(key)
                     name_to_levels.pop(key,None)
-    
-    upi=UPI_SHEET.get()
-    if upi:
-        for line in upi:
-            try:
-                id = safeInt(line[0])
-                name=line[1]
-                # Skip challenges like Evernight (Coin), Storm Front (Deathless) etc.
-                if "(" in name or ")" in name:
-                    continue
-                
-                tier=line[2]
-                tier=tier if tier!="P" else None
-                tpl=line[3]
-                tpl=tpl if tpl!="-" else None
-                pemon=line[4]
-                pemon=pemon if pemon!="-" else None
-                entry=id_to_levels.get(id)
-                
-                if not entry and (tier or tpl or pemon):
-                    entry=PlatChartEntry().update(id,name,tier)
-                    results.append(entry)
                     
-                if entry:
-                    entry.tpl=safeInt(tpl,None)
-                    entry.pemon=safeInt(pemon,None)
+    from .gd_data import PEMONLIST_CACHE,TPL_CACHE
+    
+    for l in PEMONLIST_CACHE.getOrUpdate():
+        level_id=l.getID()
+        entry1=id_to_levels.get(level_id)
+        if not entry1:
+            entry1=PlatChartEntry().update(level_id,l.name,"?",l.creator)
+            results.append(entry1)
+            id_to_levels[entry.id]=entry1
+        entry1.pemon=l.placement
+        
+    for l in TPL_CACHE.getOrUpdate():
+        level_id=l.getID()
+        entry1=id_to_levels.get(level_id)
+        if not entry1:
+            entry1=PlatChartEntry().update(level_id,l.name,"?",l.author)
+            results.append(entry1)
+            id_to_levels[entry.id]=entry1
+        entry1.tpl=l.position
+        
+    # upi=UPI_SHEET.get()
+    # if upi:
+    #     for line in upi:
+    #         try:
+    #             id = safeInt(line[0])
+    #             name=line[1]
+    #             # Skip challenges like Evernight (Coin), Storm Front (Deathless) etc.
+    #             if "(" in name or ")" in name:
+    #                 continue
                 
-            except:
-                pass
+    #             tier=line[2]
+    #             tier=tier if tier!="P" else None
+    #             tpl=line[3]
+    #             tpl=tpl if tpl!="-" else None
+    #             pemon=line[4]
+    #             pemon=pemon if pemon!="-" else None
+    #             entry=id_to_levels.get(id)
+                
+    #             if not entry and (tier or tpl or pemon):
+    #                 entry=PlatChartEntry().update(id,name,tier)
+    #                 results.append(entry)
+                    
+    #             if entry:
+    #                 entry.tpl=safeInt(tpl,None)
+    #                 entry.pemon=safeInt(pemon,None)
+                
+    #         except:
+    #             pass
             
     weights=plat_rank_weights()
-    for level in weights:
-        entry = name_to_levels.get(level.nameKey(),None)
+    for entry1 in weights:
+        entry = name_to_levels.get(entry1.nameKey(),None)
         if not entry:
-            entry=PlatChartEntry().update(-1,level.name,"")
-        entry.weight=level.weight
-        entry.weight_type=level.section
+            entry=PlatChartEntry().update(-1,entry1.name,"")
+        entry.weight=entry1.weight
+        entry.weight_type=entry1.section
 
     return results
 

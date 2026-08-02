@@ -38,15 +38,12 @@ class AREDLLevel(aredl.Level,BaseLevelEntry):
     def getID(self):
         return self.level_id
     
-class PemonlistLevel(pemonlist.Level,BaseLevelEntry):
-    def __init__(self,level:pemonlist.Level) -> None:
-        super().__init__()
-        self.__dict__.update(level.__dict__)
+class PemonlistLevel(pemonlist.Level,GenericLevelEntry[pemonlist.Level]):
     @override
     def getID(self):
-        return self.level_id
+        return self.get_id()
     
 class TPLLevel(platformerlist.Level,GenericLevelEntry[platformerlist.Level]):
     @override
     def getID(self):
-        return self.levelID
+        return self.get_id()
