@@ -3,7 +3,7 @@
 允许普通用户通过指令自行注册通用 ID、绑定/解绑平台账号。
 
 子命令:
-  useraccount register          — 创建通用 ID 并绑定当前账号
+  useraccount register [别名]   — 创建通用 ID 并绑定当前账号 (可选设置别名)
   useraccount link <通用ID>     — 请求将当前账号绑定到已有通用 ID
   useraccount confirm <通用ID> <确认码> — 确认 link 请求
   useraccount unlink            — 将当前账号从通用 ID 解绑
@@ -42,7 +42,7 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()) -> None:
     if not cmd_args:
         await useraccount_cmd.finish(
             "用法:\n"
-            "useraccount register       - 创建通用 ID 并绑定当前账号\n"
+            "useraccount register [别名] - 创建通用 ID 并绑定当前账号 (可选设置别名)\n"
             "useraccount link <通用ID>  - 请求绑定到已有通用 ID\n"
             "useraccount confirm <通用ID> <确认码> - 确认 link 请求\n"
             "useraccount unlink         - 从通用 ID 解绑当前账号\n"
@@ -54,7 +54,8 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()) -> None:
         action: str = cmd_args[0]
 
         if action == "register":
-            await _handle_register(manager, bot, event)
+            alias: str | None = cmd_args[1] if len(cmd_args) > 1 else None
+            await _handle_register(manager, bot, event, alias)
         elif action == "link":
             if len(cmd_args) < 2:
                 await useraccount_cmd.finish("用法: useraccount link <通用ID>")
@@ -92,6 +93,7 @@ async def _handle_register(
     manager: ProfileLinkManager,
     bot: Bot,
     event: Event,
+    alias: str | None = None,
 ) -> NoReturn:
     """register: 创建通用 ID 并绑定当前账号。"""
     raw_id: str = _get_current_raw_id(event)
@@ -109,23 +111,35 @@ async def _handle_register(
 
     # 创建 profile
     try:
-        manager.create_user_profile(profile_id)
-    except ValueError:
-        # 极端情况：ID 冲突，加随机后缀
-        profile_id = f"{profile_id}_{secrets.token_hex(2)}"
-        manager.create_user_profile(profile_id)
+        manager.create_user_profile(profile_id, alias=alias)
+    except ValueError as e:
+        # 极端情况：ID 冲突或别名冲突
+        if "已存在" in str(e):
+            profile_id = f"{profile_id}_{secrets.token_hex(2)}"
+            manager.create_user_profile(profile_id, alias=alias)
+        else:
+            await useraccount_cmd.finish(f"注册失败: {e}")
 
     # 绑定当前用户
     manager.link_user_id(profile_id, raw_id)
     manager.save()
 
-    await useraccount_cmd.finish(
-        f"✅ 注册成功！\n"
-        f"通用 ID: {profile_id}\n"
-        f"已绑定: {raw_id}\n\n"
-        f"你可以使用此通用 ID 在其它平台绑定同一账号:\n"
-        f"  useraccount link {profile_id}"
-    )
+    if alias:
+        await useraccount_cmd.finish(
+            f"✅ 注册成功！\n"
+            f"通用 ID: {profile_id} (别名: {alias})\n"
+            f"已绑定: {raw_id}\n\n"
+            f"你可以使用此通用 ID 在其它平台绑定同一账号:\n"
+            f"  useraccount link {profile_id}"
+        )
+    else:
+        await useraccount_cmd.finish(
+            f"✅ 注册成功！\n"
+            f"通用 ID: {profile_id}\n"
+            f"已绑定: {raw_id}\n\n"
+            f"你可以使用此通用 ID 在其它平台绑定同一账号:\n"
+            f"  useraccount link {profile_id}"
+        )
 
 
 async def _handle_link(
