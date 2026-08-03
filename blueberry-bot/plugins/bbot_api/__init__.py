@@ -224,14 +224,14 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
     # 用户绑定 — 用 user_id（用户级）查找
     user_profile = manager.find_user_by_linked_id(user_id)
     if user_profile:
-        lines.append(f"用户绑定到: {user_profile.name}")
+        lines.append(f"用户绑定到: {user_profile.profile_label}")
         if user_profile.linked_ids:
             lines.append(f"  关联ID: {', '.join(user_profile.linked_ids)}")
     
     # 群组绑定 — 用 raw_group（群级）查找
     group_profile = manager.find_group_by_linked_id(raw_group) if raw_group != "private" else None
     if group_profile:
-        lines.append(f"群组绑定到: {group_profile.name}")
+        lines.append(f"群组绑定到: {group_profile.profile_label}")
         if group_profile.linked_ids:
             lines.append(f"  关联群ID: {', '.join(group_profile.linked_ids)}")
             
@@ -262,7 +262,7 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
             # 尝试查找该用户的 profile_link
             uprofile = manager.find_user_by_linked_id(uid)
             if uprofile:
-                lines.append(f"  {uid} → {uprofile.name}")
+                lines.append(f"  {uid} → {uprofile.profile_label}")
             else:
                 lines.append(f"  {uid}")
     

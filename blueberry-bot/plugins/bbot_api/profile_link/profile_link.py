@@ -1,46 +1,78 @@
 import json
 import os
+import secrets
 from typing import Any
 
 
-class UserProfile:
-    """用户绑定条目。
+class _ProfileBase:
+    """绑定条目基类。
     
-    将多个平台的实际用户 ID 绑定到一个通用 ID 下。
+    将多个平台的实际 ID 绑定到一个通用 ID 下。
+    
+    - ``name``: 通用 ID（内部键，实际 ID 解析目标）
+    - ``alias``: 用户自定义别名，仅用于展示；未设置时展示 fallback 到 ``name``
     """
     name: str
+    alias: str | None
     linked_ids: list[str]
     
-    def __init__(self, name: str, linked_ids: list[str] | None = None):
+    def __init__(self, name: str, linked_ids: list[str] | None = None, alias: str | None = None):
         self.name = name
         self.linked_ids = linked_ids or []
+        self.alias = alias
+    
+    @property
+    def display_name(self) -> str:
+        """用于展示的名称：优先别名，无别名时 fallback 到通用 ID 本身。"""
+        return self.alias if self.alias else self.name
+    
+    @property
+    def profile_label(self) -> str:
+        """同时列出通用 ID 与别名（若存在）的展示标签。"""
+        if self.alias:
+            return f"{self.name} (别名: {self.alias})"
+        return self.name
+    
+    def set_alias(self, alias: str | None) -> None:
+        """设置别名；传入空串或 None 表示清除别名。"""
+        self.alias = (alias or "").strip() or None
     
     def to_dict(self) -> dict[str, Any]:
-        return {"linked_ids": self.linked_ids}
+        data: dict[str, Any] = {"linked_ids": self.linked_ids}
+        if self.alias:
+            data["alias"] = self.alias
+        return data
+    
+    @classmethod
+    def _from_dict(cls, name: str, data: dict[str, Any]) -> "tuple[str, list[str], str | None]":
+        alias = data.get("alias")
+        if isinstance(alias, str):
+            alias = alias.strip() or None
+        return name, data.get("linked_ids", []), alias
+
+
+class UserProfile(_ProfileBase):
+    """用户绑定条目。"""
+    
+    def to_dict(self) -> dict[str, Any]:
+        return super().to_dict()
     
     @classmethod
     def from_dict(cls, name: str, data: dict[str, Any]) -> "UserProfile":
-        return cls(name=name, linked_ids=data.get("linked_ids", []))
+        n, linked, alias = cls._from_dict(name, data)
+        return cls(name=n, linked_ids=linked, alias=alias)
 
 
-class GroupProfile:
-    """群组绑定条目。
-    
-    将多个平台的实际群 ID 绑定到一个通用 ID 下。
-    """
-    name: str
-    linked_ids: list[str]
-    
-    def __init__(self, name: str, linked_ids: list[str] | None = None):
-        self.name = name
-        self.linked_ids = linked_ids or []
+class GroupProfile(_ProfileBase):
+    """群组绑定条目。"""
     
     def to_dict(self) -> dict[str, Any]:
-        return {"linked_ids": self.linked_ids}
+        return super().to_dict()
     
     @classmethod
     def from_dict(cls, name: str, data: dict[str, Any]) -> "GroupProfile":
-        return cls(name=name, linked_ids=data.get("linked_ids", []))
+        n, linked, alias = cls._from_dict(name, data)
+        return cls(name=n, linked_ids=linked, alias=alias)
 
 
 class ProfileLinkManager:
@@ -48,16 +80,47 @@ class ProfileLinkManager:
     
     用户绑定和群组绑定分离存储，各自独立管理。
     数据文件: config/profile_links.json
+    
+    为加速高频/中频查找，维护四组内存反向索引，在每次增删改后重建：
+      - ``_linked_to_user`` : raw_id -> UserProfile   (find_user_by_linked_id)
+      - ``_linked_to_group``: raw_group_id -> GroupProfile (find_group_by_linked_id)
+      - ``_alias_to_user``  : alias -> UserProfile    (resolve_user_profile 别名分支)
+      - ``_alias_to_group`` : alias -> GroupProfile   (resolve_group_profile 别名分支)
     """
     
     user_links: dict[str, UserProfile]    # key = 通用用户 ID
     group_links: dict[str, GroupProfile]  # key = 通用群 ID
     config_path: str
+    _linked_to_user: dict[str, UserProfile]
+    _linked_to_group: dict[str, GroupProfile]
+    _alias_to_user: dict[str, UserProfile]
+    _alias_to_group: dict[str, GroupProfile]
     
     def __init__(self, config_path: str = "config/profile_links.json"):
         self.user_links = {}
         self.group_links = {}
         self.config_path = config_path
+        self._linked_to_user = {}
+        self._linked_to_group = {}
+        self._alias_to_user = {}
+        self._alias_to_group = {}
+    
+    def _rebuild_indexes(self) -> None:
+        """根据 user_links / group_links 重建全部内存反向索引。"""
+        self._linked_to_user = {}
+        self._alias_to_user = {}
+        for profile in self.user_links.values():
+            for lid in profile.linked_ids:
+                self._linked_to_user[lid] = profile
+            if profile.alias:
+                self._alias_to_user[profile.alias] = profile
+        self._linked_to_group = {}
+        self._alias_to_group = {}
+        for profile in self.group_links.values():
+            for gid in profile.linked_ids:
+                self._linked_to_group[gid] = profile
+            if profile.alias:
+                self._alias_to_group[profile.alias] = profile
     
     # ═══════════════════════════════════════════════════
     #  用户绑定
@@ -67,14 +130,16 @@ class ProfileLinkManager:
         return self.user_links.get(profile_id)
     
     def find_user_by_linked_id(self, raw_id: str) -> UserProfile | None:
-        for profile in self.user_links.values():
-            if raw_id in profile.linked_ids:
-                return profile
-        return None
+        return self._linked_to_user.get(raw_id)
     
     def resolve_user_id(self, raw_id: str) -> str:
         profile = self.find_user_by_linked_id(raw_id)
         return profile.name if profile else raw_id
+    
+    def get_user_display_name(self, profile_id: str) -> str:
+        """获取用户通用 ID 的展示名：优先别名，无别名时 fallback 到通用 ID 本身。"""
+        profile = self.user_links.get(profile_id)
+        return profile.display_name if profile else profile_id
     
     def get_all_user_linked_ids(self, profile_id: str) -> list[str]:
         profile = self.user_links.get(profile_id)
@@ -82,16 +147,41 @@ class ProfileLinkManager:
             return [profile_id]
         return [profile_id] + [id for id in profile.linked_ids if id != profile_id]
     
-    def create_user_profile(self, name: str) -> UserProfile:
+    def resolve_user_profile(self, ref: str) -> UserProfile | None:
+        """解析用户引用：优先按通用 ID 键精确匹配，否则按别名匹配。"""
+        if ref in self.user_links:
+            return self.user_links[ref]
+        return self._alias_to_user.get(ref)
+    
+    def create_user_profile(self, name: str, alias: str | None = None) -> UserProfile:
         if name in self.user_links:
             raise ValueError(f"通用用户 ID '{name}' 已存在")
-        profile = UserProfile(name=name)
+        if alias:
+            self._assert_alias_unique(alias)
+        profile = UserProfile(name=name, alias=alias)
         self.user_links[name] = profile
+        self._rebuild_indexes()
         return profile
+    
+    def set_user_alias(self, profile_id: str, alias: str | None) -> None:
+        """设置用户通用 ID 的别名；传入空串或 None 表示清除别名。"""
+        profile = self.user_links.get(profile_id)
+        if not profile:
+            raise ValueError(f"通用用户 ID '{profile_id}' 不存在")
+        if alias:
+            self._assert_alias_unique(alias, exclude=profile)
+        profile.set_alias(alias)
+        self._rebuild_indexes()
+        self._emit_event("ProfileAliasEvent", profile_id=profile_id, alias=profile.alias)
+    
+    def generate_user_id(self) -> str:
+        """生成一个随机通用用户 ID（内部键）。"""
+        return self._generate_random_id("user")
     
     def delete_user_profile(self, profile_id: str) -> bool:
         if profile_id in self.user_links:
             del self.user_links[profile_id]
+            self._rebuild_indexes()
             self._emit_event("ProfileDeleteEvent", profile_id=profile_id)
             return True
         return False
@@ -101,9 +191,10 @@ class ProfileLinkManager:
             raise ValueError(f"通用用户 ID '{profile_id}' 不存在")
         existing = self.find_user_by_linked_id(raw_id)
         if existing and existing.name != profile_id:
-            raise ValueError(f"'{raw_id}' 已被 '{existing.name}' 绑定")
+            raise ValueError(f"'{raw_id}' 已被 '{existing.profile_label}' 绑定")
         if raw_id not in self.user_links[profile_id].linked_ids:
             self.user_links[profile_id].linked_ids.append(raw_id)
+            self._rebuild_indexes()
             self._emit_event("LinkUserEvent", profile_id=profile_id, raw_id=raw_id)
     
     def unlink_user_id(self, profile_id: str, raw_id: str) -> None:
@@ -111,6 +202,7 @@ class ProfileLinkManager:
             raise ValueError(f"通用用户 ID '{profile_id}' 不存在")
         if raw_id in self.user_links[profile_id].linked_ids:
             self.user_links[profile_id].linked_ids.remove(raw_id)
+            self._rebuild_indexes()
             self._emit_event("UnlinkUserEvent", profile_id=profile_id, raw_id=raw_id)
     
     # ═══════════════════════════════════════════════════
@@ -121,14 +213,16 @@ class ProfileLinkManager:
         return self.group_links.get(profile_id)
     
     def find_group_by_linked_id(self, raw_group_id: str) -> GroupProfile | None:
-        for profile in self.group_links.values():
-            if raw_group_id in profile.linked_ids:
-                return profile
-        return None
+        return self._linked_to_group.get(raw_group_id)
     
     def resolve_group_id(self, raw_group_id: str) -> str | None:
         profile = self.find_group_by_linked_id(raw_group_id)
         return profile.name if profile else None
+    
+    def get_group_display_name(self, profile_id: str) -> str:
+        """获取群通用 ID 的展示名：优先别名，无别名时 fallback 到通用 ID 本身。"""
+        profile = self.group_links.get(profile_id)
+        return profile.display_name if profile else profile_id
     
     def get_all_group_linked_ids(self, profile_id: str) -> list[str]:
         profile = self.group_links.get(profile_id)
@@ -136,16 +230,70 @@ class ProfileLinkManager:
             return [profile_id]
         return [profile_id] + [id for id in profile.linked_ids if id != profile_id]
     
-    def create_group_profile(self, name: str) -> GroupProfile:
+    def resolve_group_profile(self, ref: str) -> GroupProfile | None:
+        """解析群引用：优先按通用 ID 键精确匹配，否则按别名匹配。"""
+        if ref in self.group_links:
+            return self.group_links[ref]
+        return self._alias_to_group.get(ref)
+    
+    def create_group_profile(self, name: str, alias: str | None = None) -> GroupProfile:
         if name in self.group_links:
             raise ValueError(f"通用群 ID '{name}' 已存在")
-        profile = GroupProfile(name=name)
+        if alias:
+            self._assert_alias_unique(alias)
+        profile = GroupProfile(name=name, alias=alias)
         self.group_links[name] = profile
+        self._rebuild_indexes()
         return profile
+    
+    def set_group_alias(self, profile_id: str, alias: str | None) -> None:
+        """设置群通用 ID 的别名；传入空串或 None 表示清除别名。"""
+        profile = self.group_links.get(profile_id)
+        if not profile:
+            raise ValueError(f"通用群 ID '{profile_id}' 不存在")
+        if alias:
+            self._assert_alias_unique(alias, exclude=profile)
+        profile.set_alias(alias)
+        self._rebuild_indexes()
+        self._emit_event("ProfileAliasEvent", profile_id=profile_id, alias=profile.alias)
+    
+    def generate_group_id(self) -> str:
+        """生成一个随机通用群 ID（内部键）。"""
+        return self._generate_random_id("group")
+    
+    def _generate_random_id(self, kind: str) -> str:
+        """生成一个不与现有键冲突的随机 ID。"""
+        pool = self.user_links if kind == "user" else self.group_links
+        while True:
+            candidate = f"{kind}_{secrets.token_hex(4)}"
+            if candidate not in pool:
+                return candidate
+    
+    def _assert_alias_unique(self, alias: str, exclude: Any | None = None) -> None:
+        """校验别名全局唯一：不能与任何 ID 或任何别名冲突。
+
+        当 ``exclude`` 提供时，跳过该 profile 自身 ID 与别名的冲突判定：
+        因为总能通过这个名字（ID 或别名）找到该通用 ID，无歧义。
+        """
+        # 不能与任何通用 ID 键冲突（用户 + 群），但排除 exclude 自身的 ID
+        for profile in self.user_links.values():
+            if profile.name == alias and profile is not exclude:
+                raise ValueError(f"别名 '{alias}' 与通用用户 ID 冲突")
+        for profile in self.group_links.values():
+            if profile.name == alias and profile is not exclude:
+                raise ValueError(f"别名 '{alias}' 与通用群 ID 冲突")
+        # 不能与任何现有别名冲突（用户 + 群）
+        for profile in self.user_links.values():
+            if profile is not exclude and profile.alias and profile.alias == alias:
+                raise ValueError(f"别名 '{alias}' 已被用户 '{profile.profile_label}' 使用")
+        for profile in self.group_links.values():
+            if profile is not exclude and profile.alias and profile.alias == alias:
+                raise ValueError(f"别名 '{alias}' 已被群 '{profile.profile_label}' 使用")
     
     def delete_group_profile(self, profile_id: str) -> bool:
         if profile_id in self.group_links:
             del self.group_links[profile_id]
+            self._rebuild_indexes()
             self._emit_event("ProfileDeleteEvent", profile_id=profile_id)
             return True
         return False
@@ -155,9 +303,10 @@ class ProfileLinkManager:
             raise ValueError(f"通用群 ID '{profile_id}' 不存在")
         existing = self.find_group_by_linked_id(raw_group_id)
         if existing and existing.name != profile_id:
-            raise ValueError(f"群 '{raw_group_id}' 已被 '{existing.name}' 绑定")
+            raise ValueError(f"群 '{raw_group_id}' 已被 '{existing.profile_label}' 绑定")
         if raw_group_id not in self.group_links[profile_id].linked_ids:
             self.group_links[profile_id].linked_ids.append(raw_group_id)
+            self._rebuild_indexes()
             self._emit_event("LinkGroupEvent", profile_id=profile_id, raw_group_id=raw_group_id)
     
     def unlink_group_id(self, profile_id: str, raw_group_id: str) -> None:
@@ -165,6 +314,7 @@ class ProfileLinkManager:
             raise ValueError(f"通用群 ID '{profile_id}' 不存在")
         if raw_group_id in self.group_links[profile_id].linked_ids:
             self.group_links[profile_id].linked_ids.remove(raw_group_id)
+            self._rebuild_indexes()
             self._emit_event("UnlinkGroupEvent", profile_id=profile_id, raw_group_id=raw_group_id)
     
     # ═══════════════════════════════════════════════════
@@ -227,6 +377,7 @@ class ProfileLinkManager:
                     self.user_links[name] = UserProfile(name=name, linked_ids=linked)
                 if isinstance(groups, list) and groups:
                     self.group_links[name] = GroupProfile(name=name, linked_ids=groups)
+            self._rebuild_indexes()
             return
         
         user_data = data.get("user_links", {})
@@ -239,6 +390,7 @@ class ProfileLinkManager:
             name: GroupProfile.from_dict(name, d)
             for name, d in group_data.items() if isinstance(d, dict)
         }
+        self._rebuild_indexes()
 
     # ── 数据迁移工具 ─────────────────────────────────────
     

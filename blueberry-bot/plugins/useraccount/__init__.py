@@ -7,6 +7,7 @@
   useraccount link <通用ID>     — 请求将当前账号绑定到已有通用 ID
   useraccount confirm <通用ID> <确认码> — 确认 link 请求
   useraccount unlink            — 将当前账号从通用 ID 解绑
+  useraccount alias [别名]      — 设置/清除当前通用 ID 的别名 (仅供展示)
   useraccount info              — 查看当前账号的绑定信息
 """
 
@@ -45,6 +46,7 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()) -> None:
             "useraccount link <通用ID>  - 请求绑定到已有通用 ID\n"
             "useraccount confirm <通用ID> <确认码> - 确认 link 请求\n"
             "useraccount unlink         - 从通用 ID 解绑当前账号\n"
+            "useraccount alias [别名]   - 设置/清除你的通用 ID 别名 (仅供展示)\n"
             "useraccount info           - 查看当前账号的绑定信息"
         )
 
@@ -64,6 +66,9 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()) -> None:
         elif action == "unlink":
             force: bool = "--force" in cmd_args
             await _handle_unlink(manager, bot, event, force=force)
+        elif action == "alias":
+            alias: str | None = cmd_args[1] if len(cmd_args) > 1 else None
+            await _handle_alias(manager, bot, event, alias)
         elif action == "info":
             await _handle_info(manager, bot, event)
         else:
@@ -95,12 +100,12 @@ async def _handle_register(
     existing: UserProfile | None = manager.find_user_by_linked_id(raw_id)
     if existing:
         await useraccount_cmd.finish(
-            f"你的账号 ({raw_id}) 已绑定到通用 ID '{existing.name}'。\n"
+            f"你的账号 ({raw_id}) 已绑定到通用 ID '{existing.profile_label}'。\n"
             f"如需解绑请使用: useraccount unlink"
         )
 
     # 生成通用 ID
-    profile_id: str = _generate_profile_id(raw_id)
+    profile_id: str = manager.generate_user_id()
 
     # 创建 profile
     try:
@@ -136,7 +141,7 @@ async def _handle_link(
     existing: UserProfile | None = manager.find_user_by_linked_id(raw_id)
     if existing:
         await useraccount_cmd.finish(
-            f"你的账号 ({raw_id}) 已绑定到通用 ID '{existing.name}'。\n"
+            f"你的账号 ({raw_id}) 已绑定到通用 ID '{existing.profile_label}'。\n"
             f"如需解绑请使用: useraccount unlink"
         )
 
@@ -145,13 +150,15 @@ async def _handle_link(
     if not profile:
         await useraccount_cmd.finish(f"通用 ID '{target_profile_id}' 不存在。请检查后重试。")
 
+    target_label: str = _profile_label(profile)
+
     # 检查当前账号是否已在待确认列表中
     pending: dict[str, PendingLink] = load_pending_links()
     for token, pl in list(pending.items()):
         if pl.raw_id == raw_id and pl.profile_id == target_profile_id:
             await useraccount_cmd.finish(
                 f"已有一个待确认的绑定请求 (确认码: {token})。\n"
-                f"请联系已在通用 ID '{target_profile_id}' 下的用户执行:\n"
+                f"请联系已在通用 ID '{target_label}' 下的用户执行:\n"
                 f"  useraccount confirm {target_profile_id} {token}"
             )
 
@@ -171,8 +178,8 @@ async def _handle_link(
     await useraccount_cmd.finish(
         f"📋 绑定请求已创建，确认码有效期为 5 分钟。\n\n"
         f"确认码: {token}\n"
-        f"目标通用 ID: {target_profile_id}\n\n"
-        f"请联系已在通用 ID '{target_profile_id}' 下的用户执行:\n"
+        f"目标通用 ID: {target_label}\n\n"
+        f"请联系已在通用 ID '{target_label}' 下的用户执行:\n"
         f"  useraccount confirm {target_profile_id} {token}"
     )
 
@@ -193,8 +200,9 @@ async def _handle_confirm(
         # 检查确认者是否在目标通用 ID 下
         confirmer_profile: UserProfile | None = manager.find_user_by_linked_id(raw_id)
         if not confirmer_profile or confirmer_profile.name != target_profile_id:
+            target_p = manager.get_user_profile(target_profile_id)
             await useraccount_cmd.finish(
-                f"你没有权限确认此请求。只有已在通用 ID '{target_profile_id}' 下的用户"
+                f"你没有权限确认此请求。只有已在通用 ID '{_profile_label(target_p) if target_p else target_profile_id}' 下的用户"
                 f"或管理员才能确认。"
             )
 
@@ -218,7 +226,7 @@ async def _handle_confirm(
         del pending[token]
         save_pending_links(pending)
         await useraccount_cmd.finish(
-            f"要绑定的账号 ({pl.raw_id}) 已被绑定到 '{existing.name}'，无法重复绑定。"
+            f"要绑定的账号 ({pl.raw_id}) 已被绑定到 '{existing.profile_label}'，无法重复绑定。"
         )
 
     # 执行绑定
@@ -234,9 +242,10 @@ async def _handle_confirm(
     save_pending_links(pending)
     manager.save()
 
+    target_p = manager.get_user_profile(pl.profile_id)
     await useraccount_cmd.finish(
         f"✅ 绑定成功！\n"
-        f"账号 {pl.raw_id} 已绑定到通用 ID '{pl.profile_id}'。"
+        f"账号 {pl.raw_id} 已绑定到通用 ID '{_profile_label(target_p) if target_p else pl.profile_id}'。"
     )
 
 
@@ -257,7 +266,7 @@ async def _handle_unlink(
     # 检查是否是该通用 ID 下的最后一个绑定
     if len(profile.linked_ids) <= 1 and not force:
         await useraccount_cmd.finish(
-            f"你的账号 ({raw_id}) 是通用 ID '{profile.name}' 下的最后一个绑定。\n"
+            f"你的账号 ({raw_id}) 是通用 ID '{profile.profile_label}' 下的最后一个绑定。\n"
             f"解绑后该通用 ID 将被删除。\n"
             f"如需继续，请使用: useraccount unlink --force"
         )
@@ -275,8 +284,44 @@ async def _handle_unlink(
 
     await useraccount_cmd.finish(
         f"✅ 已解绑！\n"
-        f"账号 {raw_id} 已从通用 ID '{profile.name}' 解除绑定。"
+        f"账号 {raw_id} 已从通用 ID '{profile.profile_label}' 解除绑定。"
     )
+
+
+async def _handle_alias(
+    manager: ProfileLinkManager,
+    bot: Bot,
+    event: Event,
+    alias: str | None,
+) -> NoReturn:
+    """alias: 设置或清除当前账号通用 ID 的别名 (仅供展示)。"""
+    raw_id: str = _get_current_raw_id(event)
+
+    profile: UserProfile | None = manager.find_user_by_linked_id(raw_id)
+    if not profile:
+        await useraccount_cmd.finish(
+            f"你的账号 ({raw_id}) 未绑定任何通用 ID。\n"
+            f"使用 useraccount register 创建一个。"
+        )
+
+    try:
+        manager.set_user_alias(profile.name, alias)
+    except ValueError as e:
+        await useraccount_cmd.finish(f"设置别名失败: {e}")
+
+    manager.save()
+
+    if profile.alias:
+        await useraccount_cmd.finish(
+            f"✅ 已设置别名: {profile.alias}\n"
+            f"通用 ID: {profile.name}\n"
+            f"别名仅用于展示，内部数据仍以通用 ID 为准。"
+        )
+    else:
+        await useraccount_cmd.finish(
+            f"✅ 已清除别名。\n"
+            f"展示将回退到通用 ID: {profile.name}"
+        )
 
 
 async def _handle_info(
@@ -294,11 +339,19 @@ async def _handle_info(
             f"使用 useraccount register 创建一个。"
         )
 
-    lines: list[str] = [
-        f"通用 ID: {profile.name}",
-        f"当前账号: {raw_id}",
-        f"已绑定账号 ({len(profile.linked_ids)}):",
-    ]
+    lines: list[str]
+    if profile.alias:
+        lines = [
+            f"通用 ID: {profile.name} (别名: {profile.alias})",
+            f"当前账号: {raw_id}",
+            f"已绑定账号 ({len(profile.linked_ids)}):",
+        ]
+    else:
+        lines = [
+            f"通用 ID: {profile.name}",
+            f"当前账号: {raw_id}",
+            f"已绑定账号 ({len(profile.linked_ids)}):",
+        ]
     for lid in profile.linked_ids:
         marker: str = " ← 当前账号" if lid == raw_id else ""
         lines.append(f"  - {lid}{marker}")
@@ -307,6 +360,10 @@ async def _handle_info(
 
 
 # ── 辅助函数 ──────────────────────────────────────────
+
+def _profile_label(profile: UserProfile | None) -> str:
+    """生成通用 ID 的展示标签；有别名时同时列出别名。"""
+    return profile.profile_label if profile else ""
 
 def _generate_profile_id(raw_id: str) -> str:
     """根据原始 ID 生成一个可读的通用 ID。"""

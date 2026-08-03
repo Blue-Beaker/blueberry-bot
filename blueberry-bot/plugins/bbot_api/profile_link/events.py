@@ -42,6 +42,13 @@ class ProfileDeleteEvent(LinkEvent):
         self.profile_id = profile_id
 
 
+class ProfileAliasEvent(LinkEvent):
+    """通用 ID 别名变更事件。"""
+    def __init__(self, profile_id: str, alias: str | None):
+        self.profile_id = profile_id
+        self.alias = alias
+
+
 class LinkEventBus:
     """link 事件总线。
     
