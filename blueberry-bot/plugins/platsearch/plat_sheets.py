@@ -163,8 +163,9 @@ def get_nlw():
                 continue
             creator=line[1]
             if not level and not creator:
-                # current_section="WTH IS THIS"
-                break
+                continue
+                # # current_section="WTH IS THIS"
+                # break
             
             if level=="None Yet!" and not creator:
                 break
