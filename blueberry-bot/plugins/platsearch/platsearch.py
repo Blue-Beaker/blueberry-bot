@@ -372,7 +372,7 @@ async def _(args: Message = CommandArg()):
     else:
         tier_filter=tier_arg
         
-    if sheet_filter not in SHEET_FILTER_OPTIONS:
+    if (sheet_filter) and (sheet_filter not in SHEET_FILTER_OPTIONS):
         await platsearch.finish(f"未知数据表. 支持的数据表:{','.join(SHEET_FILTER_OPTIONS)}")
         
     logger.info(f"filter: {sheet_filter},{tier_filter}")
