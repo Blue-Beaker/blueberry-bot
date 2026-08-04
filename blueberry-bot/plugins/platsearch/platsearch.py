@@ -23,7 +23,7 @@ from .utils import select_page
 
 require('bbot_api')
 from ..bbot_api.argparse import ArgumentError,ArgParser
-from ..bbot_api import TextImageMessage,supportsImage,safeInt,supportsMarkdown
+from ..bbot_api import TextImageMessage,supportsImage,safeInt,safeFloat,supportsMarkdown
 from .. import bbot_api
 require('gd_api')
 from ..gd_api import gd,thumbs
@@ -426,11 +426,14 @@ async def _(bot:Bot, args: Message = CommandArg()):
                 "用法: -platsearch [参数] <关名/ID>"
                 "加入 -f 以模糊匹配, -p<页数> 以翻页",
                 "-t<Tier数> 按Tier过滤, -s<Tags> 按Tag过滤(自动启用模糊匹配)",
+                "-e <最小enj-最大enj> 按Enjoyment过滤"
                 "举例: '-platsearch -f -p3 dash' 搜索名称包含dash的关卡, 并翻到第3页",
                 "举例: '-platsearch -t9' 列举 Tier 9 的关卡"
                 ]))
     sa_work=SearchArgs("platsearch")
     sa_work.parser.add_argument("-i",help="Show Thumbnail",action="store_true")
+    sa_work.parser.add_argument('-e',help="Enjoyment filter: min-max",type=str,default="")
+    
     sa=sa_work.parse(args.extract_plain_text())
     if sa.error:
         await platsearch.finish(sa.error)
@@ -441,11 +444,20 @@ async def _(bot:Bot, args: Message = CommandArg()):
     tier=sa.tier
     fuzzy=sa.fuzzy
     
+    enj_filter_raw=sa.parsed and str(sa.parsed.e)
+    enj_filter=None
+    if enj_filter_raw:
+        try:
+            spl1=enj_filter_raw.split("-")
+            enj_filter=(float(spl1[0]),float(spl1[1]))
+        except:
+            await platsearch.finish("-e 参数格式错误: 应为'-'分隔的两个浮点数, 如: 6.5-10")
+    
     show_thumbs=bool(sa.parsed and sa.parsed.i)
     
     search = text.strip().lower()
     
-    if tier or skills:
+    if tier or skills or enj_filter:
         fuzzy=True
     
     msg:TextImageMessage=TextImageMessage.build(bot)
@@ -454,6 +466,9 @@ async def _(bot:Bot, args: Message = CommandArg()):
         msg.addLine(f"Exact match, use -f [levelname] for fuzzy search")
     
     results=[l for l in PLAT_CHART_CACHE.getOrUpdate() if (l.matchesName(search,fuzzy) or str(l.id)==search)]
+    
+    if enj_filter:
+        results=[r for r in results if enj_filter[0]<=safeFloat(r.enj)<=enj_filter[1]]
     
     if skills:
         results = [r for r in results if r.has_skills(skills)]

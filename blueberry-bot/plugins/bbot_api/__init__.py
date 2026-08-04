@@ -160,6 +160,12 @@ def safeInt(i:Any,fallback:_A=-1) -> int|_A:
     except:
         return fallback
     
+def safeFloat(i:Any,fallback:_A=-1.0) -> float|_A:
+    try:
+        return float(i)
+    except:
+        return fallback
+    
 def can_pack_message(bot:Bot):
     return isinstance(bot,OBBot) and plugin_config.ob_pack_message
 
