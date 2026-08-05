@@ -25,6 +25,7 @@ require('bbot_api')
 from ..bbot_api.argparse import ArgumentError,ArgParser
 from ..bbot_api import TextImageMessage,supportsImage,safeInt,safeFloat,supportsMarkdown
 from .. import bbot_api
+from ..bbot_api.message_compat import file
 require('gd_api')
 from ..gd_api import gd,thumbs
 
@@ -50,6 +51,7 @@ class SearchArgs:
     fuzzy:bool
     text:str
     tier:str
+    pagesize:int
     skills:list[str]
     error:str|None=None
     
@@ -60,12 +62,14 @@ class SearchArgs:
         self.parser.add_argument('search', nargs='*', type=str, help='search string')
         self.parser.add_argument('-t',help="Tier",type=str,default="")
         self.parser.add_argument('-s',help="Skills",type=str,default=None)
+        self.parser.add_argument('--pagesize',help="Page Size",type=int,default=5)
         
         self.page=1
         self.fuzzy=False
         self.skills=[]
         self.text=""
         self.tier=""
+        self.pagesize=5
         
     def parse(self,text:str):
         try:
@@ -76,6 +80,7 @@ class SearchArgs:
             self.skills=[t.strip().lower() for t in args.s.split(",")] if args.s else []
             self.text=(" ".join(args.search)).replace("_","-")
             self.tier=args.t
+            self.pagesize=args.pagesize
         except Exception as e:
             self.error=str(e)
         return self
@@ -340,7 +345,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
 
 platsheet = on_command("platsheet")
 @platsheet.handle()
-async def _(args: Message = CommandArg()):
+async def _(bot:Bot,args: Message = CommandArg()):
     if not args.extract_plain_text().strip():
         await platsheet.finish("\n".join(
             [
@@ -401,7 +406,7 @@ async def _(args: Message = CommandArg()):
         
     count=results.__len__()
     
-    entries_per_page = 5
+    entries_per_page = sa.pagesize
     
     results:list[plat_sheets.TheListsEntry]
     results,maxpages,page=select_page(results,count,entries_per_page,page)
@@ -413,8 +418,15 @@ async def _(args: Message = CommandArg()):
         
         for level in results:
             msg.append(formatters.formatListsLevel(level,count>3))
+    
+    finalmsg="\n".join(msg)
+    
+    if results.__len__()>50:
+        send_file=file(bot,finalmsg.encode(),f"platsheet_result_{time.time()//1}.txt")
+        if not isinstance(send_file,str):
+            await platsheet.finish(send_file)
         
-    await platsheet.send("\n".join(msg))
+    await platsheet.send(finalmsg)
 
 
 platsearch = on_command("platsearch")
@@ -477,7 +489,7 @@ async def _(bot:Bot, args: Message = CommandArg()):
         results = [r for r in results if r.tier==str(tier)]
     
     count=results.__len__()
-    entries_per_page = 5
+    entries_per_page = sa.pagesize
     
     results,maxpages,page=select_page(results,count,entries_per_page,page)
     
@@ -500,6 +512,13 @@ async def _(bot:Bot, args: Message = CommandArg()):
                 return
         else:
             msg.addLine("-i 显示关卡缩略图.")
+            
+    finalmsg=msg.getPlainText()
+    
+    if results.__len__()>50:
+        send_file=file(bot,finalmsg.encode(),f"platsearch_result_{time.time()//1}.txt")
+        if not isinstance(send_file,str):
+            await platsearch.finish(send_file)
         
     await msg.send(platsearch)
  
