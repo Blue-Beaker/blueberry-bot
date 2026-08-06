@@ -10,7 +10,7 @@ require('gd_api')
 from ..gd_api import gddl
 from ..gd_api.gddl import GDDLLevel 
 
-from .models import BaseLevelEntry
+from .models import BaseSerializableEntry
 
 PLAT_RANK_ID = "1uicngbhpej4PEmtYYeGmYlFsA28PwTzzouWb4EWQkTY"
 
@@ -24,7 +24,7 @@ NLW_PLAT = Sheet("1YxUE2kkvhT2E6AjnkvTf-o8iu_shSLbuFkEFcZOvieA","Tha Plevles!B2:
 UPI_SHEET = Sheet("13rpmCGCC8NKvRJhVcUuxixUdEuc_I6rm9LlwgB2HAsM","Levels!A2:E")
 DIFFICULTY_CHART = Sheet("1ApwiAVAcBmfyoPW3wvDzc8JvY4Lfg5tFsPlYg3DNWhc","The Chart!A4:G")
     
-class LevelEntry(BaseLevelEntry):
+class LevelEntry(BaseSerializableEntry):
     id:int=0
     name:str
     

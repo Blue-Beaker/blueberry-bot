@@ -21,6 +21,7 @@ from ..gd_api import gd,thumbs,gddl,aredl,pemonlist,platformerlist
 from .underrated_data import UnderratedLevel,get_all_underrated
 from .models import GDDLLevel,AREDLLevel,PemonlistLevel,TPLLevel
 from .plat_sheets import PlatChartEntry
+from .plat_rank_data import PlatRankPlayer,get_plat_rank
 
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
@@ -41,8 +42,11 @@ TPL_CACHE = CacheWithIDMap(TPLLevel,"",3600,"TPL Levels")
 
 AREDL_CACHE = CacheWithIDMap(AREDLLevel,"",3600,"AREDL Levels")
 
+PLAT_RANK_CACHE = BaseCache(PlatRankPlayer,"platsearch_cache/plat_rank_cache.json",
+    plugin_config.sheets_update_interval,"Platformer Rank Cache").set_update_function(get_plat_rank)
+
 caches:list[BaseCache]=[PLAT_SHEET_CACHE,UNDERRATED_CACHE,
-                        PEMONLIST_CACHE,TPL_CACHE,PLAT_CHART_CACHE,AREDL_CACHE]
+                        PEMONLIST_CACHE,TPL_CACHE,PLAT_CHART_CACHE,AREDL_CACHE,PLAT_RANK_CACHE]
 
 @driver.on_startup
 async def load():

@@ -1,6 +1,6 @@
 from pathlib import Path
 import time
-from typing import Any, TypeVar
+from typing import Any, Callable, Type, TypeVar
 import uuid
 from nonebot.adapters import Event,Bot,Message
 from nonebot.adapters.discord import GuildMessageCreateEvent,MessageEvent as DCMessageEvent,Message as DCMessage,MessageSegment as DCMessageSegment,Bot as DCBot
@@ -163,6 +163,13 @@ def safeInt(i:Any,fallback:_A=-1) -> int|_A:
 def safeFloat(i:Any,fallback:_A=-1.0) -> float|_A:
     try:
         return float(i)
+    except:
+        return fallback
+    
+_T = TypeVar(name="_T")
+def safeConversion(i:Any, converter:Callable[[Any],_T],fallback:_A=None) -> _T|_A:
+    try:
+        return converter(i)
     except:
         return fallback
     

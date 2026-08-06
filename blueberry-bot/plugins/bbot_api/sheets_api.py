@@ -17,11 +17,11 @@ class Sheet:
     def get(self):
         return get(self.id,self.range)
     
-def get(sheetid:str,range:str):
+def get(sheetid:str,range:str) -> list[list[str]]|None:
     try:
         if not plugin_config.sheets_api_key:
             logger.error("API key not set, sheets won't work!")
-            return []
+            return None
         service = build("sheets", "v4", developerKey=plugin_config.sheets_api_key)
         # Call the Sheets API
         sheet = service.spreadsheets()
@@ -37,5 +37,24 @@ def get(sheetid:str,range:str):
         return values
     except HttpError as err:
         logger.error(err)
+
+def list_sheet_names(sheetid:str) -> list[str]:
+    """获取表格中所有工作表(tab)的名称列表, 用于构造 range"""
+    try:
+        if not plugin_config.sheets_api_key:
+            logger.error("API key not set, sheets won't work!")
+            return []
+        service = build("sheets", "v4", developerKey=plugin_config.sheets_api_key)
+        result = (
+            service.spreadsheets()
+            .get(spreadsheetId=sheetid)
+            .execute()
+        )
+        sheets = result.get("sheets", [])
+        names = [s["properties"]["title"] for s in sheets]
+        return names
+    except HttpError as err:
+        logger.error(err)
+        return []
             
             

@@ -3,7 +3,7 @@ from nonebot import get_driver,require
 require('gd_api')
 from ..gd_api import gd,thumbs,gddl,aredl,pemonlist,platformerlist
 
-class BaseLevelEntry:
+class BaseSerializableEntry:
     def getID(self) -> int:
         return -1
     def to_dict(self) -> dict:
@@ -16,13 +16,13 @@ class BaseLevelEntry:
     
 _L = TypeVar("_L")
     
-class GenericLevelEntry(BaseLevelEntry,Generic[_L]):
+class GenericLevelEntry(BaseSerializableEntry,Generic[_L]):
     def __init__(self,level:_L) -> None:
         super().__init__()
         self.__dict__.update(level.__dict__)
     
     
-class GDDLLevel(gddl.GDDLLevel,BaseLevelEntry):
+class GDDLLevel(gddl.GDDLLevel,BaseSerializableEntry):
     def __init__(self,level:gddl.GDDLLevel) -> None:
         super().__init__()
         self.__dict__.update(level.__dict__)
@@ -30,7 +30,7 @@ class GDDLLevel(gddl.GDDLLevel,BaseLevelEntry):
     def getID(self):
         return self.ID
     
-class AREDLLevel(aredl.Level,BaseLevelEntry):
+class AREDLLevel(aredl.Level,BaseSerializableEntry):
     def __init__(self,level:aredl.Level) -> None:
         super().__init__()
         self.__dict__.update(level.__dict__)

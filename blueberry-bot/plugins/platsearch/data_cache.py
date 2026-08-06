@@ -1,11 +1,11 @@
 import time
 import traceback
 from typing import Callable, Generic, Sequence, Type,TypeVar, override
-from .models import BaseLevelEntry
+from .models import BaseSerializableEntry
 import json
 from nonebot import logger
 
-_T = TypeVar("_T",covariant=True, bound=BaseLevelEntry)
+_T = TypeVar("_T",covariant=True, bound=BaseSerializableEntry)
     
 class BaseCache(Generic[_T]):
     expiration_time:int
