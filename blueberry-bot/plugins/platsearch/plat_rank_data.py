@@ -7,6 +7,7 @@ from ..bbot_api.sheets_api import Sheet,list_sheet_names
 from ..bbot_api import safeConversion
 
 from .models import BaseSerializableEntry
+from .utils import split_str_lists
 
 PLAT_RANK_ID="1uicngbhpej4PEmtYYeGmYlFsA28PwTzzouWb4EWQkTY"
 
@@ -39,8 +40,8 @@ class PlatRankPlayer(BaseSerializableEntry):
         self.hardest_levels=[]
         for i in range(8,18):
             self.hardest_levels.append(str(line[i]))
-        self.verifications=[l.strip() for l in line[18].split(",")]
-        self.first_victors=[l.strip() for l in line[19].split(",")]
+        self.verifications=split_str_lists(line[18])
+        self.first_victors=split_str_lists(line[19])
         return self
     
     def __repr__(self) -> str:

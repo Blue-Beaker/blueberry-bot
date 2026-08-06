@@ -22,6 +22,9 @@ def repr_level(l:Level,fromuser:bool=False):
 def repr_list(l:LevelList,fromuser:bool=False):
     return f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)" if not fromuser else f"{l.name} ({l.id}) ({l.levels.__len__()} 个关卡)"
 
+def split_str_lists(text:str) -> list[str]:
+    return [i.strip() for i in text.split(",")] if text.strip() else []
+
 
 
 class SearchException(Exception):

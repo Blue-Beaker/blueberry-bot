@@ -75,9 +75,9 @@ def formatPRPlayer(p:PlatRankPlayer,compact:bool=False,exclude_base_info:bool=Fa
         for i in range(len(p.hardest_levels)):
             l=p.hardest_levels[i]
             lines.append(f"  #{i+1} {l}")
-        if p.verifications:
+        if len(p.verifications)>0:
             lines.append(f"Verifications: {','.join(p.verifications)}")
-        if p.first_victors:
+        if len(p.first_victors)>0:
             lines.append(f"First Victors: {','.join(p.first_victors)}")
         return "\n".join(lines)
     else:

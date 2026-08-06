@@ -6,6 +6,7 @@ from .plat_sheets import LevelEntry
 require('bbot_api')
 from ..bbot_api.sheets_api import Sheet
 from ..bbot_api import safeInt
+from .utils import split_str_lists
 
 class UnderratedLevel(LevelEntry):
     section:str
@@ -27,7 +28,7 @@ class UnderratedLevel(LevelEntry):
         self.name=line[1]
         self.creator=line[2]
         self.id=safeInt(line[3])
-        self.skillsets=[s.strip() for s in line[4].split(",")]
+        self.skillsets=split_str_lists(line[4])
         self.desc=line[5]
         return self
     def get_tier_reference(self):

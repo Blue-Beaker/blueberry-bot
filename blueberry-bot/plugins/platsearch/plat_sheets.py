@@ -11,6 +11,7 @@ from ..gd_api import gddl
 from ..gd_api.gddl import GDDLLevel 
 
 from .models import BaseSerializableEntry
+from .utils import split_str_lists
 
 PLAT_RANK_ID = "1uicngbhpej4PEmtYYeGmYlFsA28PwTzzouWb4EWQkTY"
 
@@ -73,8 +74,8 @@ def plat_rank_weights():
                 current_section=level.removesuffix("Placements").strip()
                 continue
             
-            misc_place=[i.strip() for i in line[2].split(",")]
-            pemonlist_place=[i.strip() for i in line[3].split(",")]
+            misc_place=split_str_lists(line[2])
+            pemonlist_place=split_str_lists(line[3])
             
             results.append(PlatWeight().update(current_section,level,weight))
             
@@ -123,7 +124,7 @@ def get_hds():
                 continue
             creator=line[2]
             checkpoints=line[3]
-            skillsets=[i.strip() for i in line[5].split(",")]
+            skillsets=split_str_lists(line[5])
             desc=line[6]
             results.append(TheListsEntry().update("HDS",current_section,level,creator,checkpoints,skillsets,desc))
     return results
@@ -143,7 +144,7 @@ def get_ids():
                 continue
             creator=line[2]
             checkpoints=line[3]
-            skillsets=[i.strip() for i in line[4].split(",")]
+            skillsets=split_str_lists(line[4])
             desc=line[5]
             results.append(TheListsEntry().update("IDS",current_section,level,creator,checkpoints,skillsets,desc))
     return results
@@ -171,7 +172,7 @@ def get_nlw():
                 break
             
             checkpoints=line[2]
-            skillsets=[i.strip() for i in line[3].split(",")]
+            skillsets=split_str_lists(line[3])
             desc=line[5]
             results.append(TheListsEntry().update("NLW",current_section,level,creator,checkpoints,skillsets,desc))
     return results
