@@ -151,7 +151,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
         group_length.add_argument('-l',help='length',type=str,default="")
         
-        parser.add_argument('--song',help='Song ID (prefix _ for official songs)',type=str,default=0)
+        parser.add_argument('--song',help='Song ID (prefix _ for official songs)',type=str,default="")
         
         parser.add_argument('-d',help='Difficulty',type=str,default="")
         parser.add_argument('-v',help='Show Other Info (Time, Upload/Update date, ...)',action='store_true')
