@@ -30,6 +30,7 @@ class BaseCache(Generic[_T]):
         self.ttl=ttl
         self.file_path=file_path
         self.name=name
+        self.post_refresh_functions=[]
     
     def to_dict(self) -> dict:
         result={"expiration_time":self.expiration_time,"entries":[e.to_dict() for e in self.entries]}

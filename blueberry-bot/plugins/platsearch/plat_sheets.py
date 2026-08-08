@@ -71,6 +71,8 @@ def plat_rank_weights():
             weight=safeInt(line[1],None)
             
             if not weight:
+                if level.strip().lower()=="secret header":
+                    continue
                 current_section=level.removesuffix("Placements").strip()
                 continue
             

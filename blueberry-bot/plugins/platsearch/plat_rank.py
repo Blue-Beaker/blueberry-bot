@@ -10,8 +10,11 @@ from ..bbot_api.argparse import ArgParser
 from ..bbot_api.message_compat import file
 
 from .plat_rank_data import PlatRankPlayer
-from .gd_data import PLAT_RANK_CACHE
+from .gd_data import PLAT_RANK_CACHE,PLAT_CHART_CACHE
+from .data_cache import KeyMapCache
 from .utils import select_page
+from .plat_sheets import PlatChartEntry
+from .formatters import formatDiffChart
 
 platrank = on_command("platrank")
 @platrank.handle()
@@ -60,6 +63,11 @@ async def _(bot:Bot,args: Message = CommandArg()):
             await platrank.finish(send_file)
     await platrank.finish(finalmsg)
             
+def plat_chart_name(e:PlatChartEntry):
+    return e.name.lower().strip()
+PLAT_CHART_NAMES = KeyMapCache(plat_chart_name)
+PLAT_CHART_CACHE.add_keymap(PLAT_CHART_NAMES)
+
             
 def formatPRPlayer(p:PlatRankPlayer,compact:bool=False,exclude_base_info:bool=False):
     lines:list[str]=[]
@@ -74,7 +82,12 @@ def formatPRPlayer(p:PlatRankPlayer,compact:bool=False,exclude_base_info:bool=Fa
         lines.append(f"Hardest Levels: ")
         for i in range(len(p.hardest_levels)):
             l=p.hardest_levels[i]
-            lines.append(f"  #{i+1} {l}")
+            level=PLAT_CHART_NAMES.get(l.lower().strip())
+            if level:
+                level0=level[0]
+                lines.append(f"  #{i+1} {l} W{level0.weight or "-"}/{(level0.weight_type or "-")[0]} P{level0.pemon or "-"}")
+            else:
+                lines.append(f"  #{i+1} {l}")
         if len(p.verifications)>0:
             lines.append(f"Verifications: {','.join(p.verifications)}")
         if len(p.first_victors)>0:
