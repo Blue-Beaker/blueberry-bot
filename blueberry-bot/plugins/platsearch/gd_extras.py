@@ -39,11 +39,13 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         parser.add_argument('-p',help='Page',type=int)
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parser.add_argument('-u',help="Search User's Lists",action='store_true')
+        parser.add_argument('--pagesize',help="Page Size for levels in list",type=int,default=10)
         parsed=parser.parse_args(raw_args)
         
         search=" ".join(parsed.search)
         page=int(parsed.p or 1)
         fromuser=bool(parsed.u)
+        pagesize2=int(parsed.pagesize)
         
     except Exception as e:
         await gdlist.finish(str(e))
@@ -91,14 +93,14 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             
             page=min(page,max_page)
             
-            def get_page(levels:list[gd.Level],page:int):
+            def get_page(levels:list[gd.Level],page:int,pagesize2:int=10):
                 lines:list[str]=[]
-                start=(page-1)*page_size
+                start=(page-1)*pagesize2
                 
-                levels1=levels[start:min(start+page_size,count)]
+                levels1=levels[start:min(start+pagesize2,count)]
                 
                 l=lists[0]
-                lines.append(f"{page}/{math.ceil(count/page_size)}页 ({start+1}-{min(start+page_size,count)} of {count})")
+                lines.append(f"{page}/{math.ceil(count/pagesize2)}页 ({start+1}-{min(start+pagesize2,count)} of {count})")
                 lines.append(f"-gdlist -p <页数> <ListID> 以翻页.")
                 
                 for i in range(levels1.__len__()):
@@ -120,7 +122,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                         
                 await gdlist.finish(reply)
                     
-            lines.extend(get_page(levels,page))
+            lines.extend(get_page(levels,page,pagesize2))
                 
             await gdlist.finish("\n".join(lines))
             
