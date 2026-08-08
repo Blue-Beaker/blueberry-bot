@@ -1,6 +1,6 @@
 import time
 import traceback
-from typing import Callable, Generic, Sequence, Type,TypeVar, override
+from typing import Any, Callable, Generic, Sequence, Type,TypeVar, override
 from .models import BaseSerializableEntry
 import json
 from nonebot import logger
@@ -19,6 +19,8 @@ class BaseCache(Generic[_T]):
     file_path:str|None
     
     name:str=""
+    
+    post_refresh_functions:list[Callable[[],Any]]
     
     def __init__(self,t:Type[_T],file_path:str|None=None,ttl:int=3600,name:str="UNNAMED") -> None:
         self.expiration_time=0
@@ -40,6 +42,13 @@ class BaseCache(Generic[_T]):
     def should_update(self) -> bool:
         now=int(time.time())
         return now>self.expiration_time
+    
+    def _post_update(self):
+        for f in self.post_refresh_functions:
+            try:
+                f()
+            except Exception as e:
+                logger.error(f"Error running post-update function {f} in {self.name}: {e}")
         
     def update(self):
         if hasattr(self,"update_function"):
@@ -52,6 +61,7 @@ class BaseCache(Generic[_T]):
                         self.save(self.file_path)
                 else:
                     logger.warning(f"Failed to update cache [{self.name}], got empty data")
+                self._post_update()
             except Exception as e:
                 logger.error(f"Error while updating cache [{self.name}]: {e}")
                 logger.debug("Traceback:",traceback.format_exc())
@@ -73,6 +83,7 @@ class BaseCache(Generic[_T]):
     def loadWhenNeeded(self):
         if self.expiration_time==0 and self.file_path:
             self.load(self.file_path)
+            self._post_update()
     
     def getLogInfo(self):
         return f"[{self.name}]: {self.entries.__len__()} entries, expiring at {time.ctime(self.expiration_time)}"
@@ -97,6 +108,19 @@ class BaseCache(Generic[_T]):
         with open(path,"w") as f:
             json.dump(self.to_dict(),f)
 
+class BaseCacheWithMaps(BaseCache[_T]):
+    keymaps:list["KeyMapCache[_T,Any]"]
+    def __init__(self, t: type[_T], file_path: str | None = None, ttl: int = 3600, name: str = "UNNAMED") -> None:
+        super().__init__(t, file_path, ttl, name)
+        self.keymaps=[]
+        self.post_refresh_functions.append(self.update_keymaps)
+    
+    def add_keymap(self,map_cache:"KeyMapCache[_T,Any]"):
+        self.keymaps.append(map_cache)
+        
+    def update_keymaps(self):
+        for map in self.keymaps:
+            map.update_data(self.entries)
 
 class KeyMapCache(Generic[_TA,_K]):
     def __init__(self,key_getter:Callable[[_TA],_K]) -> None:
@@ -122,33 +146,11 @@ class IDMapCache(KeyMapCache[_T,int]):
     def get_serializable_id(entry:BaseSerializableEntry):
         return entry.getID()
     
-class ManagedIDMapCache(IDMapCache[_T]):
-    last_expiration_time:int=0
-    def __init__(self,parent_cache:BaseCache[_T]) -> None:
-        super().__init__()
-        self.parent=parent_cache
-    def try_update(self):
-        if (self.parent.should_update()
-            or self.last_expiration_time<self.parent.expiration_time):
-            self.update_data(self.parent.getOrUpdate())
-        self.last_expiration_time=self.parent.expiration_time
-    @override
-    def get_for_id(self, id: int):
-        self.try_update()
-        return super().get_for_id(id)
-    
-class CacheWithIDMap(BaseCache[_T]):
+class CacheWithIDMap(BaseCacheWithMaps[_T]):
     def __init__(self, t: type[_T], file_path: str | None = None, ttl: int = 3600, name: str = "UNNAMED") -> None:
         super().__init__(t, file_path, ttl, name)
         self.id_map:IDMapCache[_T]=IDMapCache()
-    @override
-    def load(self,path:str):
-        super().load(path)
-        self.id_map.update_data(self.entries)
-    @override
-    def update(self):
-        super().update()
-        self.id_map.update_data(self.entries)
+        self.keymaps.append(self.id_map)
     def get_for_id(self,id:int):
         return self.id_map.get_for_id(id)
         
