@@ -5,7 +5,9 @@ from .models import BaseSerializableEntry
 import json
 from nonebot import logger
 
-_T = TypeVar("_T",covariant=True, bound=BaseSerializableEntry)
+_TA = TypeVar("_TA", covariant=True)
+_T = TypeVar("_T", covariant=True, bound=BaseSerializableEntry)
+_K = TypeVar("_K")
     
 class BaseCache(Generic[_T]):
     expiration_time:int
@@ -95,18 +97,30 @@ class BaseCache(Generic[_T]):
         with open(path,"w") as f:
             json.dump(self.to_dict(),f)
 
-class IDMapCache(Generic[_T]):
-    def __init__(self) -> None:
+
+class KeyMapCache(Generic[_TA,_K]):
+    def __init__(self,key_getter:Callable[[_TA],_K]) -> None:
         super().__init__()
-        self.id_map:dict[int,list[_T]]={}
-    def update_data(self,entries:Sequence[_T]):
-        self.id_map.clear()
+        self.key_getter=key_getter
+        self.map:dict[_K,list[_TA]]={}
+    def update_data(self,entries:Sequence[_TA]):
+        self.map.clear()
         for e in entries:
-            if e.getID() not in self.id_map:
-                self.id_map[e.getID()]=[]
-            self.id_map[e.getID()].append(e)
+            key=self.key_getter(e)
+            if key not in self.map:
+                self.map[key]=[]
+            self.map[key].append(e)
+    def get(self,id:_K):
+        return self.map.get(id,[])
+    
+class IDMapCache(KeyMapCache[_T,int]):
+    def __init__(self) -> None:
+        super().__init__(IDMapCache.get_serializable_id)
     def get_for_id(self,id:int):
-        return self.id_map.get(id,[])
+        return super().get(id)
+    @staticmethod
+    def get_serializable_id(entry:BaseSerializableEntry):
+        return entry.getID()
     
 class ManagedIDMapCache(IDMapCache[_T]):
     last_expiration_time:int=0
@@ -126,7 +140,11 @@ class ManagedIDMapCache(IDMapCache[_T]):
 class CacheWithIDMap(BaseCache[_T]):
     def __init__(self, t: type[_T], file_path: str | None = None, ttl: int = 3600, name: str = "UNNAMED") -> None:
         super().__init__(t, file_path, ttl, name)
-        self.id_map:ManagedIDMapCache[_T]=ManagedIDMapCache(self)
+        self.id_map:IDMapCache[_T]=IDMapCache()
+    @override
+    def load(self,path:str):
+        super().load(path)
+        self.id_map.update_data(self.entries)
     @override
     def update(self):
         super().update()
