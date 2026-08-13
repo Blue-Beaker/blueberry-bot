@@ -54,7 +54,7 @@ async def _(args: Message = CommandArg()):
     reply = []
     
     levels=UNDERRATED_CACHE.getOrUpdate()
-    levels = [l for l in levels if (l.matchesName(search,fuzzy))]
+    levels = [l for l in levels if (l.matchesName(search,fuzzy) or str(l.getID())==search)]
     if tier>0:
         levels=[l for l in levels if l.tier==tier]
         
