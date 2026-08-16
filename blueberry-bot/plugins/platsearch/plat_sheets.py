@@ -67,6 +67,8 @@ def plat_rank_weights():
     if values:
         current_section=""
         for line in values:
+            while len(line)<4:
+                line.append("")
             level=line[0]
             weight=safeInt(line[1],None)
             

@@ -65,7 +65,7 @@ class BaseCache(Generic[_T]):
                 self._post_update()
             except Exception as e:
                 logger.error(f"Error while updating cache [{self.name}]: {e}")
-                logger.debug("Traceback:",traceback.format_exc())
+                logger.debug("Traceback: "+traceback.format_exc())
         else:
             logger.warning(f"No update function set for cache [{self.name}]")
             
