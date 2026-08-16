@@ -1,35 +1,41 @@
 from enum import Enum
 import json
 import random
+from typing import get_type_hints
+
+from nonebot import logger
 from .models import HigherLowerLevel
 
 class HigherLowerSession:
-    levels:list[HigherLowerLevel]
+    levels:dict[int,HigherLowerLevel]
     streak:int=0
     picked_levels:list[HigherLowerLevel]
     finished:bool=True
+    last_source:str='pemonlist'
     
     def __init__(self) -> None:
-        self.levels=[]
+        self.levels={}
         self.picked_levels=[]
     
     def start(self,levels:list[HigherLowerLevel]):
         self.streak=0
         self.finished=False
-        self.levels=[]
+        self.levels={}
         self.picked_levels=[]
         
-        self.levels=levels.copy()
+        self.levels={l.get_id():l for l in levels}
         self.choice()
         self.choice()
         return True
     
     def choice(self):
-        pool=set(self.levels)
+        pool=set(self.levels.keys())
         if self.picked_levels.__len__()>0:
-            pool.remove(self.picked_levels[-1])
-        l=random.choice(list(pool))
-        self.picked_levels.append(l)
+            lastID=self.picked_levels[-1].get_id()
+            if lastID in pool:
+                pool.remove(lastID)
+        newID=random.choice(list(pool))
+        self.picked_levels.append(self.levels[newID])
     
     def getLastLevels(self):
         if self.picked_levels.__len__()>=2:
@@ -44,15 +50,38 @@ class HigherLowerSession:
         return guess*placement_delta>0 # guess>0 and placement_delta>0, or guess<0 and placement_delta<0
     
     def to_dict(self) -> dict:
-        return {"levels": [l.get_id() for l in self.levels],
-                "streak": self.streak,
-                "picked_levels": [l.get_id() for l in self.picked_levels]
-                }
+        data = {}
+        for k,v in self.__dict__.items():
+            if k == "levels":
+                data[k]=[l.to_dict() for l in v.values()]
+            elif k == "picked_levels":
+                data[k]=[l.to_dict() for l in v]
+            else:
+                data[k]=v
+        return data
     @classmethod
     def from_dict(cls,data:dict):
         inst=cls()
-        
-        inst.streak=data.get("streak",0)
+        type_hints=get_type_hints(cls)
+        for key,value in data.items():
+            if key in ["levels","picked_levels"]:
+                continue
+            
+            target=type_hints.get(key)
+            if value is not None and target is not None:
+                try:
+                    inst.__dict__[key] = target(value)
+                except Exception as e:
+                    logger.error(f"Failed loading value {value} -> {type(target)} in {cls.__name__}: {e}")
+                    inst.__dict__[key] = getattr(cls,key,None)
+            else:
+                inst.__dict__[key] = getattr(cls,key,None)
+                
+        inst.levels = {}
+        for l in data.get("levels",[]):
+            level=HigherLowerLevel.from_dict(l)
+            inst.levels[level.get_id()]=level
+        inst.picked_levels = [HigherLowerLevel.from_dict(l) for l in data.get("picked_levels",[])]
         
         return inst
     

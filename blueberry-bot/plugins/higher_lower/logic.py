@@ -29,6 +29,10 @@ class GuessArgs:
         self.action=GuessAction.GUESS
         self.source=GuessSource.PEMONLIST
         
+        if not text.strip():
+            self.action=GuessAction.HELP
+            return
+        
         args=text.split(" ")
         
         while args and args[0].startswith("-"):
