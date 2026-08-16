@@ -121,6 +121,6 @@ def formatLevel(level:HigherLowerLevel,placement:bool=False):
     return f"{level.get_repr()} #{level.get_placement() if placement else '?'}"
 
 async def addThumb(msg:TextImageMessage,id:int):
-    thumb=await thumbs.getThumbnail_async(id)
+    thumb=await thumbs.getThumbnail_async(id,small=True)
     if thumb:
         msg.addImage(thumb)
