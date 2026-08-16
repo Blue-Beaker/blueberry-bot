@@ -1,6 +1,7 @@
+from enum import Enum
 from pathlib import Path
 import sys
-from typing import Any
+from typing import Any, override
 import httpx
 
 # 直接运行时将 blueberry-bot/ 加入 sys.path，使 plugins 包可导入
@@ -10,35 +11,37 @@ if __name__ == "__main__" and __package__ is None:
         sys.path.insert(0, str(_root))
     from plugins.gd_api.file_based_cache import FileBasedCache
     from plugins.gd_api import run_async
+    from plugins.gd_api.models import LevelWithID
 else:
     from ..file_based_cache import FileBasedCache
     from .. import run_async
+    from ..models import LevelWithID
+    
+class AREDLStatus(Enum):
+    MAINLIST="MainList"
+    LEGACY="Legacy"
 
-class Level:
+class Level(LevelWithID):
     level_id:int
     name:str
     publisher_id:str
     position:int
     points:int
     tags:list[str]
-    legacy:bool
+    status:AREDLStatus
     
-    def to_dict(self) -> dict:
-        return self.__dict__
-    def load_dict(self,data:dict):
-        for level_key in ["level_id","name","position","publisher_id","points","tags","legacy"]:
-            self.__dict__[level_key]=data.get(level_key)
-        return self
-    @classmethod
-    def from_dict(cls,data:dict):
-        inst=cls()
-        inst.load_dict(data)
-        return inst
+    @property
+    def legacy(self) -> bool:
+        return self.status==AREDLStatus.LEGACY
     
     def __repr__(self) -> str:
         return "Level:"+", ".join([f"{k}:{v}"for k,v in self.__dict__.items()])
     def __str__(self):
         return f"{self.name} by {self.publisher_id} {self.level_id}"
+    
+    @override
+    def get_id(self) -> int:
+        return self.level_id
 
 async def getResp(url:str):
     headers = {
