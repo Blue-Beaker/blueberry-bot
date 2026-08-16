@@ -78,6 +78,9 @@ def formatAREDLLevel(l:AREDLLevel,compact:bool=False,exclude_base_info:bool=Fals
         
     if not compact:
         lines.append(f"Tags: {", ".join(l.tags)}")
+        lines.append(f"EDEL Enj: {l.edel_enjoyment:.2f}{'(P)' if l.is_edel_pending else ''}")
+        if l.gddl_tier>0:
+            lines.append(f"GDDL Tier: {l.gddl_tier:.2f}")
         
     return "\n".join(lines)
 

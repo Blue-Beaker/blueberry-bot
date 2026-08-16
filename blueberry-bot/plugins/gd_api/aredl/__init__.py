@@ -20,15 +20,28 @@ else:
 class AREDLStatus(Enum):
     MAINLIST="MainList"
     LEGACY="Legacy"
+    PENDING="Pending"
+    REMOVED="Removed"
+    UNKNOWN="Unknown"
 
 class Level(LevelWithID):
-    level_id:int
-    name:str
-    publisher_id:str
-    position:int
-    points:int
+    # Internal UUID
+    id:str=""
+    
+    level_id:int=-1
+    name:str=""
+    
+    publisher_id:str=""
+    position:int=-1
+    points:int=-1
     tags:list[str]
-    status:AREDLStatus
+    
+    status:AREDLStatus=AREDLStatus.UNKNOWN
+    two_player:bool=False
+    description:str=""
+    edel_enjoyment:float=-1
+    is_edel_pending:bool=False
+    gddl_tier:float=-1
     
     @property
     def legacy(self) -> bool:
