@@ -88,12 +88,12 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
             reply.addLine("当前没有正在进行的猜测, 请重新开始")
             await reply.finish(higher_lower)
         
-        HIGH_KEYWORD=["high","higher","高",">"]
-        LOW_KEYWORD=["low","lower","低","<"]
+        HIGH_KEYWORD=["high","higher","高",">",'h']
+        LOW_KEYWORD=["low","lower","低","<",'l']
         comp=0
-        if args.text in HIGH_KEYWORD:
+        if args.text.lower() in HIGH_KEYWORD:
             comp=1
-        elif args.text in LOW_KEYWORD:
+        elif args.text.lower() in LOW_KEYWORD:
             comp=-1
             
         if comp==0:
