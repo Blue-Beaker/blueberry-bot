@@ -1,5 +1,6 @@
 
 from enum import Enum
+import math
 import os
 from pathlib import Path
 from nonebot import on_command,logger,get_plugin_config, require
@@ -102,7 +103,15 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
             
         guess_result=session.do_guess(comp)
         if guess_result:
-            reply.addLine(f"回答正确! {session.streak}连击!")
+            reply.addLine(f"回答正确! {session.streak}连击! ")
+            if orb_api:
+                orb_owner=orb_api.get_orb_owner_id(event)
+                levels=session.getLastLevels()
+                if orb_owner and levels:
+                    l1,l2=levels
+                    orb_gain=math.ceil(8*(math.sqrt(len(session.levels)/(abs(l1.get_placement()-l2.get_placement())))))
+                    orb_api.add_balance(orb_owner,orb_gain,False)
+                    reply.addLine(f"你获得了 {orb_gain} Orbs. ")
             
             session.choice()
             await formatLevelsToReply(reply,session)
