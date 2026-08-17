@@ -47,7 +47,10 @@ class HigherLowerSession:
             return False
         
         placement_delta=levels[0].get_placement()-levels[1].get_placement()
-        return guess*placement_delta>0 # guess>0 and placement_delta>0, or guess<0 and placement_delta<0
+        result = guess*placement_delta>0 # guess>0 and placement_delta>0, or guess<0 and placement_delta<0
+        if result:
+            self.streak+=1
+        return result
     
     def to_dict(self) -> dict:
         data = {}

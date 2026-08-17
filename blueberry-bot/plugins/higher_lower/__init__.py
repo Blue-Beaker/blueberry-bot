@@ -102,14 +102,14 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
             
         guess_result=session.do_guess(comp)
         if guess_result:
-            reply.addLine("回答正确!")
+            reply.addLine(f"回答正确! {session.streak}连击!")
             
             session.choice()
             await formatLevelsToReply(reply,session)
             reply.addLine("这一关的排名比上一关高还是低呢? 请输入 -gdhol >或< 以回答")
         else:
             session.finished=True
-            reply.addLine("回答错误!")
+            reply.addLine(f"回答错误! 本场记录: {session.streak}连击")
             levels=session.getLastLevels()
             if levels:
                 l1,l2=levels
@@ -123,7 +123,7 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
             reply.addLine("当前没有正在进行的猜测, 请重新开始")
             await reply.finish(higher_lower)
             
-        reply.addLine("你放弃了!")
+        reply.addLine(f"你放弃了! 本场记录: {session.streak}连击")
         session.finished=True
         levels=session.getLastLevels()
         if levels:
