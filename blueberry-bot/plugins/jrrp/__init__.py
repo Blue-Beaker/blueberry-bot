@@ -81,6 +81,7 @@ async def _(bot:Bot,event:Event,args:Message=CommandArg()):
             r=int(text[0])
             g=int(text[1])
             b=int(text[2])
+            color=mergeRGB(r,g,b)
     except:
         await showcolor.finish("用法: \nshowcolor hex\nshowcolor R G B")
 
@@ -111,3 +112,5 @@ def splitRGB(color:int):
     g = (color >> 8) & 0xFF
     b = color & 0xFF
     return r,g,b
+def mergeRGB(r:int,g:int,b:int):
+    return ((r&0xFF)<<16)|((g&0xFF)<<8)|(b&0xFF)
