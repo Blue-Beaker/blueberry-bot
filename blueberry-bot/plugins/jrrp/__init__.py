@@ -60,14 +60,7 @@ randcolor = on_command("randcolor")
 async def _(bot:Bot,event:Event,args:Message=CommandArg()):
     color=random.randint(0,0xFFFFFF)
     
-    # 用 OpenCV 生成纯色图片
-    b = (color >> 16) & 0xFF
-    g = (color >> 8) & 0xFF
-    r = color & 0xFF
-    img = np.full((128, 128, 3), (b, g, r), dtype=np.uint8)
-    buf = io.BytesIO()
-    buf.write(cv2.imencode(".png", img)[1].tobytes())
-    img_bytes = buf.getvalue()
+    img_bytes = getColoredImage(splitRGB(color))
     
     msg = TextImageMessage.build(bot)
     msg.addText(f"随机结果: #{color:06X}")
@@ -75,9 +68,46 @@ async def _(bot:Bot,event:Event,args:Message=CommandArg()):
     
     await msg.send(randcolor)
     
+showcolor = on_command("showcolor")
+@showcolor.handle()
+async def _(bot:Bot,event:Event,args:Message=CommandArg()):
+    text=args.extract_plain_text().split(" ")
+    r,g,b=0,0,0
+    try:
+        if text.__len__()==1:
+            color=int(text[0].removeprefix("0x").removeprefix("#"),base=16)
+            r,g,b=splitRGB(color)
+        else:
+            r=int(text[0])
+            g=int(text[1])
+            b=int(text[2])
+    except:
+        await showcolor.finish("用法: \nshowcolor hex\nshowcolor R G B")
+
+    img_bytes = getColoredImage((r,g,b))
+    msg = TextImageMessage.build(bot)
+    msg.addText(f"显示颜色: #{color:06X}")
+    msg.addImage(img_bytes)
+    
+    await msg.send(showcolor)
+    
 def get_help(bot:Bot,event:Event):
     return [
         "jrrp 获取今日人品(运气)",
         "randcolor 随机颜色",
         "randint [X] [Y] 随机抽个X和Y之间的整数"
     ]
+    
+def getColoredImage(rgb:tuple[int,int,int],width:int=128, height:int=128):
+    r,g,b=rgb
+    img = np.full((128, 128, 3), (b,g,r), dtype=np.uint8)
+    buf = io.BytesIO()
+    buf.write(cv2.imencode(".png", img)[1].tobytes())
+    img_bytes = buf.getvalue()
+    return img_bytes
+    
+def splitRGB(color:int):
+    r = (color >> 16) & 0xFF
+    g = (color >> 8) & 0xFF
+    b = color & 0xFF
+    return r,g,b
