@@ -136,7 +136,7 @@ class FileBasedCache(Generic[_D]):
             # 锁被占用，不等待更新，直接尝试读缓存
             if self.cache_path and self.cache_path.exists() and self.cache_path.stat().st_size > 0:
                 return cast(_D,self.get())
-            # 缓存不存在/为空 → 轮询等待锁释放
+            # 缓存不存在/为空 -> 轮询等待锁释放
             await self._wait_lock()
             try:
                 return cast(_D,self.get())

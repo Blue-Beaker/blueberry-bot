@@ -8,10 +8,10 @@ def infer_platform(raw_id: str) -> str:
     """根据原始用户 ID 推断平台前缀（与 get_raw_id 格式一致）。
     
     规则:
-      - 10 位以内纯数字 → u_ (OneBot QQ号)
-      - 10位以上纯数字 → dc_ (Discord ID)
-      - 32位大写十六进制 → qquser_ (QQ openid)
-      - 其他 → mc_ (Minecraft)
+      - 10 位以内纯数字 -> u_ (OneBot QQ号)
+      - 10位以上纯数字 -> dc_ (Discord ID)
+      - 32位大写十六进制 -> qquser_ (QQ openid)
+      - 其他 -> mc_ (Minecraft)
     """
     if re.fullmatch(r"\d{1,10}", raw_id):
         return "u"
@@ -44,7 +44,7 @@ class OrbStorage:
         balances = data.get("balances", {})
         
         if version < 2:
-            # v1 → v2: 自动迁移 key 格式
+            # v1 -> v2: 自动迁移 key 格式
             migrated = {}
             for old_key, value in balances.items():
                 new_key = migrate_key(old_key)

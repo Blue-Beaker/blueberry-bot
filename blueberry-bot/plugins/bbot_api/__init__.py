@@ -23,10 +23,10 @@ def infer_id_prefix(raw_id: str) -> str:
     """根据 ID 形式推断平台前缀（与 get_raw_id 格式一致）。
     
     规则:
-      - 不超过 10 位纯数字 → group_ (OneBot 群号)
-      - 超过 10 位纯数字 → dc_ (Discord 频道/用户 ID)
-      - 32 位大写十六进制 → qqgroup_ / qquser_ (QQ openid)
-      - 其他 → mc_ (Minecraft 服务器名等)
+      - 不超过 10 位纯数字 -> group_ (OneBot 群号)
+      - 超过 10 位纯数字 -> dc_ (Discord 频道/用户 ID)
+      - 32 位大写十六进制 -> qqgroup_ / qquser_ (QQ openid)
+      - 其他 -> mc_ (Minecraft 服务器名等)
     """
     if re.fullmatch(r"\d{1,10}", raw_id):
         return "group_"
@@ -68,7 +68,7 @@ def get_raw_user_id(event: Event) -> str:
 
 def get_user_id(event: Event) -> str:
     raw_id = get_raw_user_id(event)
-    # profile_link 解析：实际 ID → 通用 ID
+    # profile_link 解析：实际 ID -> 通用 ID
     manager = get_profile_link_manager()
     resolved = manager.resolve_user_id(raw_id)
     return resolved
@@ -76,7 +76,7 @@ def get_user_id(event: Event) -> str:
 
 def getid(event: Event) -> str:
     raw_id = get_raw_id(event)
-    # profile_link 解析：实际 ID → 通用 ID
+    # profile_link 解析：实际 ID -> 通用 ID
     manager = get_profile_link_manager()
     resolved = manager.resolve_user_id(raw_id)
     return resolved
@@ -106,7 +106,7 @@ def get_group_id(event):
     group_id = get_raw_group_id(event)
     # logger.info(group_id)
     
-    # profile_link 解析：实际群 ID → 通用 ID
+    # profile_link 解析：实际群 ID -> 通用 ID
     if group_id != "private":
         manager = get_profile_link_manager()
         resolved = manager.resolve_group_id(group_id)
@@ -275,7 +275,7 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
             # 尝试查找该用户的 profile_link
             uprofile = manager.find_user_by_linked_id(uid)
             if uprofile:
-                lines.append(f"  {uid} → {uprofile.profile_label}")
+                lines.append(f"  {uid} -> {uprofile.profile_label}")
             else:
                 lines.append(f"  {uid}")
     

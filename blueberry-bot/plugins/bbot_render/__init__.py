@@ -52,8 +52,8 @@ _DEFAULT_TIMEOUT = plugin_config.render_server_timeout
 def _parse_uri(uri: str) -> str:
     """解析 URI，返回 HTTP 渲染端点 URL。
 
-    - ``ws://`` / ``wss://`` → 原样返回（兼容旧配置，直接 WebSocket）
-    - ``http://`` / ``https://`` → 追加 ``/render`` 路径
+    - ``ws://`` / ``wss://`` -> 原样返回（兼容旧配置，直接 WebSocket）
+    - ``http://`` / ``https://`` -> 追加 ``/render`` 路径
     """
     scheme = uri.split("://", 1)[0].lower() if "://" in uri else "http"
     if scheme in ("ws", "wss"):
@@ -65,8 +65,8 @@ class RenderAPI:
     """BlueberryBot-Render 客户端。
 
     封装与 Godot 渲染服务的通信。根据 ``uri`` 的 scheme 自动选择协议：
-    - ``http://`` / ``https://`` → HTTP POST /render（默认，推荐）
-    - ``ws://`` / ``wss://`` → WebSocket
+    - ``http://`` / ``https://`` -> HTTP POST /render（默认，推荐）
+    - ``ws://`` / ``wss://`` -> WebSocket
 
     bytes 参数（如 thumbnail）自动转为 ``base64://`` 内联编码，
     Godot 的 TextureHelper 原生支持解码，无需额外资源服务器。
@@ -201,8 +201,8 @@ class RenderAPI:
         """发送渲染请求到 Godot 渲染服务，返回渲染结果。
 
         根据 ``uri`` 的 scheme 自动选择协议：
-        - ``http://`` / ``https://`` → HTTP POST /render
-        - ``ws://`` / ``wss://`` → WebSocket（兼容旧配置）
+        - ``http://`` / ``https://`` -> HTTP POST /render
+        - ``ws://`` / ``wss://`` -> WebSocket（兼容旧配置）
 
         bytes 参数自动转为 ``base64://`` 内联编码，Godot 的 TextureHelper 原生支持。
         """

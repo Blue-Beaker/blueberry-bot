@@ -18,13 +18,13 @@ PERMGROUP_MAP_PATH = Path("config/permgroup_map.json")
 class PermGroupManager:
     """权限组映射管理器。
     
-    管理 permgroup_name → [group_id, ...] 的映射，
-    并维护 group → [permgroup_name, ...] 的反向缓存。
+    管理 permgroup_name -> [group_id, ...] 的映射，
+    并维护 group -> [permgroup_name, ...] 的反向缓存。
     所有 GroupConfig 实例共享此管理器。
     """
     
-    permgroup_groups_map: dict[str, list[str]]  # permgroup_name → [group_id, ...]
-    _group_permgroup_cache: dict[str, list[str]] | None  # group → [permgroup_name, ...], 懒构建
+    permgroup_groups_map: dict[str, list[str]]  # permgroup_name -> [group_id, ...]
+    _group_permgroup_cache: dict[str, list[str]] | None  # group -> [permgroup_name, ...], 懒构建
     config_path: str
     
     def __init__(self, config_path: str | Path | None = None) -> None:
@@ -35,7 +35,7 @@ class PermGroupManager:
     # ── 缓存 ─────────────────────────────────────────────
     
     def _build_cache(self) -> dict[str, list[str]]:
-        """从 permgroup_groups_map 反转构建 group→[permgroup_name] 缓存。"""
+        """从 permgroup_groups_map 反转构建 group->[permgroup_name] 缓存。"""
         cache: dict[str, list[str]] = {}
         for pg_name, groups in self.permgroup_groups_map.items():
             for g in groups:
@@ -91,7 +91,7 @@ class PermGroupManager:
         return removed
     
     def list_group_binds(self) -> dict[str, list[str]]:
-        """返回所有 group→permgroup 映射（由 cache 构建）。"""
+        """返回所有 group->permgroup 映射（由 cache 构建）。"""
         return dict(sorted(self._build_cache().items()))
     
     def list_permgroup_binds(self, permgroup_name: str) -> list[str]:

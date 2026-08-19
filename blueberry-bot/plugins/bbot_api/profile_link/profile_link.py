@@ -360,7 +360,7 @@ class ProfileLinkManager:
         if not isinstance(data, dict):
             return
         
-        # v1 → v2 迁移：旧格式拆分为 user_links + group_links
+        # v1 -> v2 迁移：旧格式拆分为 user_links + group_links
         version = data.get("version", 1)
         if version < 2:
             # v1 格式: {"links": {"name": {"linked_ids": [...], "group_ids": [...]}}}

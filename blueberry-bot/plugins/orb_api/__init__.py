@@ -53,30 +53,6 @@ async def load_sessions():
 async def save_sessions():
     save_force()
 
-# ── profile_link 事件监听器 ──────────────────────────
-
-@on_link(LinkUserEvent)
-def _orb_on_link(event: LinkUserEvent):
-    if _migrate_balance(event.raw_id, event.profile_id):
-        ORB_STORAGE.needs_save = True
-        logger.info(f"orb: 已迁移余额 {event.raw_id} → {event.profile_id}")
-        logger.info(f"{event.profile_id}: {get_balance(event.profile_id)}")
-
-@on_link(UnlinkUserEvent)
-def _orb_on_unlink(event: UnlinkUserEvent):
-    from ..bbot_api.profile_link.profile_link import get_profile_link_manager
-    manager = get_profile_link_manager()
-    profile = manager.get_user_profile(event.profile_id)
-    # 只有解绑后 profile 不再关联任何实际 ID 时，才把 orb 回退到 raw_id
-    if profile and len(profile.linked_ids) == 0:
-        if _migrate_balance(event.profile_id, event.raw_id):
-            ORB_STORAGE.needs_save = True
-            logger.info(f"orb: 已回迁余额 {event.profile_id} → {event.raw_id}")
-            logger.info(f"{event.profile_id}: {get_balance(event.profile_id)}")
-            logger.info(f"{event.raw_id}: {get_balance(event.raw_id)}")
-    else:
-        logger.info(f"orb: 跳过回迁 (profile {event.profile_id} 仍有其他绑定)")
-
 def get_orb_owner_id(event:Event):
     """从事件中提取带平台前缀的用户 ID。"""
     try:
@@ -100,6 +76,10 @@ def add_balance(user:str,count:int,allow_negative:bool=False):
 
 def get_balance(user:str):
     return ORB_STORAGE.get_balance(resolve_user(user))
+
+# ── profile_link 事件监听器 ──────────────────────────
+
+from . import listener
 
 def user_exists(user:str):
     return resolve_user(user) in ORB_STORAGE.balances.keys()

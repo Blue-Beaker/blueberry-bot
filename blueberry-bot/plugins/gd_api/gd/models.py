@@ -179,7 +179,7 @@ class Level(BaseLevel):
         self.settings_string: str = ""   #: 48 — 设置字符串(未使用)
 
     def get_description(self) -> str:
-        """解码并返回关卡描述（Base64 url safe → 明文）。"""
+        """解码并返回关卡描述（Base64 url safe -> 明文）。"""
         if not self.description:
             return ""
         try:

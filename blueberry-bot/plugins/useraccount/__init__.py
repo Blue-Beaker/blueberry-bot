@@ -126,7 +126,7 @@ async def _handle_register(
 
     if alias:
         await useraccount_cmd.finish(
-            f"✅ 注册成功！\n"
+            f"注册成功！\n"
             f"通用 ID: {profile_id} (别名: {alias})\n"
             f"已绑定: {raw_id}\n\n"
             f"你可以使用此通用 ID 在其它平台绑定同一账号:\n"
@@ -134,7 +134,7 @@ async def _handle_register(
         )
     else:
         await useraccount_cmd.finish(
-            f"✅ 注册成功！\n"
+            f"注册成功！\n"
             f"通用 ID: {profile_id}\n"
             f"已绑定: {raw_id}\n\n"
             f"你可以使用此通用 ID 在其它平台绑定同一账号:\n"
@@ -190,7 +190,7 @@ async def _handle_link(
     save_pending_links(pending)
 
     await useraccount_cmd.finish(
-        f"📋 绑定请求已创建，确认码有效期为 5 分钟。\n\n"
+        f"绑定请求已创建，确认码有效期为 5 分钟。\n\n"
         f"确认码: {token}\n"
         f"目标通用 ID: {target_label}\n\n"
         f"请联系已在通用 ID '{target_label}' 下的用户执行:\n"
@@ -258,7 +258,7 @@ async def _handle_confirm(
 
     target_p = manager.get_user_profile(pl.profile_id)
     await useraccount_cmd.finish(
-        f"✅ 绑定成功！\n"
+        f"绑定成功！\n"
         f"账号 {pl.raw_id} 已绑定到通用 ID '{_profile_label(target_p) if target_p else pl.profile_id}'。"
     )
 
@@ -297,7 +297,7 @@ async def _handle_unlink(
     manager.save()
 
     await useraccount_cmd.finish(
-        f"✅ 已解绑！\n"
+        f"已解绑！\n"
         f"账号 {raw_id} 已从通用 ID '{profile.profile_label}' 解除绑定。"
     )
 
@@ -327,13 +327,13 @@ async def _handle_alias(
 
     if profile.alias:
         await useraccount_cmd.finish(
-            f"✅ 已设置别名: {profile.alias}\n"
+            f"已设置别名: {profile.alias}\n"
             f"通用 ID: {profile.name}\n"
             f"别名仅用于展示，内部数据仍以通用 ID 为准。"
         )
     else:
         await useraccount_cmd.finish(
-            f"✅ 已清除别名。\n"
+            f"已清除别名。\n"
             f"展示将回退到通用 ID: {profile.name}"
         )
 

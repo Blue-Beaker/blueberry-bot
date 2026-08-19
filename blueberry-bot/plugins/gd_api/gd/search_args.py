@@ -52,7 +52,7 @@ class LevelSearchType(Enum):
 
 
 def _diff_to_raw(d: Difficulty) -> int:
-    """Difficulty → diff raw value。"""
+    """Difficulty -> diff raw value。"""
     if d == Difficulty.NA:
         return -1
     if d == Difficulty.AUTO:
@@ -67,7 +67,7 @@ def _diff_to_raw(d: Difficulty) -> int:
 
 
 def _raw_to_difficulty(v: int) -> Difficulty:
-    """diff raw value → Difficulty。"""
+    """diff raw value -> Difficulty。"""
     if v == -3:
         return Difficulty.AUTO
     if v == -2:
@@ -80,7 +80,7 @@ def _raw_to_difficulty(v: int) -> Difficulty:
 
 
 def _demon_to_raw(d: Difficulty) -> int | None:
-    """Difficulty → demonFilter raw value。"""
+    """Difficulty -> demonFilter raw value。"""
     mapping = {
         Difficulty.EASY_DEMON: 1,
         Difficulty.MEDIUM_DEMON: 2,
@@ -92,7 +92,7 @@ def _demon_to_raw(d: Difficulty) -> int | None:
 
 
 def _raw_to_demon(v: int) -> Difficulty | None:
-    """demonFilter raw value → Difficulty。"""
+    """demonFilter raw value -> Difficulty。"""
     mapping = {1: Difficulty.EASY_DEMON, 2: Difficulty.MEDIUM_DEMON,
                3: Difficulty.HARD_DEMON, 4: Difficulty.INSANE_DEMON,
                5: Difficulty.EXTREME_DEMON}
@@ -180,14 +180,14 @@ class LevelSearchArgs:
             raise ValueError(f"Cannot select multiple demon difficulties: {v}")
 
         if demons:
-            # 有具体恶魔难度 → diff 设为 ANY_DEMON，取首个设 demonFilter
+            # 有具体恶魔难度 -> diff 设为 ANY_DEMON，取首个设 demonFilter
             self.diff = str(_diff_to_raw(Difficulty.ANY_DEMON))
             
             selected_demon=demons[0]
             if selected_demon!=Difficulty.ANY_DEMON:
                 self.demonFilter = _demon_to_raw(selected_demon)
         else:
-            # 无恶魔难度 → 按正常逻辑
+            # 无恶魔难度 -> 按正常逻辑
             self.diff = ",".join(str(_diff_to_raw(d)) for d in nondemons)
             self.demonFilter = None
         return self

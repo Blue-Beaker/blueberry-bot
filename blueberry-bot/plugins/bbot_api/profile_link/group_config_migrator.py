@@ -10,9 +10,9 @@ def _migrate_group_key(key: str) -> str:
     """将旧格式 group key 迁移为带前缀的新格式。
     
     根据 ID 形式推断平台前缀（与 get_raw_id 格式一致）:
-      - 不超过 10 位纯数字 → group_ (OneBot 群号)
-      - 超过 10 位纯数字 → dc_ (Discord 频道 ID)
-      - 32 位大写十六进制 → qqgroup_ (QQ 群 openid)
+      - 不超过 10 位纯数字 -> group_ (OneBot 群号)
+      - 超过 10 位纯数字 -> dc_ (Discord 频道 ID)
+      - 32 位大写十六进制 -> qqgroup_ (QQ 群 openid)
       - 其他格式保持不变（如 "global", "private", profile 名称等）
     """
     if re.fullmatch(r"\d{1,10}", key):
@@ -42,7 +42,7 @@ def _find_raw_overrides(config, raw_id: str):
                 return stripped, config.group_overrides[stripped]
             break
     
-    # 尝试旧格式（纯数字 → 带前缀）
+    # 尝试旧格式（纯数字 -> 带前缀）
     migrated = _migrate_group_key(raw_id)
     if migrated != raw_id and migrated in config.group_overrides:
         return migrated, config.group_overrides[migrated]

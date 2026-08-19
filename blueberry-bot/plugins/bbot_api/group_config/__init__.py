@@ -25,9 +25,9 @@ _C = TypeVar("_C", bound=ConfigItem)
 
 
 class GroupConfig(Generic[_C]):
-    """四层配置管理器：group 层 → permgroup 层 → global 层 → 类默认值。
+    """四层配置管理器：group 层 -> permgroup 层 -> global 层 -> 类默认值。
     
-    查找顺序：group 覆盖值（非 None）→ permgroup 覆盖值 → global 层值 → Config 类变量默认值
+    查找顺序：group 覆盖值（非 None）-> permgroup 覆盖值 -> global 层值 -> Config 类变量默认值
     
     层说明：
     - global_config: 全局默认配置实例
@@ -59,7 +59,7 @@ class GroupConfig(Generic[_C]):
     def get(self, group: str) -> _C:
         """获取 group 的合并配置。
         
-        合并顺序：group 覆盖 → permgroup 覆盖 → global → 类默认值。
+        合并顺序：group 覆盖 -> permgroup 覆盖 -> global -> 类默认值。
         
         permgroup 映射由全局 PermGroupManager 提供。
         group="global" 时直接返回 global 配置。
@@ -111,7 +111,7 @@ class GroupConfig(Generic[_C]):
         return self.global_config
     
     def get_value(self, group: str, key: str) -> Any:
-        """获取某个字段的值：group → permgroup → global → 类默认值。"""
+        """获取某个字段的值：group -> permgroup -> global -> 类默认值。"""
         # group 覆盖
         overrides = self.group_overrides.get(group) if group != "global" else None
         if overrides is not None:
@@ -207,7 +207,7 @@ class GroupConfig(Generic[_C]):
                     setattr(self.group_overrides[group], f, None)
         for key, value in kwargs.items():
             if value is None:
-                # 设为 None → 从 override 中移除该字段
+                # 设为 None -> 从 override 中移除该字段
                 if hasattr(self.group_overrides[group], key):
                     setattr(self.group_overrides[group], key, None)
             else:
@@ -500,7 +500,7 @@ if __name__ == "__main__":
     print("=== After group set ===")
     print(f"  a={c.a}, b={c.b}")  # 2, world
     
-    # 测试 group 层 None → fallback 到 global
+    # 测试 group 层 None -> fallback 到 global
     cfg.set("group1", a=None)
     c = cfg.get("group1")
     print("=== Group a=None (fallback) ===")
