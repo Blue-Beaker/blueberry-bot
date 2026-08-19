@@ -180,6 +180,10 @@ class ProfileLinkManager:
     
     def delete_user_profile(self, profile_id: str) -> bool:
         if profile_id in self.user_links:
+            # Unlink all user ids first
+            for raw_id in self.get_all_user_linked_ids(profile_id):
+                self.unlink_user_id(profile_id,raw_id)
+                
             del self.user_links[profile_id]
             self._rebuild_indexes()
             self._emit_event("ProfileDeleteEvent", profile_id=profile_id)
