@@ -36,9 +36,14 @@ class BaseCache(Generic[_T]):
         result={"expiration_time":self.expiration_time,"entries":[e.to_dict() for e in self.entries]}
         return result
     
-    def set_update_function(self,func:Callable[[],list[_T]]):
+    def with_update_function(self,func:Callable[[],list[_T]]):
         self.update_function=func
         return self
+    
+    # For decorating a function, do not modify the function's original behavior
+    def wrap_update_function(self,func:Callable[[],list[_T]]):
+        self.update_function=func
+        return func
     
     def should_update(self) -> bool:
         now=int(time.time())

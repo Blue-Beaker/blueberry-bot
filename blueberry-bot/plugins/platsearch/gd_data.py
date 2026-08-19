@@ -36,14 +36,14 @@ PLAT_CHART_CACHE = CacheWithIDMap(plat_sheets.PlatChartEntry,"platsearch_cache/p
 PLAT_SHEET_CACHE = CacheWithIDMap(plat_sheets.TheListsEntry,"platsearch_cache/plat_sheet_cache.json",
     plugin_config.sheets_update_interval,name="Plat Sheet cache")
 UNDERRATED_CACHE = CacheWithIDMap(UnderratedLevel,"platsearch_cache/underrated_cache.json",
-    plugin_config.sheets_update_interval,"Underrated Cache").set_update_function(get_all_underrated)
+    plugin_config.sheets_update_interval,"Underrated Cache").with_update_function(get_all_underrated)
 PEMONLIST_CACHE = CacheWithIDMap(PemonlistLevel,"",3600,"Pemonlist Levels")
 TPL_CACHE = CacheWithIDMap(TPLLevel,"",3600,"TPL Levels")
 
 AREDL_CACHE = CacheWithIDMap(AREDLLevel,"",3600,"AREDL Levels")
 
 PLAT_RANK_CACHE = BaseCache(PlatRankPlayer,"platsearch_cache/plat_rank_cache.json",
-    plugin_config.sheets_update_interval,"Platformer Rank Cache").set_update_function(get_plat_rank)
+    plugin_config.sheets_update_interval,"Platformer Rank Cache").with_update_function(get_plat_rank)
 
 caches:list[BaseCache]=[PLAT_SHEET_CACHE,UNDERRATED_CACHE,
                         PEMONLIST_CACHE,TPL_CACHE,PLAT_CHART_CACHE,AREDL_CACHE,PLAT_RANK_CACHE]
@@ -83,7 +83,7 @@ async def update_caches(force_gddl:bool=False):
     for cache in caches:
         threading.Thread(target=threaded_update_cache,args=[cache],name=cache.name).start()
         
-@PLAT_CHART_CACHE.set_update_function
+@PLAT_CHART_CACHE.wrap_update_function
 def get_plat_chart():
     results=plat_sheets.get_plat_chart()
     match_ids_for_levels(results,"cache/plat_chart_unmatched.json")
@@ -97,27 +97,27 @@ def fill_pemonlist_for_levels(levels:list[PlatChartEntry]):
         l.pemon=p.placement
     return
 
-@PLAT_SHEET_CACHE.set_update_function
+@PLAT_SHEET_CACHE.wrap_update_function
 def get_3_lists():
     results=plat_sheets.get_3_lists()
     match_ids_for_levels(results,"cache/plat_sheet_unmatched.json")
     return results
 
-@PEMONLIST_CACHE.set_update_function
+@PEMONLIST_CACHE.wrap_update_function
 def getPemonlistLevels():
     results=pemonlist.getPemonlistLevels()
     if not results:
         return []
     return [PemonlistLevel(l) for l in results]
 
-@TPL_CACHE.set_update_function
+@TPL_CACHE.wrap_update_function
 def getTPLLevels():
     results=platformerlist.getTPLLevels()
     if not results:
         return []
     return [TPLLevel(l) for l in results]
 
-@AREDL_CACHE.set_update_function
+@AREDL_CACHE.wrap_update_function
 def getAREDLMerged():
     results=[]
     results.extend(aredl.getAREDLLevels(False) or [])
