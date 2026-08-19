@@ -381,6 +381,13 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 "length2":format_verify_time(level2.verification_time),
                 "song_info": f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}"
             })
+            
+        description2_lines:list[str]=[]
+        if aredl_entry and aredl_entry.description:
+            description2_lines.append("AREDL Description:\n"+aredl_entry.description)
+        if nlwlike_entry and nlwlike_entry.description:
+            description2_lines.append(nlwlike_entry.sheet+" Description:\n"+nlwlike_entry.description)
+        description2="\n".join(description2_lines)
         
         img=await render_api.render_level(req_id_base+"_base",
                         level_id=level.id,
@@ -401,6 +408,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                         scene_type="level_large",
                         thumbnail=getThumbnailUrl(level.id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or "",
                         description=level.get_description(),
+                        description2=description2,
                         **extra_render_args
                         )
         if isinstance(img,bytes):
@@ -457,12 +465,12 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     if nlwlike_entries:
         lines.addLine("--NLW/IDS/HDS--")
     for e in nlwlike_entries:
-        lines.addLine(formatters.formatListsLevel(e,False,True))
+        lines.addLine(formatters.formatListsLevel(e,False,True,not info_image))
             
     if aredl_entries:
         lines.addLine("--AREDL--")
         for e in aredl_entries:
-            lines.addLine(formatters.formatAREDLLevel(e,False,True))
+            lines.addLine(formatters.formatAREDLLevel(e,False,True,not info_image))
         
 
     if lines.msg.__len__():

@@ -306,6 +306,7 @@ class RenderAPI:
             checkpoints: str = '',
             diffchart_tags: str = '',
             description: str = '',
+            description2: str = '',
             length2: str = '',
             bronze_coins: bool = False,
             likes: int = 0,

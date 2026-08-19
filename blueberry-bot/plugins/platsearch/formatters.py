@@ -45,7 +45,7 @@ def formatDiffChart(l:PlatChartEntry,compact:bool=False,exclude_base_info:bool=F
     
     return "\n".join(lines)
 
-def formatListsLevel(l:TheListsEntry,compact:bool=False,exclude_base_info:bool=False):
+def formatListsLevel(l:TheListsEntry,compact:bool=False,exclude_base_info:bool=False,description:bool=True):
     lines:list[str]=[]
     
     if not exclude_base_info:
@@ -58,7 +58,8 @@ def formatListsLevel(l:TheListsEntry,compact:bool=False,exclude_base_info:bool=F
         if not exclude_base_info and l.id:
             lines.append(f"ID ({l.id})")
         lines.append(f"Checkpoints: {l.checkpoints}, Skillsets: {",".join(l.skillsets)}")
-        lines.append(f"Description: {l.description}")
+        if description:
+            lines.append(f"Description: {l.description}")
     else:
         line=firstline
         if l.checkpoints:
@@ -66,7 +67,7 @@ def formatListsLevel(l:TheListsEntry,compact:bool=False,exclude_base_info:bool=F
         lines.append(line)
     return "\n".join(lines)
 
-def formatAREDLLevel(l:AREDLLevel,compact:bool=False,exclude_base_info:bool=False):
+def formatAREDLLevel(l:AREDLLevel,compact:bool=False,exclude_base_info:bool=False,description:bool=True):
     lines:list[str]=[]
     if not exclude_base_info:
         lines.append(f"{l.name} ({l.level_id}) AREDL #{l.position} Points: {l.points}")
@@ -81,6 +82,8 @@ def formatAREDLLevel(l:AREDLLevel,compact:bool=False,exclude_base_info:bool=Fals
         lines.append(f"EDEL Enj: {l.edel_enjoyment:.2f}{'(P)' if l.is_edel_pending else ''}")
         if l.gddl_tier>0:
             lines.append(f"GDDL Tier: {l.gddl_tier:.2f}")
+        if description:
+            lines.append(f"Description: {l.description}")
         
     return "\n".join(lines)
 
