@@ -30,6 +30,10 @@ from ..gd_api import gd,thumbs
 from . import gd_data
 from . import underrated  # noqa: F401
 from . import gd_extras,gduser,platsearch,gdmusic,gdsearch,plat_rank_data,plat_rank  # noqa: F401
+from nonebot import require
+require("bbot_help")
+from ..bbot_help import addHelpFunc,HelpRegistry
+from .gdhelp import GD_HELP
 
 plugin_config = get_plugin_config(Config)
 
@@ -38,21 +42,7 @@ driver=get_driver()
 gdhelp_cmd=on_command("gdhelp")
 @gdhelp_cmd.handle()
 async def _(bot:Bot, event:Event):
-    help_lines=get_gdhelp(bot,event)
-    await gdhelp_cmd.finish("\n".join(help_lines))
-
-require("bbot_help")
-from ..bbot_help import addHelpFunc
+    await gdhelp_cmd.finish("\n".join(await GD_HELP.getAllHelp(bot,event)))
 @addHelpFunc
-def get_help(bot:Bot,event:Event):
-    help_lines=platsearch.get_help(bot,event)
-    help_lines.extend(get_gdhelp(bot,event))
-    return help_lines
-
-def get_gdhelp(bot:Bot,event:Event):
-    help_lines=[]
-    help_lines.extend(gdsearch.get_help(bot,event))
-    help_lines.extend(gd_extras.get_help(bot,event))
-    help_lines.extend(gduser.get_help(bot,event))
-    help_lines.extend(gdmusic.get_help(bot,event))
-    return help_lines
+def get_help():
+    return ["gdhelp 查看GD查询相关命令帮助"]

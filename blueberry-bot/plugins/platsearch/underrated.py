@@ -74,3 +74,8 @@ async def _(args: Message = CommandArg()):
             reply.append(formatUnderrated(l,count>3))
     
     await gdur.finish("\n".join(reply))
+    
+from .gdhelp import GD_HELP
+@GD_HELP.addHelpFunc
+def getHelp():
+    return ["gdur 查询Underrated Levels"]

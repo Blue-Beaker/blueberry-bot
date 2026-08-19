@@ -95,3 +95,9 @@ def formatPRPlayer(p:PlatRankPlayer,compact:bool=False,exclude_base_info:bool=Fa
         return "\n".join(lines)
     else:
         return firstline
+    
+    
+from .gdhelp import GD_HELP
+@GD_HELP.addHelpFunc
+def getHelp():
+    return ["platrank 查询Platformer Rank数据"]

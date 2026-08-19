@@ -177,9 +177,7 @@ async def render_nondemons(req_id:str,classic:gd.PlayerLevels,plat:gd.PlayerLeve
 async def render_demons(req_id:str,classic:gd.PlayerDemonLevels,plat:gd.PlayerDemonLevels):
     return await render_api.render_demons(req_id,classic.ezd,classic.med,classic.hdd,classic.insd,classic.exd,classic.sum(),plat.ezd,plat.med,plat.hdd,plat.insd,plat.exd,plat.sum(),classic.weekly,classic.gauntlet)
 
+from .gdhelp import GD_HELP
+@GD_HELP.addHelpFunc
 def get_help(bot:Bot,event:Event):
     return ["gduser [用户名/ID] 展示玩家信息"]
-
-require("bbot_help")
-from ..bbot_help import addHelpFunc
-addHelpFunc(get_help)

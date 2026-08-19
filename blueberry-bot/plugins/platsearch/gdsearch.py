@@ -468,12 +468,10 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     if lines.msg.__len__():
         await gdsearch.finish(await bbot_api.auto_pack_message(bot,lines.msg,6))
 
+from .gdhelp import GD_HELP
+@GD_HELP.addHelpFunc
 def get_help(bot:Bot,event:Event):
     return ["gdsearch [参数] [关名/ID] 搜索关卡"]
-
-require("bbot_help")
-from ..bbot_help import addHelpFunc
-addHelpFunc(get_help)
 
 def censor_unrate_levels(level:Level):
     level1=Level()

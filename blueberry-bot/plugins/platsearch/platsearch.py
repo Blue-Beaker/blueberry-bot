@@ -637,6 +637,8 @@ async def _(bot:Bot,event:Event):
     await plathelp.finish("\n".join(help_lines))
     return
 
+from .gdhelp import GD_HELP
+@GD_HELP.addHelpFunc
 def get_help(bot:Bot,event:Event):
     help_lines=[
             "plathelp 显示Plat搜索功能相关帮助",
@@ -647,7 +649,3 @@ def get_help(bot:Bot,event:Event):
             "platrandom 随机抽取Plat关卡"
             ]
     return help_lines
-
-require("bbot_help")
-from ..bbot_help import addHelpFunc
-addHelpFunc(get_help)

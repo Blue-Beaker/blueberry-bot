@@ -199,12 +199,10 @@ def buildMessageImage(bot:Bot,message:str,image:bytes,image_name:str):
     msg.addImage(image=image,image_name=image_name)
     return msg.msg
 
+from .gdhelp import GD_HELP
+@GD_HELP.addHelpFunc
 def get_help(bot:Bot,event:Event):
     if bbot_api.supportsImage(bot):
         return ["gdthumb [关名/ID] 获取关卡截图"]
     else:
         return []
-    
-require("bbot_help")
-from ..bbot_help import addHelpFunc
-addHelpFunc(get_help)

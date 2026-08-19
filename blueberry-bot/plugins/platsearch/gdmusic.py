@@ -142,12 +142,10 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
             logger.error(e)
             await on_error()
             
+from .gdhelp import GD_HELP
+@GD_HELP.addHelpFunc
 def get_help(bot:Bot,event:Event):
     if bbot_api.supportsRecord(bot):
         return ["gdmusic [ID] 查询/点播GD音乐"]
     else:
         return []
-    
-require("bbot_help")
-from ..bbot_help import addHelpFunc
-addHelpFunc(get_help)
