@@ -179,3 +179,7 @@ async def render_demons(req_id:str,classic:gd.PlayerDemonLevels,plat:gd.PlayerDe
 
 def get_help(bot:Bot,event:Event):
     return ["gduser [用户名/ID] 展示玩家信息"]
+
+require("bbot_help")
+from ..bbot_help import addHelpFunc
+addHelpFunc(get_help)

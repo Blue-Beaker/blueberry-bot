@@ -694,6 +694,9 @@ def removeImages(id:str):
         if path.exists():
             path.unlink()
     
+require("bbot_help")
+from ..bbot_help import addHelpFunc
+@addHelpFunc
 def get_help(bot:Bot,event:Event):
     help_lines=[
         "gdguess 截图猜GD关卡",

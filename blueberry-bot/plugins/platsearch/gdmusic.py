@@ -147,3 +147,7 @@ def get_help(bot:Bot,event:Event):
         return ["gdmusic [ID] 查询/点播GD音乐"]
     else:
         return []
+    
+require("bbot_help")
+from ..bbot_help import addHelpFunc
+addHelpFunc(get_help)

@@ -41,6 +41,9 @@ async def _(bot:Bot, event:Event):
     help_lines=get_gdhelp(bot,event)
     await gdhelp_cmd.finish("\n".join(help_lines))
 
+require("bbot_help")
+from ..bbot_help import addHelpFunc
+@addHelpFunc
 def get_help(bot:Bot,event:Event):
     help_lines=platsearch.get_help(bot,event)
     help_lines.extend(get_gdhelp(bot,event))

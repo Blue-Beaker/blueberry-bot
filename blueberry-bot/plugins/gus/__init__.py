@@ -288,7 +288,9 @@ gus_cfg=on_command("gus-cfg",permission=SUPERUSER)
 config_handler=make_config_handler("gus-cfg",GusConfigItem,group_config)
 gus_cfg.handle()(config_handler)
 
-
+require("bbot_help")
+from ..bbot_help import addHelpFunc
+@addHelpFunc
 def get_help(bot:Bot,event:Event):
     help_lines=[
             "gus 抓一只gus",

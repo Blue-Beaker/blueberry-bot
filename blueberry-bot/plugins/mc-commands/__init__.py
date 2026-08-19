@@ -1,6 +1,6 @@
 import json
 import traceback
-from nonebot import on_command,logger,on_startswith,get_plugin_config
+from nonebot import on_command,logger,on_startswith,get_plugin_config,require
 from nonebot.rule import is_type
 from nonebot.adapters.minecraft.bot import Bot
 from nonebot.adapters.minecraft import BaseChatEvent,MessageEvent
@@ -15,7 +15,10 @@ from .config import Config
 plugin_config = get_plugin_config(Config)
 
 
-def get_help(bot,event)->str|None:
+require("bbot_help")
+from ..bbot_help import addHelpFunc
+@addHelpFunc
+def get_help(bot:Bot)->str|None:
     if isinstance(bot, Bot):
         return "tp 传送 (只能传送自己)"
     else:

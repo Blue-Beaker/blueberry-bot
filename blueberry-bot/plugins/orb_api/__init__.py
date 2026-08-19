@@ -238,6 +238,9 @@ async def _(bot:Bot,event:Event, args: Message = CommandArg()):
         logger.error(f"Error: {traceback.format_exc()}")
         
 
+require("bbot_help")
+from ..bbot_help import addHelpFunc
+@addHelpFunc
 def get_help(bot:Bot,event:Event):
     help_lines=[
             "orb-get 查看你持有的 Orbs"

@@ -119,6 +119,9 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         
     pass
 
+require("bbot_help")
+from ..bbot_help import addHelpFunc
+@addHelpFunc
 def get_help(bot:Bot,event:Event)->str:
     help_lines=[
         "guess <start|giveup> 开始/放弃猜图 (题库为蔚蓝草莓酱)",

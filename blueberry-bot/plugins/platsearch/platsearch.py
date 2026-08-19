@@ -647,3 +647,7 @@ def get_help(bot:Bot,event:Event):
             "platrandom 随机抽取Plat关卡"
             ]
     return help_lines
+
+require("bbot_help")
+from ..bbot_help import addHelpFunc
+addHelpFunc(get_help)

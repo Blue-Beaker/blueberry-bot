@@ -280,3 +280,7 @@ def get_help(bot:Bot,event:Event):
         return "say 说一句话"
     else:
         return None
+    
+require("bbot_help")
+from ..bbot_help import addHelpFunc
+addHelpFunc(get_help)

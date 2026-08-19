@@ -471,6 +471,10 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
 def get_help(bot:Bot,event:Event):
     return ["gdsearch [参数] [关名/ID] 搜索关卡"]
 
+require("bbot_help")
+from ..bbot_help import addHelpFunc
+addHelpFunc(get_help)
+
 def censor_unrate_levels(level:Level):
     level1=Level()
     level1.__dict__=level.__dict__.copy()

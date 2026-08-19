@@ -205,3 +205,6 @@ def get_help(bot:Bot,event:Event):
     else:
         return []
     
+require("bbot_help")
+from ..bbot_help import addHelpFunc
+addHelpFunc(get_help)
