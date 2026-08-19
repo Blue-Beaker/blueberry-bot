@@ -124,30 +124,16 @@ async def load():
 async def save():
     # say_config.save()
     say_config.save()
+    
+    
+require("bbot_help")
+from ..bbot_help import SUPERUSER_HELP_REGISTRY
+@SUPERUSER_HELP_REGISTRY.addHelpFunc
+def _():
+    return [
+            "say_on/say_off 开启/关闭say功能",
+            "say-cfg 调整Say配置"]
 
-# ── profile_link 事件监听器 ──────────────────────────
-
-from ..bbot_api.profile_link.group_config_migrator import migrate_group_config, unmigrate_group_config
-
-@on_link(LinkUserEvent)
-def _say_on_link(event: LinkUserEvent):
-    if migrate_group_config(say_config, event.profile_id, event.raw_id):
-        logger.info(f"say: 已合并配置 {event.raw_id} → {event.profile_id}")
-
-@on_link(UnlinkUserEvent)
-def _say_on_unlink(event: UnlinkUserEvent):
-    if unmigrate_group_config(say_config, event.profile_id, event.raw_id):
-        logger.info(f"say: 已拆分配置 {event.profile_id} → {event.raw_id}")
-
-@on_link(LinkGroupEvent)
-def _say_on_link_group(event: LinkGroupEvent):
-    if migrate_group_config(say_config, event.profile_id, event.raw_group_id):
-        logger.info(f"say: 已合并群配置 {event.raw_group_id} → {event.profile_id}")
-
-@on_link(UnlinkGroupEvent)
-def _say_on_unlink_group(event: UnlinkGroupEvent):
-    if unmigrate_group_config(say_config, event.profile_id, event.raw_group_id):
-        logger.info(f"say: 已拆分群配置 {event.profile_id} → {event.raw_group_id}")
 
 class SayConfigOld:
     allowed_sessions:dict[str,bool]={}
@@ -187,7 +173,7 @@ async def _(bot:Bot,event: Event, arg: Message = CommandArg()):
     if len(text) == 0:
         await say.finish("你得在say后面加点东西……")
     if len(text) > 1000:
-        await say.finish("请善待小小卒！")
+        await say.finish("请善待小小卒……等等，小小卒是谁？")
     
     orb_cost=0
     orb_id=None
@@ -284,3 +270,28 @@ def get_help(bot:Bot,event:Event):
 require("bbot_help")
 from ..bbot_help import addHelpFunc
 addHelpFunc(get_help)
+
+
+# ── profile_link 事件监听器 ──────────────────────────
+
+from ..bbot_api.profile_link.group_config_migrator import migrate_group_config, unmigrate_group_config
+
+@on_link(LinkUserEvent)
+def _say_on_link(event: LinkUserEvent):
+    if migrate_group_config(say_config, event.profile_id, event.raw_id):
+        logger.info(f"say: 已合并配置 {event.raw_id} → {event.profile_id}")
+
+@on_link(UnlinkUserEvent)
+def _say_on_unlink(event: UnlinkUserEvent):
+    if unmigrate_group_config(say_config, event.profile_id, event.raw_id):
+        logger.info(f"say: 已拆分配置 {event.profile_id} → {event.raw_id}")
+
+@on_link(LinkGroupEvent)
+def _say_on_link_group(event: LinkGroupEvent):
+    if migrate_group_config(say_config, event.profile_id, event.raw_group_id):
+        logger.info(f"say: 已合并群配置 {event.raw_group_id} → {event.profile_id}")
+
+@on_link(UnlinkGroupEvent)
+def _say_on_unlink_group(event: UnlinkGroupEvent):
+    if unmigrate_group_config(say_config, event.profile_id, event.raw_group_id):
+        logger.info(f"say: 已拆分群配置 {event.profile_id} → {event.raw_group_id}")

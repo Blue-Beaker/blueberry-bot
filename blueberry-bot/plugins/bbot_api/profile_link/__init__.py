@@ -1,4 +1,4 @@
-from nonebot import on_command, logger, get_driver
+from nonebot import on_command, logger, get_driver, require
 from nonebot.adapters import Bot, Event, Message
 from nonebot.params import CommandArg
 from nonebot.permission import SUPERUSER
@@ -21,6 +21,12 @@ async def save_profile_links():
     manager.save()
     logger.info(f"已保存 {len(manager.user_links)} 个用户绑定, {len(manager.group_links)} 个群绑定.")
 
+
+require("bbot_help")
+from ...bbot_help import SUPERUSER_HELP_REGISTRY
+@SUPERUSER_HELP_REGISTRY.addHelpFunc
+def _():
+    return "account 管理用户ID绑定"
 
 # ── account 指令 ──────────────────────────────────────
 

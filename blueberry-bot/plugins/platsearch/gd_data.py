@@ -165,3 +165,12 @@ async def _():
         msg.append(cache.getLogInfo())
     await gdupdate.finish(f"刷新完毕:\n"+("\n".join(msg)))
     return
+
+require("bbot_help")
+from ..bbot_help import SUPERUSER_HELP_REGISTRY
+@SUPERUSER_HELP_REGISTRY.addHelpFunc
+def _():
+    return [
+        "platupdate 刷新Plat相关缓存",
+        "gdupdate 刷新GD数据缓存"
+            ]

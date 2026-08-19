@@ -88,3 +88,8 @@ async def _(bot:Bot, event: Event, msg: Message=CommandArg()):
         logger.error(f"Error executing debug command: {traceback.format_exc()}")
         await finish(f"错误. 请检查日志")
     
+require("bbot_help")
+from ..bbot_help import SUPERUSER_HELP_REGISTRY
+@SUPERUSER_HELP_REGISTRY.addHelpFunc
+def _():
+    return "debug 管理调试状态"

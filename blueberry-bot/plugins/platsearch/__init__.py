@@ -45,4 +45,5 @@ async def _(bot:Bot, event:Event):
     await gdhelp_cmd.finish("\n".join(await GD_HELP.getAllHelp(bot,event)))
 @addHelpFunc
 def get_help():
-    return ["gdhelp 查看GD查询相关命令帮助"]
+    return ["gdhelp 查看GD查询相关命令帮助"
+            "plathelp 查看Platformer搜索相关命令帮助"]

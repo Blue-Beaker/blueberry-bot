@@ -246,3 +246,9 @@ def get_help(bot:Bot,event:Event):
             "orb-get 查看你持有的 Orbs"
             ]
     return help_lines
+
+require("bbot_help")
+from ..bbot_help import SUPERUSER_HELP_REGISTRY
+@SUPERUSER_HELP_REGISTRY.addHelpFunc
+def _():
+    return "orb-add 增加/减少指定用户的 Orbs 数量"

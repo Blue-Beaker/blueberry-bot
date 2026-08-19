@@ -2,6 +2,7 @@ from nonebot import on_command,logger,get_plugin_config,get_loaded_plugins,get_d
 from nonebot.rule import is_type
 from nonebot.internal.adapter import Bot,Event,Message
 from nonebot.adapters.minecraft.bot import Bot as MCBot
+from nonebot.permission import SUPERUSER
 
 from nonebot.adapters.discord.commands import (
     CommandOption,
@@ -11,7 +12,7 @@ import platform,psutil
 from .config import Config
 
 require("bbot_help")
-from ..bbot_help import addHelpFunc,addHelpFunc2,getAllHelp,Priority
+from ..bbot_help import addHelpFunc,addHelpFunc2,getAllHelp,Priority,SUPERUSER_HELP_REGISTRY
 
 plugin_config=get_plugin_config(Config)
 
@@ -93,3 +94,12 @@ async def _(bot:Bot,event:Event):
     #     await cmd.send(get_all_help(bot,event))
     # else:
     #     await cmd.send(get_all_help(bot,event))
+    
+@SUPERUSER_HELP_REGISTRY.addHelpFunc2(Priority.VERY_EARLY)
+def _():
+    return "管理员命令:"
+    
+cmd = on_command("suhelp",permission=SUPERUSER)
+@cmd.handle()
+async def _(bot:Bot,event:Event):
+    await cmd.send("\n".join(await SUPERUSER_HELP_REGISTRY.getAllHelp(bot,event)))

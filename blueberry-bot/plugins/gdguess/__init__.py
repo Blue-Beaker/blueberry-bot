@@ -703,3 +703,8 @@ def get_help(bot:Bot,event:Event):
         "gdguess -help 显示gdguess相关帮助"
     ]
     return help_lines
+
+from ..bbot_help import SUPERUSER_HELP_REGISTRY
+@SUPERUSER_HELP_REGISTRY.addHelpFunc
+def _():
+    return "gdguess-cfg 管理gdguess配置"

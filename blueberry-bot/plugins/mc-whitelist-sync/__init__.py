@@ -1,5 +1,5 @@
 import json
-from nonebot import on_command,logger,on_startswith,get_plugin_config,get_adapter
+from nonebot import on_command,logger,on_startswith,get_plugin_config,get_adapter,require
 from nonebot.rule import is_type
 from nonebot.adapters.minecraft.bot import Bot
 from nonebot.adapters.minecraft import BasePlayerCommandEvent,MessageEvent,Adapter as MCAdapter
@@ -84,3 +84,13 @@ async def _(bot:BaseBot,event:BaseEvent,args:Message=CommandArg()):
     assert isinstance(mc_bot,Bot)
     msg,result = await mc_bot.send_rcon_cmd(command=" ".join(cmdargs[1:]))
     await mcexec.finish(f"来自服务器的消息: {msg}\n (返回值={result})")
+    
+    
+require("bbot_help")
+from ..bbot_help import SUPERUSER_HELP_REGISTRY
+@SUPERUSER_HELP_REGISTRY.addHelpFunc
+def _(bot:Bot):
+    return [
+        "mc-whitelist 管理MC白名单",
+        "mc-exec 在指定MC服务器执行命令"
+        ]

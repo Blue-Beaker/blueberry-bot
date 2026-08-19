@@ -297,3 +297,14 @@ def get_help(bot:Bot,event:Event):
             "gus [参数] 相当于gdguess"
             ]
     return help_lines
+
+require("bbot_help")
+from ..bbot_help import SUPERUSER_HELP_REGISTRY
+@SUPERUSER_HELP_REGISTRY.addHelpFunc
+def _():
+    return [
+        "gus-add 添加Gus",
+        "gus-get 查询指定Gus",
+        "gus-rm 删除Gus",
+        "gus-cfg 配置Gus相关设置"
+        ]

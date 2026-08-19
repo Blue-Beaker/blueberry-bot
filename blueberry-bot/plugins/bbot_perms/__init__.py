@@ -76,6 +76,11 @@ def _gus_on_unlink_group(event: UnlinkGroupEvent):
     if unmigrate_group_config(group_permissions, event.profile_id, event.raw_group_id):
         logger.info(f"bbot_perms: 已拆分群配置 {event.profile_id} → {event.raw_group_id}")
 
+require("bbot_help")
+from ..bbot_help import SUPERUSER_HELP_REGISTRY
+@SUPERUSER_HELP_REGISTRY.addHelpFunc
+def _():
+    return "perms 管理一般权限"
     
 perms=on_command("perms",permission=SUPERUSER)
 config_handler=make_config_handler("perms",PermissionsEntry,group_permissions,get_groupid_function=getid)

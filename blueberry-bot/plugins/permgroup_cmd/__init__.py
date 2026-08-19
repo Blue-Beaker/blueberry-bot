@@ -175,3 +175,9 @@ async def _(bot: Bot, event: Event, args: Message = CommandArg()):
     except Exception as e:
         logger.error(f"permgroup 错误: {e}")
         await permgroup_cmd.finish(f"错误: {e}")
+
+require("bbot_help")
+from ..bbot_help import SUPERUSER_HELP_REGISTRY
+@SUPERUSER_HELP_REGISTRY.addHelpFunc
+def _():
+    return "permgroup 管理权限组"

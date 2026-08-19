@@ -115,5 +115,6 @@ def get_help(bot:Bot,event:Event):
     return [
         "jrrp 获取今日人品(运气)",
         "randcolor 随机颜色",
-        "randint [X] [Y] 随机抽个X和Y之间的整数"
+        "randint [X] [Y] 随机抽个X和Y之间的整数",
+        "showcolor 显示指定颜色"
     ]

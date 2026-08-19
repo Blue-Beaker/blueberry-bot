@@ -171,3 +171,11 @@ async def addThumb(msg:TextImageMessage,id:int):
     thumb=await thumbs.getThumbnail_async(id,small=True)
     if thumb:
         msg.addImage(thumb)
+        
+require("bbot_help")
+from ..bbot_help import addHelpFunc
+@addHelpFunc
+def get_help(bot:Bot,event:Event):
+    return [
+        "gdhol 猜GD关卡排名(Pemonlist/AREDL/AREPL)"
+    ]
