@@ -1,4 +1,4 @@
-from nonebot import on_command,logger,get_plugin_config,get_loaded_plugins,get_driver
+from nonebot import on_command,logger,get_plugin_config,get_loaded_plugins,get_driver,require
 from nonebot.rule import is_type
 from nonebot.internal.adapter import Bot,Event,Message
 from nonebot.adapters.minecraft.bot import Bot as MCBot
@@ -9,6 +9,9 @@ from nonebot.adapters.discord.commands import (
 )
 import platform,psutil
 from .config import Config
+
+require("bbot_help")
+from ..bbot_help import addHelpFunc,addHelpFunc2,getAllHelp,Priority
 
 plugin_config=get_plugin_config(Config)
 
@@ -23,6 +26,16 @@ def get_system_info()->str:
     
     # print(platform)
     return "\n".join(sysinfo)
+
+@addHelpFunc2(Priority.VERY_EARLY)
+def _(bot:Bot,event:Event):
+    is_mc=isinstance(bot,MCBot)
+    help_lines=[
+        f"接受指令前缀: - &{' /' if not is_mc else ''}",
+        "help 显示本帮助",
+        "sysinfo 显示运行此Bot的系统信息"
+    ]
+    return help_lines
 
 def get_all_help(bot:Bot,event:Event)->str:
     is_mc=isinstance(bot,MCBot)
@@ -69,12 +82,14 @@ slash = on_slash_command(
     description="显示帮助")
 @slash.handle()
 async def _(bot:Bot,event:Event):
-    await slash.send(get_all_help(bot,event))
+    await cmd.send("\n".join(await getAllHelp(bot,event)))
+    # await slash.send(get_all_help(bot,event))
 
 cmd = on_command("help")
 @cmd.handle()
 async def _(bot:Bot,event:Event):
-    if(isinstance(bot,MCBot)):
-        await cmd.send(get_all_help(bot,event))
-    else:
-        await cmd.send(get_all_help(bot,event))
+    await cmd.send("\n".join(await getAllHelp(bot,event)))
+    # if(isinstance(bot,MCBot)):
+    #     await cmd.send(get_all_help(bot,event))
+    # else:
+    #     await cmd.send(get_all_help(bot,event))
