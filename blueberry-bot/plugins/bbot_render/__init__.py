@@ -35,8 +35,10 @@ if __name__ == "__main__" and __package__ is None:
     if str(_root) not in sys.path:
         sys.path.insert(0, str(_root))
     from plugins.bbot_render.config import Config
+    from plugins.bbot_render.models import RenderArgs
 else:
     from .config import Config
+    from .models import RenderArgs
 
 try:
     from nonebot import get_plugin_config
@@ -215,114 +217,6 @@ class RenderAPI:
         logger.info(f"Render took {(time.time_ns()-time_ns)/1000000:.1f}ms.")
         return result
 
-    async def render_player_info(self, request_id: str,
-                                 playername: str,
-                                 stars: int = 0,
-                                 moons: int = 0,
-                                 coins: int = 0,
-                                 usercoins: int = 0,
-                                 demons: int = 0,
-                                 creatorpoints: int = 0,
-                                 nondemons: int|str = 0,
-                                 nonpemons: int|str = 0,
-                                 c_demons: int = 0,
-                                 pemons: int = 0,**kwargs) -> bytes | dict | None:
-        """渲染 player_info 场景。
-
-        参数说明参考 player_info_renderer.gd。
-        """
-        params = {k: v for k, v in locals().items()
-                  if k not in ("self", "request_id") and v is not None}
-        params.update(kwargs)
-        return await self._render("player_info", request_id, params)
-
-    async def render_demons(self, request_id: str,
-                            c_ezd: int = 0,
-                            c_med: int = 0,
-                            c_hdd: int = 0,
-                            c_insd: int = 0,
-                            c_exd: int = 0,
-                            c_all: int = 0,
-                            p_ezd: int = 0,
-                            p_med: int = 0,
-                            p_hdd: int = 0,
-                            p_insd: int = 0,
-                            p_exd: int = 0,
-                            p_all: int = 0,
-                            weekly: int = 0,
-                            gauntlet: int = 0) -> bytes | dict | None:
-        """渲染 demons 场景（恶魔完成统计）。
-
-        参数说明参考 demons_renderer.gd。
-        """
-        params = {k: v for k, v in locals().items()
-                  if k not in ("self", "request_id") and v is not None}
-        return await self._render("demons", request_id, params)
-
-    async def render_nondemons(self, request_id: str,
-                               c_auto: int = 0,
-                               c_easy: int = 0,
-                               c_normal: int = 0,
-                               c_hard: int = 0,
-                               c_harder: int = 0,
-                               c_insane: int = 0,
-                               c_all: int|str = 0,
-                               p_auto: int = 0,
-                               p_easy: int = 0,
-                               p_normal: int = 0,
-                               p_hard: int = 0,
-                               p_harder: int = 0,
-                               p_insane: int = 0,
-                               p_all: int|str = 0,
-                               daily: int = 0,
-                               gauntlet: int = 0) -> bytes | dict | None:
-        """渲染 nondemons 场景（非恶魔完成统计）。
-
-        参数说明参考 nondemons_renderer.gd。
-        """
-        params = {k: v for k, v in locals().items()
-                  if k not in ("self", "request_id") and v is not None}
-        return await self._render("nondemons", request_id, params)
-
-    async def render_level(self, request_id: str,
-            level_name: str = "",
-            creator: str = "",
-            song_id: int = 0,
-            song_name: str = "",
-            song_author: str = "",
-            weight: str = "",
-            pemonlist: str = "",
-            stars: int = 0,
-            length: str = "",
-            downloads: int = 0,
-            orbs: int = 0,
-            level_id: int = 0,
-            # Texture resources — accepts raw bytes or URL string
-            thumbnail: bytes | str = b"",
-            difficulty: int = 0,
-            feature_level: int = 0,
-            is_plat: bool = False,
-            diffchart_tier: str = '',
-            checkpoints: str = '',
-            diffchart_tags: str = '',
-            description: str = '',
-            description2: str = '',
-            length2: str = '',
-            bronze_coins: bool = False,
-            likes: int = 0,
-            # Coins
-            coins: int = 0,
-            scene_type: str = "level",
-            **kwargs) -> bytes | dict | None:
-        """渲染 level 场景（关卡信息）。
-
-        可直接传入 bytes 类型的 thumbnail，框架自动转为 base64:// 内联编码。
-        """
-        params = {k: v for k, v in locals().items()
-                  if k not in ("self", "request_id", "scene_type", "kwargs") and v is not None and v != b""}
-        params.update(kwargs)
-        return await self._render(scene_type, request_id, params)
-
     async def render_text(self, request_id: str,
                                description: str) -> bytes | dict | None:
         """渲染 text 场景。
@@ -330,16 +224,23 @@ class RenderAPI:
         params = {k: v for k, v in locals().items()
                   if k not in ("self", "request_id") and v is not None}
         return await self._render("text_scene", request_id, params)
+    
+    async def render(self, args:RenderArgs) -> bytes | dict | None:
+        """使用特定的RenderArgs渲染场景。
+        """
+        params = args.get_params()
+        return await self._render(args.scene_type, args.request_id, params)
 
 
 
 async def _test_main():
     """测试功能：发送示例请求并保存结果"""
     api = RenderAPI()
+    from plugins.bbot_render.models import PlayerInfoRenderArgs,DemonsRenderArgs,NonDemonsRenderArgs
 
     print("=== Testing player_info ===")
-    result = await api.render_player_info(
-        "test-001",
+    args_player=PlayerInfoRenderArgs("test-001")
+    args_player.update_args(
         playername="Robtop",
         stars=1337,
         moons=42,
@@ -352,24 +253,27 @@ async def _test_main():
         c_demons=100,
         pemons=100
     )
+    result = await api.render(args_player)
     _save_result(result, "render_player_info.png")
 
     print("\n=== Testing demons ===")
-    result = await api.render_demons(
-        "test-002",
+    args_demons=DemonsRenderArgs("test-002")
+    args_demons.update_args(
         c_ezd=10, c_med=20, c_hdd=15, c_insd=8, c_exd=5, c_all=58,
         p_ezd=5, p_med=8, p_hdd=3, p_insd=1, p_exd=0, p_all=17,
         weekly=3, gauntlet=2,
     )
+    result = await api.render(args_demons)
     _save_result(result, "render_demons.png")
 
     print("\n=== Testing nondemons ===")
-    result = await api.render_nondemons(
-        "test-003",
+    args_nondemons=NonDemonsRenderArgs("test-003")
+    args_nondemons.update_args(
         c_auto=5, c_easy=30, c_normal=50, c_hard=25, c_harder=10, c_insane=3, c_all=123,
         p_auto=3, p_easy=15, p_normal=20, p_hard=8, p_harder=2, p_insane=0, p_all=48,
         daily=1,
     )
+    result = await api.render(args_nondemons)
     _save_result(result, "render_nondemons.png")
     
     print("\n=== Testing text ===")

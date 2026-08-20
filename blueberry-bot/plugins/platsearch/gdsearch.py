@@ -67,6 +67,7 @@ plugin_cfg=get_plugin_config(Config)
 
 require('bbot_render')
 from ..bbot_render import RenderAPI
+from ..bbot_render.models import LevelLargeRenderArgs
 render_api=RenderAPI(uri=plugin_cfg.render_server_uri)
 
 _DIFFICULTY_MAPPINGS:dict[str,Difficulty]={
@@ -337,50 +338,39 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     # Image Sections
     if enable_image:
         req_id_base=bbot_api.getid(event)
-        extra_render_args:dict[str,Any]={}
+        imargs=LevelLargeRenderArgs(req_id_base+"_base")
+        
         if dc_entry:
-            extra_render_args.update({
-                "weight":str(dc_entry.weight or '-'),
-                "pemonlist":str(dc_entry.pemon or '-'),
-                "diffchart_tier":dc_entry.tier or '',
-                "diffchart_tags":','.join(dc_entry.tags)
-            })
+            imargs.weight = str(dc_entry.weight or '-')
+            imargs.pemonlist = str(dc_entry.pemon or '-')
+            imargs.diffchart_tier = dc_entry.tier or ''
+            imargs.diffchart_tags = ','.join(dc_entry.tags)
             
         if pemonlist_entry:
-            extra_render_args.update({
-                "pemonlist":str(pemonlist_entry.placement or '-')
-            })
+            imargs.pemonlist = str(pemonlist_entry.placement or '-')
             
         if aredl_entry:
-            extra_render_args.update({
-                "aredl_pos":str(aredl_entry.position or '-'),
-                "aredl_tags": ", ".join(aredl_entry.tags)
-            })
+            imargs.aredl_pos = str(aredl_entry.position or '-')
+            imargs.aredl_tags =  ", ".join(aredl_entry.tags)
             
         if underrated_entry:
-            extra_render_args.update({
-                "underrated_tier":f"{underrated_entry.tier} ({underrated_entry.get_tier_reference()})",
-                "underrated_tags": ", ".join(underrated_entry.skillsets)
-            })
+            imargs.underrated_tier = f"{underrated_entry.tier} ({underrated_entry.get_tier_reference()})"
+            imargs.underrated_tags =  ", ".join(underrated_entry.skillsets)
             
         if nlwlike_entry:
-            extra_render_args.update({
-                "nlw_type": nlwlike_entry.sheet,
-                "nlw_tier": nlwlike_entry.get_section(),
-                "nlw_tags": ", ".join(nlwlike_entry.skillsets)
-            })
+            imargs.nlw_type =  nlwlike_entry.sheet
+            imargs.nlw_tier =  nlwlike_entry.get_section()
+            imargs.nlw_tags =  ", ".join(nlwlike_entry.skillsets)
             
         if nlwlike_entries:
             for l in nlwlike_entries:
                 if l.checkpoints: 
-                    extra_render_args["checkpoints"]=l.checkpoints.replace("∞","Infinite")
+                    imargs.checkpoints=l.checkpoints.replace("∞","Infinite")
                     break
             
         if level2:
-            extra_render_args.update({
-                "length2":format_verify_time(level2.verification_time),
-                "song_info": f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}"
-            })
+            imargs.length2=format_verify_time(level2.verification_time)
+            imargs.song_info=f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}"
             
         description2_lines:list[str]=[]
         if aredl_entry and aredl_entry.description:
@@ -389,28 +379,27 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             description2_lines.append(nlwlike_entry.sheet+" Description:\n"+nlwlike_entry.description)
         description2="\n".join(description2_lines)
         
-        img=await render_api.render_level(req_id_base+"_base",
-                        level_id=level.id,
-                        level_name=level.name,
-                        song_id=level.songID,
-                        song_author=song.artistName if song else "Unknown",
-                        song_name=song.name if song else "Unknown",
-                        creator=level.creator,
-                        stars=level.stars,
-                        length=level.get_length().get_name(),
-                        difficulty=level.get_difficulty().value,
-                        feature_level=level.epic+1 if level.featured>0 else 0,
-                        is_plat=level.is_plat(),
-                        coins=level.coins,
-                        bronze_coins=not level.verifiedCoins,
-                        downloads=level.downloads,
-                        likes=level.likes,
-                        scene_type="level_large",
-                        thumbnail=getThumbnailUrl(level.id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or "",
-                        description=level.get_description(),
-                        description2=description2,
-                        **extra_render_args
-                        )
+        imargs.level_id=level.id
+        imargs.level_name=level.name
+        imargs.song_id=level.songID
+        imargs.song_author=song.artistName if song else "Unknown"
+        imargs.song_name=song.name if song else "Unknown"
+        imargs.creator=level.creator
+        imargs.stars=level.stars
+        imargs.length=level.get_length().get_name()
+        imargs.difficulty=level.get_difficulty().value
+        imargs.feature_level=level.epic+1 if level.featured>0 else 0
+        imargs.is_plat=level.is_plat()
+        imargs.coins=level.coins
+        imargs.bronze_coins=not level.verifiedCoins
+        imargs.downloads=level.downloads
+        imargs.likes=level.likes
+        imargs.thumbnail=getThumbnailUrl(level.id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or ""
+        imargs.description=level.get_description()
+        imargs.description2=description2
+        
+        
+        img=await render_api.render(imargs)
         if isinstance(img,bytes):
             msg2=bbot_api.TextImageMessage.build(bot)
             msg2.addLine(repr_level(level))

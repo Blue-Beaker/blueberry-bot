@@ -23,7 +23,7 @@ require('bbot_api')
 from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2_async,getList2_async,getUser_async,getLevelsFromList_async,ListSearchType,LevelSearchType,PlayerIcons
+from ..gd_api.gd import getLevel2_async,getList2_async,getUser_async,getLevelsFromList_async,ListSearchType,LevelSearchType,PlayerIcons,PlayerInfo
 from ..gd_api import gd
 from ..gd_api.thumbs import getThumbnail_async
 
@@ -32,6 +32,7 @@ plugin_cfg=get_plugin_config(Config)
 
 require('bbot_render')
 from ..bbot_render import RenderAPI
+from ..bbot_render.models import PlayerInfoRenderArgs,DemonsRenderArgs,NonDemonsRenderArgs
 render_api=RenderAPI(uri=plugin_cfg.render_server_uri)
 
 gduser = on_command("gduser")
@@ -64,7 +65,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     
     await bbot_api.trigger_typing(bot,event)
     
-    user=await getUser_async(search)
+    user:PlayerInfo|None=await getUser_async(search)
     if not user or not user.account_id:
         await gduser.finish("未找到玩家, 或发生错误.")
         return
@@ -88,18 +89,32 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     # Image Sections
     if enable_image:
         req_id_base=bbot_api.getid(event)
-        user_info_args:dict[str,str]={}
+        imargs0=PlayerInfoRenderArgs(req_id_base+"_base")
         
         player_icons=getIconIDs(user.icon)
         icon_type=ICON_TYPES[icon.icon_type]
         
-        user_info_args["player_icon"]=construct_icon_url(icon_type,player_icons.get(icon_type,0),icon.color,icon.color2,icon.glow_color)
+        imargs0.player_icon=construct_icon_url(icon_type,player_icons.get(icon_type,0),icon.color,icon.color2,icon.glow_color)
         
         if show_icons:
             for i,id in player_icons.items():
-                user_info_args["icon_"+i.value]=construct_icon_url(i,id,icon.color,icon.color2,icon.glow_color)
+                imargs0.__setattr__("icon_"+i.value,construct_icon_url(i,id,icon.color,icon.color2,icon.glow_color))
+        logger.info(imargs0.__dict__)
+                
+        imargs0.playername=user.user_name
+        imargs0.stars=user.stars
+        imargs0.moons=user.moons
+        imargs0.coins=user.secret_coins
+        imargs0.usercoins=user.user_coins
+        imargs0.demons=user.demons
+        imargs0.creatorpoints=user.creator_points
+        imargs0.nondemons=f"{c.sumNoAuto()}/{c.sum()}"
+        imargs0.nonpemons=f"{p.sumNoAuto()}/{p.sum()}"
+        imargs0.c_demons=c_demons.sum()
+        imargs0.pemons=pemons.sum()
         
-        img=await render_api.render_player_info(req_id_base+"_base",user.user_name,user.stars,user.moons,user.secret_coins,user.user_coins,user.demons,user.creator_points,f"{c.sumNoAuto()}/{c.sum()}",f"{p.sumNoAuto()}/{p.sum()}",c_demons.sum(),pemons.sum(),**user_info_args)
+        img=await render_api.render(imargs0)
+        
         if isinstance(img,bytes):
             msg.addImage(img)
             info_image=True
@@ -172,10 +187,48 @@ def getIconIDs(icon: PlayerIcons):
 
     
 async def render_nondemons(req_id:str,classic:gd.PlayerLevels,plat:gd.PlayerLevels):
-    return await render_api.render_nondemons(req_id,classic.auto,classic.easy,classic.normal,classic.hard,classic.harder,classic.insane,classic.sum(),plat.auto,plat.easy,plat.normal,plat.hard,plat.harder,plat.insane,plat.sum(),classic.daily,classic.gauntlet)
+    imargs=NonDemonsRenderArgs(req_id)
+    imargs.c_auto=classic.auto
+    imargs.c_easy=classic.easy
+    imargs.c_normal=classic.normal
+    imargs.c_hard=classic.hard
+    imargs.c_harder=classic.harder
+    imargs.c_insane=classic.insane
+    imargs.c_all=classic.sum()
+    
+    imargs.p_auto=plat.auto
+    imargs.p_easy=plat.easy
+    imargs.p_normal=plat.normal
+    imargs.p_hard=plat.hard
+    imargs.p_harder=plat.harder
+    imargs.p_insane=plat.insane
+    imargs.p_all=plat.sum()
+    
+    imargs.daily=classic.daily
+    imargs.gauntlet=classic.gauntlet
+    
+    return await render_api.render(imargs)
 
 async def render_demons(req_id:str,classic:gd.PlayerDemonLevels,plat:gd.PlayerDemonLevels):
-    return await render_api.render_demons(req_id,classic.ezd,classic.med,classic.hdd,classic.insd,classic.exd,classic.sum(),plat.ezd,plat.med,plat.hdd,plat.insd,plat.exd,plat.sum(),classic.weekly,classic.gauntlet)
+    imargs=DemonsRenderArgs(req_id)
+    imargs.c_ezd=classic.ezd
+    imargs.c_med=classic.med
+    imargs.c_hdd=classic.hdd
+    imargs.c_insd=classic.insd
+    imargs.c_exd=classic.exd
+    imargs.c_all=classic.sum()
+    
+    imargs.p_ezd=plat.ezd
+    imargs.p_med=plat.med
+    imargs.p_hdd=plat.hdd
+    imargs.p_insd=plat.insd
+    imargs.p_exd=plat.exd
+    imargs.p_all=plat.sum()
+    
+    imargs.weekly=classic.weekly
+    imargs.gauntlet=classic.gauntlet
+    
+    return await render_api.render(imargs)
 
 from .gdhelp import GD_HELP
 @GD_HELP.addHelpFunc
