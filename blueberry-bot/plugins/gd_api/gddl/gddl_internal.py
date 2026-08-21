@@ -14,13 +14,13 @@ class GDDLSearchResult:
         self.total=safeInt(resp.get("total"),-1)
         self.limit=safeInt(resp.get("limit"),-1)
         self.page=safeInt(resp.get("page"),-1)
-        self.levels=resp.get("levels",{})
+        self.levels=resp.get("data",{})
         return self
     def __repr__(self) -> str:
         return f"[{self.__class__.__name__}]{self.__dict__}"
 
 async def getGDDLResponse(page:int=0,limit:int=25):
-    url=f"https://gdladder.com/api/level/search?limit={limit}&page={page}&sort=ID&sortDirection=asc&length=6"
+    url=f"https://gdladder.com/api/levels?limit={limit}&page={page}&sort=ID&sortDirection=asc&length=6"
     headers = {
         "User-Agent": "",
         "accept": "application/json"
