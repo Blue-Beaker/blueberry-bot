@@ -29,7 +29,7 @@ from ..gd_api import gd,thumbs
 
 from . import gd_data
 from . import underrated  # noqa: F401
-from . import gd_extras,gduser,platsearch,gdmusic,gdsearch,plat_rank_data,plat_rank  # noqa: F401
+from . import gd_extras,gduser,platsearch,gdmusic,gdsearch,plat_rank_data,plat_rank,gdlocalsearch  # noqa: F401
 from nonebot import require
 require("bbot_help")
 from ..bbot_help import addHelpFunc,HelpRegistry

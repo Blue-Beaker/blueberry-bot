@@ -166,6 +166,16 @@ async def _():
     await gdupdate.finish(f"刷新完毕:\n"+("\n".join(msg)))
     return
 
+gdupdate = on_command("gddlupdate",permission=SUPERUSER)
+@gdupdate.handle()
+async def _():
+    logger.info("Updating GDDL cache...")
+    await gdupdate.send("开始刷新GDDL缓存...")
+    msg=[]
+    await gddl.CACHE.updateNow()
+    await gdupdate.finish(f"刷新完毕: {(gddl.CACHE.get() or []).__len__()}")
+    return
+
 require("bbot_help")
 from ..bbot_help import SUPERUSER_HELP_REGISTRY
 @SUPERUSER_HELP_REGISTRY.addHelpFunc

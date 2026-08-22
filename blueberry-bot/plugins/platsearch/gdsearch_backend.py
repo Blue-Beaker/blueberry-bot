@@ -13,10 +13,12 @@ from ..gd_api.gd import Difficulty,Length
 from ..gd_api import gd
 from ..gd_api.gd import Level as GDLevel
 from ..gd_api.thumbs import getThumbnail_async,getThumbnailUrl
+from ..gd_api.gddl import GDDLLevel
 require('bbot_render')
 from ..bbot_render.models import LevelLargeRenderArgs
 
 class GDLevelInfoProvider:
+    level_id:int=0
     
     dc_entry:PlatChartEntry|None=None
     dc_entries:list[PlatChartEntry]
@@ -29,7 +31,8 @@ class GDLevelInfoProvider:
     pemonlist_entry:PemonlistLevel|None=None
     pemonlist_entries:list[PemonlistLevel]
     
-    def __init__(self) -> None:
+    def __init__(self,level_id:int) -> None:
+        self.level_id=level_id
         self.dc_entries=[]
         self.nlwlike_entries=[]
         self.underrated_entries=[]
@@ -38,7 +41,8 @@ class GDLevelInfoProvider:
         
     # is_demon and is_plat are for optimizing the fetching, skipping unnecessary lookups in irrevelant caches. None values forces lookups in all caches.
     # is_demon and is_plat are for optimizing the fetching, skipping unnecessary lookups in irrevelant caches. None values forces lookups in all caches.
-    def fetch(self,id:int,is_demon:bool|None=None,is_plat:bool|None=None):
+    def fetch(self,is_demon:bool|None=None,is_plat:bool|None=None):
+        id=self.level_id
         dc_entry=None
         dc_entries:list[PlatChartEntry]=[]
         # Check Difficulty Chart for platformers
@@ -174,4 +178,3 @@ class GDLevelInfoProvider:
             for e in nlwlike_entries:
                 lines.append(formatters.formatListsLevel(e,False,True,not image_shown))
         return lines
-                

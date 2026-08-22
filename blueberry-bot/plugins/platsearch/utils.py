@@ -1,5 +1,6 @@
 
 import math
+import re
 from typing import Any, Callable, TypeVar
 from nonebot import require
 from nonebot.matcher import Matcher
@@ -53,3 +54,14 @@ def ensure_gd_level(levels:list[Level]|None,pageinfo:PageInfo,repr_level_functio
             lines.append(repr_level_function(l))
         raise SearchException("\n".join(lines))
     return levels[0]
+
+def searchInName(search:str,name:str,fuzzy:bool):
+    if fuzzy:
+        return search.lower() in name.lower()
+    else:
+        patt = re.compile(r"(.*)\(.*\)")
+        matched=patt.match(name)
+        if matched:
+            name=matched.group(1)
+        return search.lower().strip() == name.lower().strip()
+    

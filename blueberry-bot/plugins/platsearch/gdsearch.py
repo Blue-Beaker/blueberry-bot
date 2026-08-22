@@ -297,8 +297,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     if song and song.id<0 :
         song=None
         
-    info_provider=GDLevelInfoProvider()
-    info_provider.fetch(level.id,level.demon,level.is_plat())
+    info_provider=GDLevelInfoProvider(level.id)
+    info_provider.fetch(level.demon,level.is_plat())
     
     # Image Sections
     if enable_image:
@@ -308,6 +308,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         info_provider.fillRenderArgs(imargs)
         
         imargs.level_id=level.id
+        imargs.thumbnail=getThumbnailUrl(level.id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or ""
+        
         imargs.level_name=level.name
         imargs.song_id=level.songID
         imargs.song_author=song.artistName if song else "Unknown"
@@ -322,9 +324,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         imargs.bronze_coins=not level.verifiedCoins
         imargs.downloads=level.downloads
         imargs.likes=level.likes
-        imargs.thumbnail=getThumbnailUrl(level.id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or ""
         imargs.description=level.get_description()
         
+        if level2:
+            imargs.length2=format_verify_time(level2.verification_time)
+            imargs.song_info=f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}"
         
         img=await render_api.render(imargs)
         if isinstance(img,bytes):
