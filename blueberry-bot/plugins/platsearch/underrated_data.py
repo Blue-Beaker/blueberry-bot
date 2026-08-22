@@ -95,7 +95,7 @@ def get_all_underrated():
     return entries
 
     
-def formatUnderrated(l:UnderratedLevel,compact:bool=False,exclude_base_info:bool=False):
+def formatUnderrated(l:UnderratedLevel,compact:bool=False,exclude_base_info:bool=False,description:bool=True):
     line=f"{l.section}-{l.tier}"
     tier_ref=l.get_tier_reference()
     if tier_ref:
@@ -103,7 +103,9 @@ def formatUnderrated(l:UnderratedLevel,compact:bool=False,exclude_base_info:bool
     if not exclude_base_info:
         line+=f"{l.name} by {l.creator} ({l.id})"
     if not compact:
-        line+=f"\n{",".join(l.skillsets)}\n{l.desc}"
+        line+=f"\n{",".join(l.skillsets)}"
+        if description:
+            line+=f"\n{l.desc}"
     if not exclude_base_info and 'Platformer' in l.skillsets:
         line+='🌙'
     return line

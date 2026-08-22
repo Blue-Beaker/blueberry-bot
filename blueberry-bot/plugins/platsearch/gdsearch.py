@@ -21,7 +21,7 @@ from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGro
 from .config import Config
 from .gd_icon import IconType, construct_icon_url,get_icon,ICON_TYPES
 from .utils import repr_level,repr_list
-from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,PEMONLIST_CACHE,AREDL_CACHE,AREDLLevel,PemonlistLevel
+from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,PEMONLIST_CACHE,AREDL_CACHE,AREDLLevel,PemonlistLevel,UNDERRATED_CACHE
 from .underrated_data import formatUnderrated,UnderratedLevel
 from .plat_sheets import LevelEntry,TheListsEntry,PlatChartEntry
 from . import formatters
@@ -41,7 +41,7 @@ from ..bbot_perms import get_perms
 from .utils import repr_level,repr_list,ensure_gd_level,SearchException
 from . import utils
 
-from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE
+from .gdsearch_backend import GDLevelInfoProvider
 
 def get_level_line(level:Level) -> str:
     levelstr=repr_level(level)
@@ -296,88 +296,16 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     song=await getSong_async(level.songID,level.official_song)
     if song and song.id<0 :
         song=None
-    
-    dc_entry=None
-    dc_entries:list[PlatChartEntry]=[]
-    # Check Difficulty Chart for platformers
-    # if level.is_plat():
-    dc_entries=PLAT_CHART_CACHE.get_for_id(level.id)
-    if dc_entries:
-        dc_entry=dc_entries[0]
-            
-    nlwlike_entry=None
-    nlwlike_entries:list[TheListsEntry]=[]
-    # Check NLW-like for pemons
-    if level.demon:
-        nlwlike_entries=PLAT_SHEET_CACHE.get_for_id(level.id)
-        nlwlike_entries.sort(key=lambda x: 1 if x.is_legacy() else 0)
         
-        if nlwlike_entries:
-            nlwlike_entry=nlwlike_entries[0]
-    
-    underrated_entry=None
-    underrated_entries:list[UnderratedLevel]=[]
-    # Check underrated levels for non-demons
-    if not level.demon:
-        underrated_entries=UNDERRATED_CACHE.get_for_id(level.id)
-        if underrated_entries:
-            underrated_entry=underrated_entries[0]
-            
-    aredl_entry=None
-    aredl_entries:list[AREDLLevel]=[]
-    if level.demon:
-        aredl_entries=AREDL_CACHE.get_for_id(level.id)
-        aredl_entry=aredl_entries[0] if aredl_entries else None
-        
-    pemonlist_entry=None
-    pemonlist_entries:list[PemonlistLevel]=[]
-    if level.demon and level.is_plat():
-        pemonlist_entries=PEMONLIST_CACHE.get_for_id(level.id)
-        pemonlist_entry=pemonlist_entries[0] if pemonlist_entries else None
+    info_provider=GDLevelInfoProvider()
+    info_provider.fetch(level.id,level.demon,level.is_plat())
     
     # Image Sections
     if enable_image:
         req_id_base=bbot_api.getid(event)
         imargs=LevelLargeRenderArgs(req_id_base+"_base")
         
-        if dc_entry:
-            imargs.weight = str(dc_entry.weight or '-')
-            imargs.pemonlist = str(dc_entry.pemon or '-')
-            imargs.diffchart_tier = dc_entry.tier or ''
-            imargs.diffchart_tags = ','.join(dc_entry.tags)
-            
-        if pemonlist_entry:
-            imargs.pemonlist = str(pemonlist_entry.placement or '-')
-            
-        if aredl_entry:
-            imargs.aredl_pos = str(aredl_entry.position or '-')
-            imargs.aredl_tags =  ", ".join(aredl_entry.tags)
-            
-        if underrated_entry:
-            imargs.underrated_tier = f"{underrated_entry.tier} ({underrated_entry.get_tier_reference()})"
-            imargs.underrated_tags =  ", ".join(underrated_entry.skillsets)
-            
-        if nlwlike_entry:
-            imargs.nlw_type =  nlwlike_entry.sheet
-            imargs.nlw_tier =  nlwlike_entry.get_section()
-            imargs.nlw_tags =  ", ".join(nlwlike_entry.skillsets)
-            
-        if nlwlike_entries:
-            for l in nlwlike_entries:
-                if l.checkpoints: 
-                    imargs.checkpoints=l.checkpoints.replace("∞","Infinite")
-                    break
-            
-        if level2:
-            imargs.length2=format_verify_time(level2.verification_time)
-            imargs.song_info=f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}"
-            
-        description2_lines:list[str]=[]
-        if aredl_entry and aredl_entry.description:
-            description2_lines.append("AREDL Description:\n"+aredl_entry.description)
-        if nlwlike_entry and nlwlike_entry.description:
-            description2_lines.append(nlwlike_entry.sheet+" Description:\n"+nlwlike_entry.description)
-        description2="\n".join(description2_lines)
+        info_provider.fillRenderArgs(imargs)
         
         imargs.level_id=level.id
         imargs.level_name=level.name
@@ -396,7 +324,6 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         imargs.likes=level.likes
         imargs.thumbnail=getThumbnailUrl(level.id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or ""
         imargs.description=level.get_description()
-        imargs.description2=description2
         
         
         img=await render_api.render(imargs)
@@ -437,30 +364,9 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
     if level2:
         lines.addLine(f"Upload/update: {level2.upload_date}/{level2.update_date}")
-        
-    if underrated_entries:
-        lines.addLine("--Underrated Levels--")
-        for e in underrated_entries:
-            lines.addLine(formatUnderrated(e,False,True))
     
-    if dc_entries:
-        lines.addLine("--Difficulty Chart--")
-    for e in dc_entries:
-        lines.addLine(formatters.formatDiffChart(e,False,True))
-        
-    if (not dc_entries) and pemonlist_entry:
-        lines.addLine(formatters.formatPemonlist(pemonlist_entry,False,True)) 
-    
-    if nlwlike_entries:
-        lines.addLine("--NLW/IDS/HDS--")
-    for e in nlwlike_entries:
-        lines.addLine(formatters.formatListsLevel(e,False,True,not info_image))
-            
-    if aredl_entries:
-        lines.addLine("--AREDL--")
-        for e in aredl_entries:
-            lines.addLine(formatters.formatAREDLLevel(e,False,True,not info_image))
-        
+    for l in info_provider.getTextDescription(info_image):
+        lines.addLine(l)
 
     if lines.msg.__len__():
         await gdsearch.finish(await bbot_api.auto_pack_message(bot,lines.msg,6))
