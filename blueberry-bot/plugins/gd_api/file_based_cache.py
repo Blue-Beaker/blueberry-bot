@@ -69,7 +69,7 @@ class FileBasedCache(Generic[_D]):
         return True
     
     def get(self) -> _D|None:
-        if not self.cache_path:
+        if not self.cache_path or not os.path.isfile(self.cache_path):
             return None
         
         if self.data_type==str:
