@@ -19,3 +19,5 @@ numpy==2.4.4
 opencv-python-headless==4.13.0.92
 requests==2.33.1
 pillow>=12.3.0
+
+sympy==1.14.0
