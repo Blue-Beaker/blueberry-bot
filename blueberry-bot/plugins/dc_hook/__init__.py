@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from typing import Any, Dict, Optional
 from nonebot import get_plugin_config,logger,require
 from nonebot.adapters import Bot
@@ -22,6 +23,7 @@ async def handle_api_result(
 ):
     if not isinstance(bot, DCBot):
         return
+    
     if exception is not None:
         logger.error(f"API call {api} failed with exception: {exception}")
     if isinstance(exception, NetworkError):
@@ -33,8 +35,8 @@ async def handle_api_result(
         retries += 1
         interval = plugin_config.msg_retry_interval + retries * plugin_config.msg_retry_interval_increment
         await asyncio.sleep(interval)
-        
-        await bot.call_api(api, **data, _dchook_retries=retries)
+        data["_dchook_retries"]=retries
+        await bot.call_api(api, **data)
         logger.info(f"API call {api} succeeded on retry {retries}.")
         return
     
