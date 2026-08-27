@@ -28,6 +28,8 @@ DIFFICULTY_CHART = Sheet("1ApwiAVAcBmfyoPW3wvDzc8JvY4Lfg5tFsPlYg3DNWhc","The Cha
 
 PATTERN_CHALLENGE = re.compile(r"(.*)\((.*?)\)")
 CHALLENGE_TYPES = set(['deathless','coin','unnerfed','nerfed'])
+
+BASENAME_REGEX = re.compile(r"(.*)\((.*)\)")
     
 class LevelEntry(BaseSerializableEntry):
     id:int=0
@@ -44,8 +46,7 @@ class LevelEntry(BaseSerializableEntry):
         if fuzzy_match:
             return search.lower() in self.name.lower()
         else:
-            patt = re.compile(r"(.*)\(.*\)")
-            matched=patt.match(self.name)
+            matched=BASENAME_REGEX.match(self.name)
             name=self.name
             if matched:
                 name=matched.group(1)

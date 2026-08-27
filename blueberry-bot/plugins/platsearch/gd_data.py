@@ -135,7 +135,7 @@ def match_ids_for_levels(entries:list[levelid_filler.ENTRY_TYPE],logfile:str="")
             
         if logfile:
             with open(logfile,"w") as f:
-                json.dump(jsondata,f,indent=2)
+                json.dump(jsondata,f,indent=2,default=vars)
 
 def threaded_update_cache(cache:BaseCache):
     cache.update()

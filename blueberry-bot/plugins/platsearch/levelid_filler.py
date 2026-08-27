@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from typing import Callable, Sequence, TypeVar
 from cachetools import TTLCache, cached
@@ -14,7 +15,12 @@ from ..gd_api.gddl import GDDLLevel
 
 ENTRY_TYPE = TypeVar(name="ENTRY_TYPE",bound=TheListsEntry|PlatChartEntry)
 
-NameMappingEntry=tuple[str,int]
+BASENAME_REGEX = re.compile(r"(.*)\((.*)\)")
+
+class NameMappingEntry:
+    def __init__(self,creator:str,id:int) -> None:
+        self.creator=creator
+        self.id=id
 
 class FillerMapping:
     author_names:dict[str,str]
@@ -53,16 +59,26 @@ class FillerMapping:
         return self.fixed_levels.get(levelname+"@"+levelauthor)
     
     def fillIDForEntry(self,level:TheListsEntry|PlatChartEntry):
+        name=level.name
         
-        id=self.map_level(level.name,str(level.creator))
-        if id:
+        matched=BASENAME_REGEX.match(name)
+        if matched:
+            name=matched.group(1)
+        
+        id=self.map_level(name,str(level.creator))
+        if id is not None:
             return id
         
-        entries=self.getEntriesForName(level.name)
+        entries=self.getEntriesForName(name)
         
-        for creator,id in entries:
-            if level.creator and self.map_creator(creator).lower().strip() in level.creator.lower():
-                level.id=id
+        # Match levels if exactly 1 match
+        if len(entries)==1:
+            level.id=entries[0].id
+            return entries[0].id
+        
+        for e in entries:
+            if level.creator and (e.creator.lower().strip() in self.map_creator(level.creator).lower().strip()):
+                level.id=e.id
                 return id
     
     def getEntriesForName(self,name:str):
@@ -81,7 +97,7 @@ class FillerMapping:
             entries=self.getEntriesForName(level.Name)
             if (level.Publisher,level.ID) in entries:
                 continue
-            entries.append((level.Publisher,level.ID))
+            entries.append(NameMappingEntry(level.Publisher,level.ID))
                     
 FILLER_MAPPING=FillerMapping()
 FILLER_MAPPING.load()
