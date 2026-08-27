@@ -1,3 +1,4 @@
+import asyncio
 import math
 import os
 import random
@@ -113,21 +114,31 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         imargs0.c_demons=c_demons.sum()
         imargs0.pemons=pemons.sum()
         
-        img=await render_api.render(imargs0)
+        # Async gatherers. return None instantly for unneeded ones
+        async def render_base():
+            return await render_api.render(imargs0)
+        
+        async def render_nondemons1():
+            if show_classic or show_plat:
+                return await render_nondemons(req_id_base+"_nondemon",c,p)
+            return None
+        
+        async def render_demons1():
+            if show_demons:
+                return await render_demons(req_id_base+"_demon",c_demons,pemons)
+            return None
+        
+        img,img1_nd,img2_d = await asyncio.gather(render_base(),render_nondemons1(),render_demons1())
         
         if isinstance(img,bytes):
             msg.addImage(img)
             info_image=True
-        if show_classic or show_plat:
-            img=await render_nondemons(req_id_base+"_nondemon",c,p)
-            if isinstance(img,bytes):
-                msg.addImage(img)
-                nondemon_image=True
-        if show_demons:
-            img=await render_demons(req_id_base+"_demon",c_demons,pemons)
-            if isinstance(img,bytes):
-                msg.addImage(img)
-                demon_image=True
+        if isinstance(img1_nd,bytes):
+            msg.addImage(img1_nd)
+            nondemon_image=True
+        if isinstance(img2_d,bytes):
+            msg.addImage(img2_d)
+            demon_image=True
             
     # Basic Info (Text)
     if not info_image:

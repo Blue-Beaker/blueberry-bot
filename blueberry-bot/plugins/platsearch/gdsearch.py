@@ -1,4 +1,5 @@
 from argparse import Namespace
+import asyncio
 from enum import Enum
 import math
 import os
@@ -261,10 +262,21 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         await gdsearch.finish(await bbot_api.auto_pack_message(bot,e.msg,6))
         return
     
-    level2=None
     
-    orb_account=None
-    if verbose:
+    supports_image=bbot_api.supportsImage(bot)
+    show_thumbnail = (show_thumbnail and supports_image)
+    enable_image=(not force_text) and supports_image
+    
+    level2=None
+    thumb=None
+    song=None
+    
+    # Async gatherers. return None instantly for unneeded ones
+    async def gather_level2():
+        level2=None
+        orb_account=None
+        if not verbose:
+            return None
         if orb_api:
             orb_account=orb_api.OrbAccount.fromEvent(event)
             if not orb_account:
@@ -278,28 +290,25 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                     cost=min(25,level2.level_string.__len__()//100000)
                     orb_account.add(-cost)
                     lines.addLine(f"已消耗 {cost} Orbs.")
-                
         else:
             level2=await downloadLevel2_async(level.id)
-        
-    supports_image=bbot_api.supportsImage(bot)
+        return level2
     
-    show_thumbnail = (show_thumbnail and supports_image)
-    enable_image=(not force_text) and supports_image
-    
-    info_image=False
-
-    thumb=None
-    if show_thumbnail or enable_image:
-        thumb=await getThumbnail_async(level.id)
+    async def gather_thumbnail():
+        if show_thumbnail or enable_image:
+            return await getThumbnail_async(level.id)
+        return None
         
-    song=await getSong_async(level.songID,level.official_song)
-    if song and song.id<0 :
-        song=None
+    async def gather_song():
+        song=await getSong_async(level.songID,level.official_song)
+        return song
+    
+    level2, thumb, song = await asyncio.gather(gather_level2(),gather_thumbnail(),gather_song())
         
     info_provider=GDLevelInfoProvider(level.id)
     info_provider.fetch(level.demon,level.is_plat())
     
+    info_image=False
     # Image Sections
     if enable_image:
         req_id_base=bbot_api.getid(event)
