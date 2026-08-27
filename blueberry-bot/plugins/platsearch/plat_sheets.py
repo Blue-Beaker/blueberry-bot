@@ -10,6 +10,7 @@ require('gd_api')
 from ..gd_api import gddl
 from ..gd_api.gddl import GDDLLevel 
 
+from .data_cache import CacheWithIDMap,KeyMapCache
 from .models import BaseSerializableEntry
 from .utils import split_str_lists
 
@@ -24,6 +25,9 @@ NLW_PLAT = Sheet("1YxUE2kkvhT2E6AjnkvTf-o8iu_shSLbuFkEFcZOvieA","Tha Plevles!B2:
 
 UPI_SHEET = Sheet("13rpmCGCC8NKvRJhVcUuxixUdEuc_I6rm9LlwgB2HAsM","Levels!A2:E")
 DIFFICULTY_CHART = Sheet("1ApwiAVAcBmfyoPW3wvDzc8JvY4Lfg5tFsPlYg3DNWhc","The Chart!A4:G")
+
+PATTERN_CHALLENGE = re.compile(r"(.*)\((.*?)\)")
+CHALLENGE_TYPES = set(['deathless','coin','unnerfed','nerfed'])
     
 class LevelEntry(BaseSerializableEntry):
     id:int=0
@@ -200,6 +204,9 @@ class PlatChartEntry(LevelEntry):
     creator:str=""
     enj:str=""
     
+    basename:str|None=None
+    challenge:str|None=None
+    
     def __init__(self) -> None:
         super().__init__()
         self.tpl=None
@@ -213,6 +220,7 @@ class PlatChartEntry(LevelEntry):
         self.creator=creator
         self.tags=tags
         self.enj=enj
+        self._fill_split_name_challenge()
         return self
     def __repr__(self) -> str:
         return "Level:"+", ".join([f"{k}:{v}"for k,v in self.__dict__.items()])
@@ -222,14 +230,49 @@ class PlatChartEntry(LevelEntry):
     def has_skills(self,search:list[str]):
         return has_skills(search,self.tags)
     
+    def get_basename(self):
+        return self.basename or self.name
+    
+    # Fill in challenge (No coin/deathless/unnerfed...) and basename (resting parts)
+    def _fill_split_name_challenge(self):
+        matched = PATTERN_CHALLENGE.match(self.name)
+        if not matched:
+            return None
+        basename = matched.group(1).strip()
+        challenge = matched.group(2).strip()
+        lowspl = challenge.lower().split()
+        
+        for low in lowspl:
+            if low in CHALLENGE_TYPES:
+                self.challenge = challenge
+                self.basename = basename
+                break
+        
+        return self
+        
     @classmethod
     def build(cls,tier:str,line:list[str]):
-        name=line[0]
+        name=line[0].strip()
         id=safeInt(line[2])
-        creator=line[3]
+        creator=line[3].strip()
         tags=[i.strip() for i in line[4].split(",") if i != "---"]
         enj=line[5]
         return PlatChartEntry().update(id,name,tier,creator,tags,enj)
+    
+class PlatChartCache(CacheWithIDMap[PlatChartEntry]):
+    
+    def __init__(self, file_path: str | None = None, ttl: int = 3600, name: str = "UNNAMED") -> None:
+        super().__init__(PlatChartEntry, file_path, ttl, name)
+        def get_name(l:PlatChartEntry):
+            return l.basename or l.name
+        self.name_map=KeyMapCache(get_name)
+        self.add_keymap(self.name_map)
+        
+    def get_challenges_for_level(self,l:PlatChartEntry):
+        return [l for l in self.levels_for_name(l.get_basename()) if l.challenge]
+    
+    def levels_for_name(self,name:str):
+        return self.name_map.get(name)
     
 SPECIAL_LEVELID_PATTERN=re.compile('See "(.*)"')
 @cached(cache=TTLCache(maxsize=20,ttl=30))
@@ -287,35 +330,6 @@ def get_plat_chart():
             results.append(entry1)
             id_to_levels[entry.id]=entry1
         entry1.tpl=l.position
-        
-    # upi=UPI_SHEET.get()
-    # if upi:
-    #     for line in upi:
-    #         try:
-    #             id = safeInt(line[0])
-    #             name=line[1]
-    #             # Skip challenges like Evernight (Coin), Storm Front (Deathless) etc.
-    #             if "(" in name or ")" in name:
-    #                 continue
-                
-    #             tier=line[2]
-    #             tier=tier if tier!="P" else None
-    #             tpl=line[3]
-    #             tpl=tpl if tpl!="-" else None
-    #             pemon=line[4]
-    #             pemon=pemon if pemon!="-" else None
-    #             entry=id_to_levels.get(id)
-                
-    #             if not entry and (tier or tpl or pemon):
-    #                 entry=PlatChartEntry().update(id,name,tier)
-    #                 results.append(entry)
-                    
-    #             if entry:
-    #                 entry.tpl=safeInt(tpl,None)
-    #                 entry.pemon=safeInt(pemon,None)
-                
-    #         except:
-    #             pass
             
     weights=plat_rank_weights()
     for entry1 in weights:

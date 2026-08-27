@@ -20,7 +20,7 @@ from ..gd_api import gd,thumbs,gddl,aredl,pemonlist,platformerlist
 
 from .underrated_data import UnderratedLevel,get_all_underrated
 from .models import GDDLLevel,AREDLLevel,PemonlistLevel,TPLLevel
-from .plat_sheets import PlatChartEntry
+from .plat_sheets import PlatChartEntry,PlatChartCache
 from .plat_rank_data import PlatRankPlayer,get_plat_rank
 
 require("nonebot_plugin_apscheduler")
@@ -31,7 +31,7 @@ plugin_config = get_plugin_config(Config)
 
 driver=get_driver()
 
-PLAT_CHART_CACHE = CacheWithIDMap(plat_sheets.PlatChartEntry,"platsearch_cache/plat_chart_cache.json",
+PLAT_CHART_CACHE = PlatChartCache("platsearch_cache/plat_chart_cache.json",
     plugin_config.sheets_update_interval,name="Plat Chart cache")
 PLAT_SHEET_CACHE = CacheWithIDMap(plat_sheets.TheListsEntry,"platsearch_cache/plat_sheet_cache.json",
     plugin_config.sheets_update_interval,name="Plat Sheet cache")

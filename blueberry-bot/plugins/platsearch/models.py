@@ -7,7 +7,14 @@ class BaseSerializableEntry:
     def getID(self) -> int:
         return -1
     def to_dict(self) -> dict:
-        return self.__dict__
+        data=self.__dict__.copy()
+        
+        for k,v in self.__dict__.items():
+            def_value=getattr(self.__class__,k,None)
+            if v==None and def_value==None:
+                data.pop(k,None)
+                
+        return data
     @classmethod
     def from_dict(cls,data:dict):
         inst=cls()

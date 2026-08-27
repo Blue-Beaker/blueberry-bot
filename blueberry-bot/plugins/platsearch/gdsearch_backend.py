@@ -22,6 +22,9 @@ class GDLevelInfoProvider:
     
     dc_entry:PlatChartEntry|None=None
     dc_entries:list[PlatChartEntry]
+    
+    dc_challenges:list[PlatChartEntry]
+    
     nlwlike_entry:TheListsEntry|None=None
     nlwlike_entries:list[TheListsEntry]
     underrated_entry:UnderratedLevel|None=None
@@ -34,6 +37,7 @@ class GDLevelInfoProvider:
     def __init__(self,level_id:int) -> None:
         self.level_id=level_id
         self.dc_entries=[]
+        self.dc_challenges=[]
         self.nlwlike_entries=[]
         self.underrated_entries=[]
         self.aredl_entries=[]
@@ -50,6 +54,7 @@ class GDLevelInfoProvider:
         dc_entries=PLAT_CHART_CACHE.get_for_id(id)
         if dc_entries:
             dc_entry=dc_entries[0]
+            dc_challenges=PLAT_CHART_CACHE.get_challenges_for_level(dc_entry)
                 
         nlwlike_entry=None
         nlwlike_entries:list[TheListsEntry]=[]
@@ -83,6 +88,8 @@ class GDLevelInfoProvider:
             
         self.dc_entry=dc_entry
         self.dc_entries=dc_entries
+        self.dc_challenges=dc_challenges
+        
         self.nlwlike_entry=nlwlike_entry
         self.nlwlike_entries=nlwlike_entries
         self.underrated_entry=underrated_entry
@@ -159,6 +166,11 @@ class GDLevelInfoProvider:
             lines.append("--Difficulty Chart--")
             for e in dc_entries:
                 lines.append(formatters.formatDiffChart(e,False,True))
+                
+            for e in self.dc_challenges:
+                lines.append(f"--{e.challenge}--")
+                lines.append(formatters.formatDiffChart(e,False,True))
+                # lines.append(f"({e.challenge}): T{e.tier} W{e.weight or '-'}")
             
         if (not dc_entries) and pemonlist_entry:
             lines.append(formatters.formatPemonlist(pemonlist_entry,False,True)) 
