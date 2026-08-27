@@ -58,28 +58,33 @@ class FillerMapping:
     def map_level(self,levelname:str,levelauthor:str):
         return self.fixed_levels.get(levelname+"@"+levelauthor)
     
-    def fillIDForEntry(self,level:TheListsEntry|PlatChartEntry):
+    def fetchIDForEntry(self,level:TheListsEntry|PlatChartEntry):
         name=level.name
         
         matched=BASENAME_REGEX.match(name)
         if matched:
             name=matched.group(1)
         
-        id=self.map_level(name,str(level.creator))
-        if id is not None:
-            return id
+        id_=self.map_level(name,str(level.creator))
+        if id_ is not None:
+            return id_
         
         entries=self.getEntriesForName(name)
         
         # Match levels if exactly 1 match
         if len(entries)==1:
-            level.id=entries[0].id
             return entries[0].id
         
         for e in entries:
-            if level.creator and (e.creator.lower().strip() in self.map_creator(level.creator).lower().strip()):
-                level.id=e.id
-                return id
+            matchpattern=re.compile("\\b"+e.creator.lower().strip()+"\\b")
+            if level.creator and matchpattern.match(level.creator.lower()):
+                return e.id
+            
+    def fillIDForEntry(self,level:TheListsEntry|PlatChartEntry):
+        id_=self.fetchIDForEntry(level)
+        if id_ is not None:
+            level.id=id_
+        return id_
     
     def getEntriesForName(self,name:str):
         key=name.lower().strip()
@@ -110,7 +115,7 @@ def fillIDsForEntries(entries:Sequence[ENTRY_TYPE]):
     levels_not_matched:list[ENTRY_TYPE]=[]
     for i in entries:
         id=FILLER_MAPPING.fillIDForEntry(i)
-        if not id:
+        if id is None:
             levels_not_matched.append(i)
             
     return levels_not_matched

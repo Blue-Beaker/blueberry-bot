@@ -128,14 +128,14 @@ def getAREDLMerged():
 
 def match_ids_for_levels(entries:list[levelid_filler.ENTRY_TYPE],logfile:str=""):
     levels_not_matched=levelid_filler.fillIDsForEntries(entries)
-    if levels_not_matched:
-        jsondata=[]
-        for l in levels_not_matched:
-            jsondata.append({"level":l.to_dict(),"matches":levelid_filler.FILLER_MAPPING.getEntriesForName(l.name)})
-            
-        if logfile:
-            with open(logfile,"w") as f:
-                json.dump(jsondata,f,indent=2,default=vars)
+    
+    jsondata=[]
+    for l in levels_not_matched:
+        jsondata.append({"level":l.to_dict(),"matches":levelid_filler.FILLER_MAPPING.getEntriesForName(l.name)})
+        
+    if logfile:
+        with open(logfile,"w") as f:
+            json.dump(jsondata,f,indent=2,default=vars)
 
 def threaded_update_cache(cache:BaseCache):
     cache.update()
