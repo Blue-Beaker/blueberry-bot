@@ -117,6 +117,12 @@ class GDLevelInfoProvider:
             imargs.diffchart_tier = dc_entry.tier or ''
             imargs.diffchart_tags = ','.join(dc_entry.tags)
             
+        if self.dc_challenges:
+            dc_challenge=self.dc_challenges[0]
+            imargs.challenge_name=f"{dc_challenge.challenge} ({dc_challenge.weight})"
+            imargs.challenge_tier=dc_challenge.tier or ''
+            imargs.challenge_tags= ','.join([t for t in dc_challenge.tags if not dc_entry or (t not in dc_entry.tags)])
+            
         if pemonlist_entry:
             imargs.pemonlist = str(pemonlist_entry.placement or '-')
             

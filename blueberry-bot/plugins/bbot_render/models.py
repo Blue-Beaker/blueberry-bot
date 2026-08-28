@@ -134,6 +134,11 @@ class LevelLargeRenderArgs(LevelRenderArgs):
     # Plarformer Data
     checkpoints: str
     diffchart_tags: str
+    # Challenge
+    challenge_name: str
+    challenge_tier: str
+    challenge_tags: str
+    
     # AREDL
     aredl_pos: str
     aredl_tags: str
