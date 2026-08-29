@@ -49,6 +49,7 @@ class GDLevelInfoProvider:
         id=self.level_id
         dc_entry=None
         dc_entries:list[PlatChartEntry]=[]
+        dc_challenges:list[PlatChartEntry]=[]
         # Check Difficulty Chart for platformers
         # if level.is_plat():
         dc_entries=[e for e in PLAT_CHART_CACHE.get_for_id(id) if not e.challenge]
