@@ -13,7 +13,7 @@ from nonebot.rule import is_type
 from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
 from nonebot.permission import SUPERUSER
-from nonebot.exception import FinishedException
+from nonebot.exception import MatcherException
 import nonebot.config
 from nonebot import get_driver,require
 from nonebot.adapters.discord import Message as DCMessage,Bot as DCBot,MessageSegment as DCMessageSegment,GuildMessageCreateEvent
@@ -271,118 +271,124 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     thumb=None
     song=None
     
-    # Async gatherers. return None instantly for unneeded ones
-    async def gather_level2():
-        level2=None
-        orb_account=None
-        if not verbose:
-            return None
-        if orb_api:
-            orb_account=orb_api.OrbAccount.fromEvent(event)
-            if not orb_account:
-                return
-            
-            if orb_account.get()<25:
-                lines.addLine("额外信息需要持有 25 Orbs. 消耗可低于此值.")
+    try:
+        # Async gatherers. return None instantly for unneeded ones
+        async def gather_level2():
+            level2=None
+            orb_account=None
+            if not verbose:
+                return None
+            if orb_api:
+                orb_account=orb_api.OrbAccount.fromEvent(event)
+                if not orb_account:
+                    return
+                
+                if orb_account.get()<25:
+                    lines.addLine("额外信息需要持有 25 Orbs. 消耗可低于此值.")
+                else:
+                    level2=await downloadLevel2_async(level.id)
+                    if level2 and level2.level_string:
+                        cost=min(25,level2.level_string.__len__()//100000)
+                        orb_account.add(-cost)
+                        lines.addLine(f"已消耗 {cost} Orbs.")
             else:
                 level2=await downloadLevel2_async(level.id)
-                if level2 and level2.level_string:
-                    cost=min(25,level2.level_string.__len__()//100000)
-                    orb_account.add(-cost)
-                    lines.addLine(f"已消耗 {cost} Orbs.")
-        else:
-            level2=await downloadLevel2_async(level.id)
-        return level2
-    
-    async def gather_thumbnail():
-        if show_thumbnail or enable_image:
-            return await getThumbnail_async(level.id)
-        return None
+            return level2
         
-    async def gather_song():
-        song=await getSong_async(level.songID,level.official_song)
-        return song
-    
-    level2, thumb, song = await asyncio.gather(gather_level2(),gather_thumbnail(),gather_song())
-        
-    info_provider=GDLevelInfoProvider(level.id)
-    info_provider.fetch(level.demon,level.is_plat())
-    
-    info_image=False
-    # Image Sections
-    if enable_image:
-        req_id_base=bbot_api.getid(event)
-        imargs=LevelLargeRenderArgs(req_id_base+"_base")
-        
-        info_provider.fillRenderArgs(imargs)
-        
-        imargs.level_id=level.id
-        imargs.thumbnail=getThumbnailUrl(level.id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or ""
-        
-        imargs.level_name=level.name
-        imargs.song_id=level.songID
-        imargs.song_author=song.artistName if song else "Unknown"
-        imargs.song_name=song.name if song else "Unknown"
-        imargs.creator=level.creator
-        imargs.stars=level.stars
-        imargs.length=level.get_length().get_name()
-        imargs.difficulty=level.get_difficulty().value
-        imargs.feature_level=level.epic+1 if level.featured>0 else 0
-        imargs.is_plat=level.is_plat()
-        imargs.coins=level.coins
-        imargs.bronze_coins=not level.verifiedCoins
-        imargs.downloads=level.downloads
-        imargs.likes=level.likes
-        imargs.description=level.get_description()
-        
-        if level2:
-            imargs.length2=format_verify_time(level2.verification_time)
-            imargs.song_info=f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}"
-        
-        img=await render_api.render(imargs)
-        if isinstance(img,bytes):
-            msg2=bbot_api.TextImageMessage.build(bot)
-            msg2.addLine(repr_level(level))
-            msg2.addImage(img)
-            info_image=True
-            await msg2.send(gdsearch)
+        async def gather_thumbnail():
+            if show_thumbnail or enable_image:
+                return await getThumbnail_async(level.id)
+            return None
             
-    if show_thumbnail and thumb:
-        lines.addImage(thumb)
-    # Basic Info (Text)
-    if not info_image:
-        lines.addLine(repr_level(level))
-    
-    if not verbose:
-        lines.addLine(f"-v 参数查询具体时长, 上传/更新日期, 及额外曲目.")
+        async def gather_song():
+            song=await getSong_async(level.songID,level.official_song)
+            return song
         
-        
-    lines.addLine(f"Version: {level.version} Game ver.: {level.game_version}")
-    lines.addLine(f"2P: {level.two_player}, Objects: {level.objects}")
-    
-    if song:
-        lines.addLine(f"Song: {song.name} by {song.artistName} ({song.id})")
-    
-    if not info_image:
-        lines.addLine(f"Length: {gd.Length(level.length).name}")
-        if level2:
-            lines.addText(f" ({format_verify_time(level2.verification_time)})")
+        level2, thumb, song = await asyncio.gather(gather_level2(),gather_thumbnail(),gather_song())
             
-        lines.addLine(f"Coins: {level.coins}")
-        if not level.verifiedCoins:
-            lines.addText(" (Bronze)")
+        info_provider=GDLevelInfoProvider(level.id)
+        info_provider.fetch(level.demon,level.is_plat())
+        
+        info_image=False
+        # Image Sections
+        if enable_image:
+            req_id_base=bbot_api.getid(event)
+            imargs=LevelLargeRenderArgs(req_id_base+"_base")
+            
+            info_provider.fillRenderArgs(imargs)
+            
+            imargs.level_id=level.id
+            imargs.thumbnail=getThumbnailUrl(level.id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or ""
+            
+            imargs.level_name=level.name
+            imargs.song_id=level.songID
+            imargs.song_author=song.artistName if song else "Unknown"
+            imargs.song_name=song.name if song else "Unknown"
+            imargs.creator=level.creator
+            imargs.stars=level.stars
+            imargs.length=level.get_length().get_name()
+            imargs.difficulty=level.get_difficulty().value
+            imargs.feature_level=level.epic+1 if level.featured>0 else 0
+            imargs.is_plat=level.is_plat()
+            imargs.coins=level.coins
+            imargs.bronze_coins=not level.verifiedCoins
+            imargs.downloads=level.downloads
+            imargs.likes=level.likes
+            imargs.description=level.get_description()
+            
+            if level2:
+                imargs.length2=format_verify_time(level2.verification_time)
+                imargs.song_info=f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}"
+            
+            img=await render_api.render(imargs)
+            if isinstance(img,bytes):
+                msg2=bbot_api.TextImageMessage.build(bot)
+                msg2.addLine(repr_level(level))
+                msg2.addImage(img)
+                info_image=True
+                await msg2.send(gdsearch)
+                
+        if show_thumbnail and thumb:
+            lines.addImage(thumb)
+        # Basic Info (Text)
+        if not info_image:
+            lines.addLine(repr_level(level))
+        
+        if not verbose:
+            lines.addLine(f"-v 参数查询具体时长, 上传/更新日期, 及额外曲目.")
+            
+            
+        lines.addLine(f"Version: {level.version} Game ver.: {level.game_version}")
+        lines.addLine(f"2P: {level.two_player}, Objects: {level.objects}")
+        
+        if song:
+            lines.addLine(f"Song: {song.name} by {song.artistName} ({song.id})")
+        
+        if not info_image:
+            lines.addLine(f"Length: {gd.Length(level.length).name}")
+            if level2:
+                lines.addText(f" ({format_verify_time(level2.verification_time)})")
+                
+            lines.addLine(f"Coins: {level.coins}")
+            if not level.verifiedCoins:
+                lines.addText(" (Bronze)")
+                
+            if level2:
+                lines.addLine(f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}")
             
         if level2:
-            lines.addLine(f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}")
+            lines.addLine(f"Upload/update: {level2.upload_date}/{level2.update_date}")
         
-    if level2:
-        lines.addLine(f"Upload/update: {level2.upload_date}/{level2.update_date}")
-    
-    for l in info_provider.getTextDescription(info_image):
-        lines.addLine(l)
+        for l in info_provider.getTextDescription(info_image):
+            lines.addLine(l)
 
-    if lines.msg.__len__():
-        await gdsearch.finish(await bbot_api.auto_pack_message(bot,lines.msg,6))
+        if lines.msg.__len__():
+            await gdsearch.finish(await bbot_api.auto_pack_message(bot,lines.msg,6))
+        
+    except Exception as e:
+        if isinstance(e,MatcherException):
+            raise e
+        await gdsearch.finish(f"出错: {e}")
 
 from .gdhelp import GD_HELP
 @GD_HELP.addHelpFunc
