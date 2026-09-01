@@ -24,7 +24,7 @@ from .gd_icon import IconType, construct_icon_url,get_icon,ICON_TYPES
 from .utils import repr_level,repr_list
 from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,PEMONLIST_CACHE,AREDL_CACHE,AREDLLevel,PemonlistLevel,UNDERRATED_CACHE
 from .underrated_data import formatUnderrated,UnderratedLevel
-from .plat_sheets import LevelEntry,TheListsEntry,PlatChartEntry
+from .plat_sheets import LevelEntry,NLWLikeEntry,PlatChartEntry
 from . import formatters
 
 require('bbot_api')

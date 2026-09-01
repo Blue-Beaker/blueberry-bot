@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Literal
 from nonebot import get_driver,require
-from .plat_sheets import LevelEntry,TheListsEntry,PlatChartEntry
+from .plat_sheets import LevelEntry,NLWLikeEntry,PlatChartEntry
 from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,PEMONLIST_CACHE,AREDL_CACHE,UNDERRATED_CACHE,AREDLLevel,PemonlistLevel
 from .underrated_data import UnderratedLevel,formatUnderrated
 from . import formatters
@@ -25,8 +25,8 @@ class GDLevelInfoProvider:
     
     dc_challenges:list[PlatChartEntry]
     
-    nlwlike_entry:TheListsEntry|None=None
-    nlwlike_entries:list[TheListsEntry]
+    nlwlike_entry:NLWLikeEntry|None=None
+    nlwlike_entries:list[NLWLikeEntry]
     underrated_entry:UnderratedLevel|None=None
     underrated_entries:list[UnderratedLevel]
     aredl_entry:AREDLLevel|None=None
@@ -58,7 +58,7 @@ class GDLevelInfoProvider:
             dc_challenges=PLAT_CHART_CACHE.get_challenges_for_level(dc_entry)
                 
         nlwlike_entry=None
-        nlwlike_entries:list[TheListsEntry]=[]
+        nlwlike_entries:list[NLWLikeEntry]=[]
         # Check NLW-like for pemons
         if is_demon or (is_demon is None):
             nlwlike_entries=PLAT_SHEET_CACHE.get_for_id(id)

@@ -90,7 +90,7 @@ def plat_rank_weights():
             
     return results
 
-class TheListsEntry(LevelEntry):
+class NLWLikeEntry(LevelEntry):
     id:int=0
     def update(self,sheet:str,section:str,name:str,creator:str|None=None,checkpoints:str|None=None,skillsets:list[str]=[],description:str|None=None):
         self.sheet=sheet
@@ -120,7 +120,7 @@ class TheListsEntry(LevelEntry):
         
 @cached(cache=TTLCache(maxsize=20,ttl=30))
 def get_hds():
-    results:list[TheListsEntry]=[]
+    results:list[NLWLikeEntry]=[]
     values=HDS_PLAT.get()
     if values:
         current_section=""
@@ -135,12 +135,12 @@ def get_hds():
             checkpoints=line[3]
             skillsets=split_str_lists(line[5])
             desc=line[6]
-            results.append(TheListsEntry().update("HDS",current_section,level,creator,checkpoints,skillsets,desc))
+            results.append(NLWLikeEntry().update("HDS",current_section,level,creator,checkpoints,skillsets,desc))
     return results
             
 @cached(cache=TTLCache(maxsize=20,ttl=30))
 def get_ids():
-    results:list[TheListsEntry]=[]
+    results:list[NLWLikeEntry]=[]
     values=IDS_PLAT.get()
     if values:
         current_section=""
@@ -155,12 +155,12 @@ def get_ids():
             checkpoints=line[3]
             skillsets=split_str_lists(line[4])
             desc=line[5]
-            results.append(TheListsEntry().update("IDS",current_section,level,creator,checkpoints,skillsets,desc))
+            results.append(NLWLikeEntry().update("IDS",current_section,level,creator,checkpoints,skillsets,desc))
     return results
             
 @cached(cache=TTLCache(maxsize=20,ttl=30))
 def get_nlw():
-    results:list[TheListsEntry]=[]
+    results:list[NLWLikeEntry]=[]
     values=NLW_PLAT.get()
     if values:
         current_section=""
@@ -183,11 +183,11 @@ def get_nlw():
             checkpoints=line[2]
             skillsets=split_str_lists(line[3])
             desc=line[5]
-            results.append(TheListsEntry().update("NLW",current_section,level,creator,checkpoints,skillsets,desc))
+            results.append(NLWLikeEntry().update("NLW",current_section,level,creator,checkpoints,skillsets,desc))
     return results
 
-def get_3_lists():
-    results:list[TheListsEntry]=[]
+def get_nlw_like():
+    results:list[NLWLikeEntry]=[]
     results.extend(get_hds())
     results.extend(get_ids())
     results.extend(get_nlw())

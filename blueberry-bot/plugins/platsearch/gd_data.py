@@ -33,7 +33,7 @@ driver=get_driver()
 
 PLAT_CHART_CACHE = PlatChartCache("platsearch_cache/plat_chart_cache.json",
     plugin_config.sheets_update_interval,name="Plat Chart cache")
-PLAT_SHEET_CACHE = CacheWithIDMap(plat_sheets.TheListsEntry,"platsearch_cache/plat_sheet_cache.json",
+PLAT_SHEET_CACHE = CacheWithIDMap(plat_sheets.NLWLikeEntry,"platsearch_cache/plat_sheet_cache.json",
     plugin_config.sheets_update_interval,name="Plat Sheet cache")
 UNDERRATED_CACHE = CacheWithIDMap(UnderratedLevel,"platsearch_cache/underrated_cache.json",
     plugin_config.sheets_update_interval,"Underrated Cache").with_update_function(get_all_underrated)
@@ -99,7 +99,7 @@ def fill_pemonlist_for_levels(levels:list[PlatChartEntry]):
 
 @PLAT_SHEET_CACHE.wrap_update_function
 def get_3_lists():
-    results=plat_sheets.get_3_lists()
+    results=plat_sheets.get_nlw_like()
     match_ids_for_levels(results,"cache/plat_sheet_unmatched.json")
     return results
 

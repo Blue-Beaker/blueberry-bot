@@ -408,7 +408,7 @@ async def _(bot:Bot,args: Message = CommandArg()):
     
     entries_per_page = sa.pagesize
     
-    results:list[plat_sheets.TheListsEntry]
+    results:list[plat_sheets.NLWLikeEntry]
     results,maxpages,page=select_page(results,count,entries_per_page,page)
         
     if count==0:
@@ -614,8 +614,8 @@ async def _(bot:Bot, search_args: Message = CommandArg()):
 
     
 def level_in_three_sheets(search:str):
-    result:list[plat_sheets.TheListsEntry]=[]
-    the_lists=plat_sheets.get_3_lists()
+    result:list[plat_sheets.NLWLikeEntry]=[]
+    the_lists=plat_sheets.get_nlw_like()
     for level in the_lists:
         if(search in level.name.lower()):
             result.append(level)

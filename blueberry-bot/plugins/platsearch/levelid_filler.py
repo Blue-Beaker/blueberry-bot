@@ -6,14 +6,14 @@ from cachetools import TTLCache, cached
 from nonebot import logger, require
 import yaml
 
-from .plat_sheets import TheListsEntry,PlatChartEntry
+from .plat_sheets import NLWLikeEntry,PlatChartEntry
 from . import plat_sheets
 
 require('gd_api')
 from ..gd_api import gddl
 from ..gd_api.gddl import GDDLLevel
 
-ENTRY_TYPE = TypeVar(name="ENTRY_TYPE",bound=TheListsEntry|PlatChartEntry)
+ENTRY_TYPE = TypeVar(name="ENTRY_TYPE",bound=NLWLikeEntry|PlatChartEntry)
 
 BASENAME_REGEX = re.compile(r"(.*)\((.*)\)")
 
@@ -58,7 +58,7 @@ class FillerMapping:
     def map_level(self,levelname:str,levelauthor:str):
         return self.fixed_levels.get(levelname+"@"+levelauthor)
     
-    def fetchIDForEntry(self,level:TheListsEntry|PlatChartEntry):
+    def fetchIDForEntry(self,level:NLWLikeEntry|PlatChartEntry):
         name=level.name
         
         matched=BASENAME_REGEX.match(name)
@@ -80,7 +80,7 @@ class FillerMapping:
             if level.creator and matchpattern.match(level.creator.lower()):
                 return e.id
             
-    def fillIDForEntry(self,level:TheListsEntry|PlatChartEntry):
+    def fillIDForEntry(self,level:NLWLikeEntry|PlatChartEntry):
         id_=self.fetchIDForEntry(level)
         if id_ is not None:
             level.id=id_

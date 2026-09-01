@@ -1,4 +1,4 @@
-from .plat_sheets import PlatChartEntry,TheListsEntry,LevelEntry
+from .plat_sheets import PlatChartEntry,NLWLikeEntry,LevelEntry
 
 from .models import AREDLLevel,PemonlistLevel
 
@@ -45,7 +45,7 @@ def formatDiffChart(l:PlatChartEntry,compact:bool=False,exclude_base_info:bool=F
     
     return "\n".join(lines)
 
-def formatListsLevel(l:TheListsEntry,compact:bool=False,exclude_base_info:bool=False,description:bool=True):
+def formatListsLevel(l:NLWLikeEntry,compact:bool=False,exclude_base_info:bool=False,description:bool=True):
     lines:list[str]=[]
     
     if not exclude_base_info:
