@@ -17,6 +17,7 @@ dev = ["pytest>=7.0", "pytest-asyncio"]
 # 将 blueberry-bot/blueberry-bot/（含 plugins 包）加入 sys.path，替代各模块内的导入 workaround
 pythonpath = ["blueberry-bot"]
 testpaths = ["blueberry-bot/plugins"]
+addopts = "-s"
 asyncio_mode = "auto"
 # 所有 async 测试共享同一个 session 级事件循环，
 # 避免模块级共享 httpx.AsyncClient(_client) 跨事件循环导致 "Event loop is closed"

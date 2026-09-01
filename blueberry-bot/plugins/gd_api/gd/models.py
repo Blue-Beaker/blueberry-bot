@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import base64
 from enum import Enum
-from typing import override
+from typing import Any, Callable, override
 from urllib.parse import unquote
+
+from nonebot import logger
 
 from .utils import safeBool, safeInt
 
@@ -44,6 +46,53 @@ class Difficulty(Enum):
     def is_demon(self):
         return Difficulty.EASY_DEMON.value<=self.value<=Difficulty.EXTREME_DEMON.value or self==Difficulty.ANY_DEMON
 
+class MappingEntry:
+    new_key:str
+    original_key:str
+    conversion:type|Callable[[Any],Any]|None=None
+    default:Any|None=None
+    
+    def __init__(self,new_key:str,original_key:str,conversion:type|Callable[[Any],Any]|None=None,default:Any|None=None) -> None:
+        self.new_key=new_key
+        self.original_key=original_key
+        self.conversion=conversion
+        self.default=default
+        
+    def convert(self,value:Any):
+        if self.conversion is None:
+            return value
+        try:
+            return self.conversion(value)
+        except Exception as e:
+            logger.error(f"Failed loading value {value} -> {self.conversion} in {self.new_key}: {e}")
+            return self.default
+    
+class GDModelMapping:
+    mapping:dict[str,MappingEntry]
+    def __init__(self) -> None:
+        self.mapping={}
+    def copy(self):
+        newinst=self.__class__()
+        newinst.mapping=self.mapping.copy()
+        return newinst
+    def add(self,entry:MappingEntry):
+        self.mapping[entry.new_key]=entry
+        return self
+    def mapDict(self,data:dict[str,str]):
+        newData:dict[str,Any]={}
+        for k,m in self.mapping.items():
+            if m.original_key in data:
+                newValue=m.convert(data[m.original_key])
+                if newValue is not None:
+                    newData[m.new_key]=newValue
+            elif m.default is not None:
+                newData[m.new_key]=m.default
+        return newData
+    
+BASE_LEVEL_MAPPING=GDModelMapping()
+BASE_LEVEL_MAPPING.add(MappingEntry('id','1',int))
+BASE_LEVEL_MAPPING.add(MappingEntry('name','2',str))
+BASE_LEVEL_MAPPING.add(MappingEntry('creator','50',str))
 
 class BaseLevel:
     id: int
@@ -54,14 +103,17 @@ class BaseLevel:
         pass
 
     def load(self, data: dict[str, str]) -> BaseLevel:
-        self.id = int(data.get('1', '-1'))
-        self.name = data.get('2', '')
-        self.creator = data.get('50', '')
+        self.__dict__.update(BASE_LEVEL_MAPPING.mapDict(data))
         return self
 
     def __repr__(self) -> str:
         return f"{self.name} by {self.creator}, id={self.id}"
+    
+def split_int_list(int_list:str):
+    return [int(l.strip()) for l in int_list.split(',') if l]
 
+LEVEL_LIST_MAPPING=GDModelMapping()
+LEVEL_LIST_MAPPING.add(MappingEntry('list_levels','51',split_int_list))
 
 class LevelList(BaseLevel):
     levels: list[int]
@@ -72,8 +124,9 @@ class LevelList(BaseLevel):
     @override
     def load(self, data: dict[str, str]) -> LevelList:
         super().load(data)
-        list_levels = data.get('51', '')
-        self.levels = [int(l) for l in list_levels.split(',') if l]
+        self.__dict__.update(LEVEL_LIST_MAPPING.mapDict(data))
+        # list_levels = data.get('51', '')
+        # self.levels = [int(l) for l in list_levels.split(',') if l]
         return self
 
     def __repr__(self) -> str:
@@ -116,6 +169,49 @@ class PageInfo:
         except Exception:
             pass
         return self
+
+LEVEL_MAPPING = GDModelMapping()
+LEVEL_MAPPING.add(MappingEntry('stars', '18', int))
+LEVEL_MAPPING.add(MappingEntry('difficulty', '9', lambda v: int(v) // 10))
+LEVEL_MAPPING.add(MappingEntry('length', '15', int))
+LEVEL_MAPPING.add(MappingEntry('demon', '17', safeBool))
+LEVEL_MAPPING.add(MappingEntry('auto', '25', safeBool))
+LEVEL_MAPPING.add(MappingEntry('creator_id', '6', int))
+LEVEL_MAPPING.add(MappingEntry('downloads', '10', int))
+LEVEL_MAPPING.add(MappingEntry('likes', '14', int))
+LEVEL_MAPPING.add(MappingEntry('official_song', '12', safeBool))
+LEVEL_MAPPING.add(MappingEntry('coins', '37', int))
+LEVEL_MAPPING.add(MappingEntry('verifiedCoins', '38', safeBool))
+LEVEL_MAPPING.add(MappingEntry('featured', '19', int))
+LEVEL_MAPPING.add(MappingEntry('epic', '42', int))
+LEVEL_MAPPING.add(MappingEntry('description', '3', str))
+LEVEL_MAPPING.add(MappingEntry('version', '5', int))
+LEVEL_MAPPING.add(MappingEntry('difficulty_denominator', '8', int))
+LEVEL_MAPPING.add(MappingEntry('set_completes', '11', int))
+LEVEL_MAPPING.add(MappingEntry('game_version', '13', int))
+LEVEL_MAPPING.add(MappingEntry('dislikes', '16', int))
+LEVEL_MAPPING.add(MappingEntry('copied_id', '30', int))
+LEVEL_MAPPING.add(MappingEntry('two_player', '31', safeBool))
+LEVEL_MAPPING.add(MappingEntry('extra_string', '36', str))
+LEVEL_MAPPING.add(MappingEntry('stars_requested', '39', int))
+LEVEL_MAPPING.add(MappingEntry('demon_difficulty', '43', int))
+LEVEL_MAPPING.add(MappingEntry('is_gauntlet', '44', safeBool))
+LEVEL_MAPPING.add(MappingEntry('objects', '45', int))
+LEVEL_MAPPING.add(MappingEntry('editor_time', '46', int))
+LEVEL_MAPPING.add(MappingEntry('editor_time_copies', '47', int))
+LEVEL_MAPPING.add(MappingEntry('unknown', '54', int))
+LEVEL_MAPPING.add(MappingEntry('record_string', '26', str))
+LEVEL_MAPPING.add(MappingEntry('settings_string', '48', str))
+# 条件赋值字段：不设置 default，仅在数据存在时赋值
+LEVEL_MAPPING.add(MappingEntry('level_string', '4', str))
+LEVEL_MAPPING.add(MappingEntry('password', '27', str))
+LEVEL_MAPPING.add(MappingEntry('upload_date', '28', str))
+LEVEL_MAPPING.add(MappingEntry('update_date', '29', str))
+LEVEL_MAPPING.add(MappingEntry('low_detail_mode', '40', safeBool))
+LEVEL_MAPPING.add(MappingEntry('daily_number', '41', int))
+LEVEL_MAPPING.add(MappingEntry('song_ids', '52', split_int_list))
+LEVEL_MAPPING.add(MappingEntry('sfx_ids', '53', split_int_list))
+LEVEL_MAPPING.add(MappingEntry('verification_time', '57', int))
 
 
 class Level(BaseLevel):
@@ -160,8 +256,8 @@ class Level(BaseLevel):
         self.objects: int = 0                          #: 45 — 物体数量，上限 65535
         self.editor_time: int = 0                      #: 46 — 当前副本的编辑用时（秒），上限 24-bit
         self.editor_time_copies: int = 0               #: 47 — 累计编辑用时（秒），上限 24-bit
-        self.song_ids: str | None = None               #: 52* — 所有歌曲 ID，逗号分隔
-        self.sfx_ids: str | None = None                #: 53* — 所有 SFX ID，逗号分隔
+        self.song_ids: list[int] | None = None               #: 52* — 所有歌曲 ID，逗号分隔
+        self.sfx_ids: list[int] | None = None                #: 53* — 所有 SFX ID，逗号分隔
         self.unknown: int = 0                          #: 54 — 未知值
         self.verification_time: int | None = None      #: 57* — 验证用时（帧，假设 240 FPS），上限 24-bit
 
@@ -203,69 +299,10 @@ class Level(BaseLevel):
     @override
     def load(self, data: dict[str, str]) -> Level:
         super().load(data)
-        self.stars = safeInt(data.get('18'), 0)
-        self.difficulty = safeInt(data.get('9'), 0) // 10
-        self.length = safeInt(data.get('15'), 0)
-        self.demon = safeBool(data.get('17'))
-        self.auto = safeBool(data.get('25'))
-        self.creator_id = safeInt(data.get('6'))
-        self.downloads = safeInt(data.get('10'), 0)
-        self.likes = safeInt(data.get('14'), 0)
-        self.official_song = bool(safeInt(data.get('12'),0))
+        self.__dict__.update(LEVEL_MAPPING.mapDict(data))
+
+        # songID 需要回退逻辑（优先取 12，否则取 35）
         self.songID = safeInt(data.get('12'), None) or safeInt(data.get('35'), 0)
-        self.coins = safeInt(data.get('37'), 0)
-        self.verifiedCoins = safeBool(data.get('38'))
-        self.featured = safeInt(data.get('19'), 0)
-        self.epic = safeInt(data.get('42'), 0)
-
-        # === 元数据字段加载 ===
-        self.description = data.get('3', '')
-        raw_level_string = data.get('4')
-        if raw_level_string:
-            self.level_string = raw_level_string
-        self.version = safeInt(data.get('5'), 0)
-        self.difficulty_denominator = safeInt(data.get('8'), 0)
-        self.set_completes = safeInt(data.get('11'), 0)
-        self.game_version = safeInt(data.get('13'), 0)
-        self.dislikes = safeInt(data.get('16'), 0)
-        raw_password = data.get('27')
-        if raw_password:
-            self.password = raw_password
-        raw_upload = data.get('28')
-        if raw_upload:
-            self.upload_date = raw_upload
-        raw_update = data.get('29')
-        if raw_update:
-            self.update_date = raw_update
-        self.copied_id = safeInt(data.get('30'), 0)
-        self.two_player = safeBool(data.get('31'))
-        self.extra_string = data.get('36', '')
-        self.stars_requested = safeInt(data.get('39'), 0)
-        raw_ldm = data.get('40')
-        if raw_ldm is not None:
-            self.low_detail_mode = safeBool(raw_ldm)
-        raw_daily = data.get('41')
-        if raw_daily is not None:
-            self.daily_number = safeInt(raw_daily)
-        self.demon_difficulty = safeInt(data.get('43'), 0)
-        self.is_gauntlet = safeBool(data.get('44'))
-        self.objects = safeInt(data.get('45'), 0)
-        self.editor_time = safeInt(data.get('46'), 0)
-        self.editor_time_copies = safeInt(data.get('47'), 0)
-        raw_song_ids = data.get('52')
-        if raw_song_ids:
-            self.song_ids = raw_song_ids
-        raw_sfx_ids = data.get('53')
-        if raw_sfx_ids:
-            self.sfx_ids = raw_sfx_ids
-        self.unknown = safeInt(data.get('54'), 0)
-        raw_verify = data.get('57')
-        if raw_verify is not None:
-            self.verification_time = safeInt(raw_verify)
-
-        # === 未使用字段 (文档标注) ===
-        self.record_string = data.get('26', '')
-        self.settings_string = data.get('48', '')
 
         return self
 
