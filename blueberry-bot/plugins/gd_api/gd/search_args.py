@@ -2,16 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-# 直接运行时将 blueberry-bot/ 加入 sys.path，使 plugins 包可导入
-if __name__ == "__main__" and __package__ is None:
-    from pathlib import Path
-    import sys
-    _root = Path(__file__).resolve().parents[3]  # blueberry-bot/
-    if str(_root) not in sys.path:
-        sys.path.insert(0, str(_root))
-    from plugins.gd_api.gd.models import Difficulty, Length
-else:
-    from .models import Difficulty, Length
+from .models import Difficulty, Length
 
 class ListSearchType(Enum):
     SEARCH = 0
@@ -381,17 +372,3 @@ class LevelSearchArgs:
 
         data["secret"] = "Wmfd2893gb7"
         return data
-
-
-if __name__ == "__main__":
-    args = (LevelSearchArgs()
-        .setSearchType(LevelSearchType.RECENT)
-        .setSearch("")
-        .setDifficulty([Difficulty.ANY_DEMON])
-        .setLength([Length.PLAT])
-    )
-    args.star = True
-    print(args.getData())
-    
-    from plugins.gd_api.gd import getLevelSearch
-    print(getLevelSearch(args))

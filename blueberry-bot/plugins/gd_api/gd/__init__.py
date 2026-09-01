@@ -1,6 +1,3 @@
-from pathlib import Path
-import sys
-
 from enum import Enum
 import httpx
 from cachetools import TTLCache
@@ -8,22 +5,11 @@ from cachetools_async import cached as async_cached
 from nonebot import logger,get_plugin_config
 from pydantic import BaseModel
 
-# 直接运行时将 blueberry-bot/ 加入 sys.path，使 plugins 包可导入
-if __name__ == "__main__" and __package__ is None:
-    _root = Path(__file__).resolve().parents[3]  # blueberry-bot/
-    if str(_root) not in sys.path:
-        sys.path.insert(0, str(_root))
-    from plugins.gd_api.gd.models import BaseLevel, Difficulty, Length, Level, LevelList, PageInfo, PlayerDemonLevels, PlayerIcons, PlayerInfo, PlayerLevels, Song, SearchStatus
-    from plugins.gd_api.gd.search_args import LevelSearchArgs, LevelSearchType, ListSearchType
-    from plugins.gd_api.gd.utils import safeBool, safeInt
-    from plugins.gd_api.gd import run_async
-    from plugins.gd_api.gd.builtins import OfficialSong,getOfficialSong
-else:
-    from .models import BaseLevel, Difficulty, Length, Level, LevelList, PageInfo, PlayerDemonLevels, PlayerIcons, PlayerInfo, PlayerLevels, Song, SearchStatus
-    from .search_args import LevelSearchArgs, LevelSearchType, ListSearchType
-    from .utils import safeBool, safeInt
-    from .. import run_async
-    from .builtins import OfficialSong,getOfficialSong
+from .models import BaseLevel, Difficulty, Length, Level, LevelList, PageInfo, PlayerDemonLevels, PlayerIcons, PlayerInfo, PlayerLevels, Song, SearchStatus
+from .search_args import LevelSearchArgs, LevelSearchType, ListSearchType
+from .utils import safeBool, safeInt
+from .. import run_async
+from .builtins import OfficialSong,getOfficialSong
 
 class Config(BaseModel):
     gd_endpoint_base:str="https://www.boomlings.com"
@@ -383,57 +369,4 @@ async def getSong_async(musicID:int,official:bool=False):
     logger.info(f"Got song {musicID}: {result.name} by {result.artistID}")
     return result
 
-
-# Test code
-if __name__ == "__main__":
-    async def _test():
-        # lists=await getList_async(754820)
-        # for l in lists:
-        #     print(l.name,l.creator,l.levels)
-            
-        # print(await getLevel_async(lists[0].levels[0]))
-        
-        # print(await getLevel_async("CATHARSIS",True))
-        
-        # print(await getLevel_async("",rated=True,diff="-2"))
-        
-        # print(await getLevel_async("645883",rated=True,type=25))
-        
-        # print(await getLevelsFromList_async(645883))
-        
-        # print(await getLevel_async(searchType=LevelSearchType.WEEKLY))
-        
-        # print(await getUser_async("BlueBeaker"))
-        
-        # print(await getUser_async("xioayang"))
-        
-        # print(await getUser_async("194268237"))
-        
-        # print(await getSong_async(803223))
-        # print(await getSong_async(10011122))
-        
-        print(await getLevel_async("77236592"))
-        print(await getLevel_async("126461421"))
-        
-        # Test downloadLevel
-        
-        if False:
-            print("\n=== Testing downloadLevel ===")
-            level = await downloadLevel_async(126461421)
-            print(f"Level: {level}")
-            if level:
-                print(f"  description: {level.get_description()}")
-                print(f"  version: {level.version}")
-                print(f"  game_version: {level.game_version}")
-                print(f"  objects: {level.objects}")
-                print(f"  has level_string: {bool(level.level_string)}")
-                print(f"  level_string length: {len(level.level_string) if level.level_string else 0}")
-                print(f"  password: {level.password}")
-                print(f"  upload_date: {level.upload_date}")
-                print(f"  update_date: {level.update_date}")
-                print(f"  song_ids: {level.song_ids}")
-                print(f"  sfx_ids: {level.sfx_ids}")
-                print(f"  verification_time: {level.verification_time}")
-    asyncio.run(_test())
-        
     

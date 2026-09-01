@@ -1,21 +1,11 @@
 from enum import Enum
 from pathlib import Path
-import sys
 from typing import Any, override
 import httpx
 
-# 直接运行时将 blueberry-bot/ 加入 sys.path，使 plugins 包可导入
-if __name__ == "__main__" and __package__ is None:
-    _root = Path(__file__).resolve().parents[3]  # blueberry-bot/
-    if str(_root) not in sys.path:
-        sys.path.insert(0, str(_root))
-    from plugins.gd_api.file_based_cache import FileBasedCache
-    from plugins.gd_api import run_async
-    from plugins.gd_api.models import LevelWithID
-else:
-    from ..file_based_cache import FileBasedCache
-    from .. import run_async
-    from ..models import LevelWithID
+from ..file_based_cache import FileBasedCache
+from .. import run_async
+from ..models import LevelWithID
     
 class AREDLStatus(Enum):
     MAINLIST="MainList"
@@ -98,10 +88,3 @@ async def getAREDLLevels_async(plat:bool=False):
 
 def getAREDLLevels(plat:bool=False):
     return run_async(getAREDLLevels_async(plat))
-
-if __name__ == "__main__":
-    import asyncio
-    async def _test():
-        print(await getAREDLLevels_async())
-        print(await getAREDLLevels_async(True))
-    asyncio.run(_test())

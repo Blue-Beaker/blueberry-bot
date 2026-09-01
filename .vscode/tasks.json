@@ -1,0 +1,58 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "pytest: 测试当前 test 文件 (显示输出)",
+            "type": "shell",
+            "command": ".venv/bin/python -m pytest ${file} -s -v",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "group": "test"
+        },
+        {
+            "label": "pytest: 测试当前 test 文件 (无输出)",
+            "type": "shell",
+            "command": ".venv/bin/python -m pytest ${file}",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "group": "test"
+        },
+        {
+            "label": "pytest: 测试当前模块 (test 目录, 显示输出)",
+            "type": "shell",
+            "command": ".venv/bin/python -m pytest ${relativeFileDirname} -s -v",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "group": "test"
+        },
+        {
+            "label": "pytest: 测试当前模块 (test 目录, 无输出)",
+            "type": "shell",
+            "command": ".venv/bin/python -m pytest ${relativeFileDirname}",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "group": "test"
+        },
+        {
+            "label": "pytest: 全部测试",
+            "type": "shell",
+            "command": ".venv/bin/python -m pytest",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        }
+    ]
+}
