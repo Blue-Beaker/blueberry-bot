@@ -2,6 +2,8 @@ from abc import abstractmethod
 from enum import Enum
 from typing import Any, get_type_hints
 
+from ..models import BaseAdaptingModel
+
 class GDDLDifficulty(Enum):
     OFFICIAL="Official"
     EASY="Easy"
@@ -10,27 +12,6 @@ class GDDLDifficulty(Enum):
     INSANE="Insane"
     EXTREME="Extreme"
 
-class BaseAdaptingModel:
-    def adapt_variable(self,key:str,value:Any):
-        if value is None:
-            return
-        target=get_type_hints(type(self)).get(key,None)
-        if target:
-            try:
-                value=target(value)
-            except:
-                pass
-        self.__dict__[key]=value
-    def load(self,data:dict):
-        for k,v in data.items():
-            self.adapt_variable(k,v)
-        return self
-    @classmethod
-    def from_dict(cls,data:dict):
-        inst=cls()
-        inst.load(data)
-        return inst
-        
 class GDDLSearchLevel(BaseAdaptingModel):
     id: int=0
     rating: float=0
