@@ -1,5 +1,6 @@
 import pytest
 from plugins.bbot_render import RenderAPI
+from pathlib import Path
 
 
 @pytest.mark.asyncio
@@ -7,6 +8,9 @@ async def test_render_main():
     """测试功能：发送示例请求并保存结果"""
     api = RenderAPI()
     from plugins.bbot_render.models import PlayerInfoRenderArgs,DemonsRenderArgs,NonDemonsRenderArgs
+    
+    test_output_path=Path("test_output")
+    test_output_path.mkdir(parents=True,exist_ok=True)
 
     print("=== Testing player_info ===")
     args_player=PlayerInfoRenderArgs("test-001")
@@ -24,7 +28,7 @@ async def test_render_main():
         pemons=100
     )
     result = await api.render(args_player)
-    _save_result(result, "render_player_info.png")
+    _save_result(result, test_output_path/"render_player_info.png")
 
     print("\n=== Testing demons ===")
     args_demons=DemonsRenderArgs("test-002")
@@ -34,7 +38,7 @@ async def test_render_main():
         weekly=3, gauntlet=2,
     )
     result = await api.render(args_demons)
-    _save_result(result, "render_demons.png")
+    _save_result(result, test_output_path/"render_demons.png")
 
     print("\n=== Testing nondemons ===")
     args_nondemons=NonDemonsRenderArgs("test-003")
@@ -44,16 +48,16 @@ async def test_render_main():
         daily=1,
     )
     result = await api.render(args_nondemons)
-    _save_result(result, "render_nondemons.png")
+    _save_result(result, test_output_path/"render_nondemons.png")
     
     print("\n=== Testing text ===")
     result = await api.render_text(
         "test-004","a98u8912u38uj0c vnduiy39ru2043jr"
     )
-    _save_result(result, "render_text.png")
+    _save_result(result, test_output_path/"render_text.png")
 
 
-def _save_result(result: bytes | dict | None, filename: str):
+def _save_result(result: bytes | dict | None, filename: str|Path):
     if result is None:
         print("No response (connection failed)")
         return

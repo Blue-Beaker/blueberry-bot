@@ -13,3 +13,4 @@ config/**
 say_config.json.bak
 blueberry-bot/plugins/debug_hook/
 savedata/**
+test_output/**
