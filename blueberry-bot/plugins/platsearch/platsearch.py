@@ -62,14 +62,14 @@ class SearchArgs:
         self.parser.add_argument('search', nargs='*', type=str, help='search string')
         self.parser.add_argument('-t',help="Tier",type=str,default="")
         self.parser.add_argument('-s',help="Skills",type=str,default=None)
-        self.parser.add_argument('--pagesize',help="Page Size",type=int,default=5)
+        self.parser.add_argument('--pagesize',help="Page Size",type=int,default=10)
         
         self.page=1
         self.fuzzy=False
         self.skills=[]
         self.text=""
         self.tier=""
-        self.pagesize=5
+        self.pagesize=10
         
     def parse(self,text:str):
         try:

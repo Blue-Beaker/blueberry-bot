@@ -12,7 +12,7 @@ from ..gd_api.gddl import GDDLLevel
 
 from .data_cache import CacheWithIDMap,KeyMapCache
 from .models import BaseSerializableEntry
-from .utils import split_str_lists
+from .utils import split_str_lists,has_skills
 
 PLAT_RANK_ID = "1uicngbhpej4PEmtYYeGmYlFsA28PwTzzouWb4EWQkTY"
 
@@ -341,24 +341,6 @@ def get_plat_chart():
         entry.weight_type=entry1.section
 
     return results
-
-def has_skills(search:list[str],level_skills:list[str],skill_groups:list[list[str]]=[]):
-    lskills=set()
-    for s in level_skills:
-        lskills.add(s.lower())
-        if " " in s:
-            lskills.add(s.lower().replace(" ",""))
-    
-    for group in skill_groups:
-        intersect=list(set(group) & set(lskills))
-        if intersect:
-            lskills=list(set(group) | set(lskills))
-    matched=True
-    for s in search:
-        if s.lower() not in lskills:
-            matched=False
-            break
-    return matched
 
 _A = TypeVar(name="_A")
 def safeInt(i:Any,fallback:_A=-1) -> int|_A:

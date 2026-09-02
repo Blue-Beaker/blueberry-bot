@@ -27,6 +27,23 @@ def split_str_lists(text:str) -> list[str]:
     return [i.strip() for i in text.split(",")] if text.strip() else []
 
 
+def has_skills(search:list[str],level_skills:list[str],skill_groups:list[list[str]]=[]):
+    lskills=set()
+    for s in level_skills:
+        lskills.add(s.lower())
+        if " " in s:
+            lskills.add(s.lower().replace(" ",""))
+    
+    for group in skill_groups:
+        intersect=list(set(group) & set(lskills))
+        if intersect:
+            lskills=list(set(group) | set(lskills))
+    matched=True
+    for s in search:
+        if s.lower() not in lskills:
+            matched=False
+            break
+    return matched
 
 class SearchException(Exception):
     def __init__(self, msg:str, *args: object) -> None:

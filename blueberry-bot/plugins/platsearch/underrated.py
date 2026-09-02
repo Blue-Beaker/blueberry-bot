@@ -19,8 +19,8 @@ from ..bbot_api.sheets_api import Sheet
 from ..bbot_api import safeInt
 from ..bbot_api.argparse import ArgumentError,ArgParser
 
-from .utils import select_page
-from .underrated_data import formatUnderrated
+from .utils import select_page,has_skills
+from .underrated_data import formatUnderrated,UnderratedLevel
 
 plugin_config = get_plugin_config(Config)
     
@@ -35,7 +35,9 @@ async def _(args: Message = CommandArg()):
         parser.add_argument('-p',help='Page',type=int)
         parser.add_argument('-s',help='Section',type=str,choices=["","auto","easy","normal","hard","harder","insane"],default="")
         parser.add_argument('-t',help='Tier',type=int)
+        parser.add_argument('--skills',help="Skills",type=str,default=None)
         parser.add_argument('-f',help="Fuzzy",action='store_true')
+        parser.add_argument('--pagesize',help="Page Size",type=int,default=10)
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parsed=parser.parse_args(raw_args)
         
@@ -44,6 +46,9 @@ async def _(args: Message = CommandArg()):
         tier=parsed.t or -1
         section=parsed.s or ""
         fuzzy=parsed.f or False
+        pagesize = int(parsed.pagesize)
+        
+        skills:list[str]=[t.strip().lower() for t in parsed.skills.split(",")] if parsed.skills else []
         
         if section or tier:
             fuzzy=True
@@ -54,7 +59,16 @@ async def _(args: Message = CommandArg()):
     reply = []
     
     levels=UNDERRATED_CACHE.getOrUpdate()
-    levels = [l for l in levels if (l.matchesName(search,fuzzy) or str(l.getID())==search)]
+    def levelMatchesFilter(l:UnderratedLevel):
+        if str(l.getID())==search:
+            return True
+        if not l.matchesName(search,fuzzy):
+            return False
+        if skills and not has_skills(skills,l.skillsets):
+            return False
+        return True
+        
+    levels = [l for l in levels if levelMatchesFilter(l)]
     if tier>0:
         levels=[l for l in levels if l.tier==tier]
         
@@ -62,7 +76,7 @@ async def _(args: Message = CommandArg()):
         levels=[l for l in levels if l.section.lower()==section]
         
     count=levels.__len__()
-    entries_per_page=5
+    entries_per_page=pagesize
     results,maxpages,page=select_page(levels,count,entries_per_page,page)
     
     if count==0:
