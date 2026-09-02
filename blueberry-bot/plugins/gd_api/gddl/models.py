@@ -12,6 +12,7 @@ class GDDLDifficulty(Enum):
     INSANE="Insane"
     EXTREME="Extreme"
 
+
 class GDDLSearchLevel(BaseAdaptingModel):
     id: int=0
     rating: float=0
@@ -33,14 +34,32 @@ class GDDLLevel(BaseAdaptingModel):
     ID:int=0
     Rating:float|None=None
     Enjoyment:float|None=None
+    Deviation:float|None=None
+    RatingCount:int=0
     EnjoymentCount:int=0
-    Popularity:float=0
-    Length:int=0
-    # Meta
+    SubmissionCount:int=0
+    TwoPlayerRating:float|None=None
+    TwoPlayerEnjoyment:float|None=None
+    TwoPlayerDeviation:float|None=None
+    DefaultRating:float|None=None
+    Showcase:str=""
+    Popularity:float|None=None
+    # Meta ID
+    MetaID:int=0
+    # From Meta
     Name:str=""
     Description:str=""
-    # Meta/Publisher/name
+    Length:int=0
+    IsTwoPlayer:bool=False
+    Difficulty:GDDLDifficulty=GDDLDifficulty.OFFICIAL
+    SongID:int=0
+    PublisherID:int=0
+    UploadedAt:Any=None
+    # From Meta/Publisher/name
     Publisher:str=""
+    # From Meta/Song
+    SongName:str=""
+    SongAuthor:str=""
     @classmethod
     def from_search(cls,data:GDDLSearchLevel):
         inst=cls()
@@ -51,28 +70,31 @@ class GDDLLevel(BaseAdaptingModel):
         inst.Publisher=data.publisherName
         return inst
     def load(self,data:dict):
-        for k in ["ID","Rating","Enjoyment","EnjoymentCount","Popularity","Length"]:
+        for k in ["ID","Rating","Enjoyment","Deviation","RatingCount",
+                   "EnjoymentCount","SubmissionCount","TwoPlayerRating",
+                   "TwoPlayerEnjoyment","TwoPlayerDeviation","DefaultRating",
+                   "Showcase","Popularity"]:
             if k in data.keys():
                 self.adapt_variable(k,data[k])
         
-        # self.ID=int(data.get("ID"),self.ID)
-        # self.Rating=float(data.get("Rating"),self.Rating)
-        # self.Enjoyment=float(data.get("Enjoyment"),self.Enjoyment)
-        # self.EnjoymentCount=int(data.get("EnjoymentCount"),self.EnjoymentCount)
-        # self.Popularity=float(data.get("Popularity"),self.Popularity)
-        # self.Length=int(data.get("Length"),self.Length)
-        
         meta=data.get("Meta")
         if isinstance(meta,dict):
-            for k in ["Name","Description"]:
+            if "ID" in meta:
+                self.adapt_variable("MetaID",meta["ID"])
+            for k in ["Name","Description","Length","IsTwoPlayer","Difficulty","SongID","PublisherID","UploadedAt"]:
                 if k in meta.keys():
                     self.adapt_variable(k,meta[k])
-            # self.Name=meta.get("Name","")
-            # self.Description=meta.get("Description","")
             
             publ=meta.get("Publisher")
             if isinstance(publ,dict):
                 self.Publisher=publ.get("name","")
+            elif isinstance(publ,str):
+                self.Publisher=publ
+            
+            song=meta.get("Song")
+            if isinstance(song,dict):
+                self.SongName=song.get("Name","")
+                self.SongAuthor=song.get("Author","")
             
         return self
     def __repr__(self) -> str:
