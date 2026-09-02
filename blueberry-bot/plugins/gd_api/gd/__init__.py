@@ -5,7 +5,7 @@ from cachetools_async import cached as async_cached
 from nonebot import logger,get_plugin_config
 from pydantic import BaseModel
 
-from .models import BaseLevel, Difficulty, Length, Level, LevelList, PageInfo, PlayerDemonLevels, PlayerIcons, PlayerInfo, PlayerLevels, Song, SearchStatus
+from .models import BaseLevel, Difficulty, Length, Level, LevelList, PageInfo, PlayerDemonLevels, PlayerIcons, PlayerInfo, PlayerLevels, Song, SearchStatus, FetchResult
 from .search_args import LevelSearchArgs, LevelSearchType, ListSearchType
 from .utils import safeBool, safeInt
 from .. import run_async
@@ -162,9 +162,12 @@ async def getLevel2_async(search:int|str|None=None,page:int=0,rated:bool=False,s
         req = await client.post(url=url, data=data)
     except httpx.NetworkError as e:
         logger.error(f"Error fetching level: {e}")
-        return None,PageInfo().setStatus(SearchStatus.NETWORK_ERROR)
+        return None,PageInfo().setStatus(SearchStatus.NETWORK_ERROR).setError(str(e))
     logger.debug(f"Raw response: {req.text}")
     
+    if req.status_code!=200:
+        logger.error(f"Network Error: {req.text}")
+        return None,PageInfo().setStatus(SearchStatus.NETWORK_ERROR).setError(str(req.content))
     
     result:list[Level]=[]
     
@@ -291,21 +294,30 @@ async def downloadLevel2_async(levelID:int, **kwargs):
     url = GD_ENDPOINT_BASE+"/database/downloadGJLevel22.php"
 
     logger.info(f"Downloading level {levelID}...")
-    req = await client.post(url=url, data=data)
+    
+    try:
+        req = await client.post(url=url, data=data)
+    except httpx.NetworkError as e:
+        logger.error(f"Error fetching level: {e}")
+        return None,FetchResult().setError(str(e))
+    
     logger.debug(f"Raw response: {req.text}")
+    
+    if req.status_code!=200:
+        return None,FetchResult().setError(req.text)
 
     spl = req.text.split("#")
     if spl.__len__() < 3:
-        return None
+        return None,FetchResult().setError(SearchStatus.PARSE_FAILED.value)
 
     rawLevel = spl[0]
 
     level_data = parseDict(rawLevel)
     level = Level().load(level_data)
     if level.id == -1:
-        return None
+        return None,FetchResult().setError(SearchStatus.EMPTY_RESULTS.value)
 
-    return level
+    return level,FetchResult()
 
 @async_cached(TTLCache(maxsize=100, ttl=60))  # type: ignore[arg-type]
 async def getUser_async(search:int|str):

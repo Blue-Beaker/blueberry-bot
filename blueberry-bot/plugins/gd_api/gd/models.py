@@ -139,8 +139,14 @@ class SearchStatus(Enum):
     EMPTY_RESULTS="无结果"
     USER_NOT_FOUND="未找到用户"
     NO_USER_ARG="未提供用户名/ID"
+    
+class FetchResult:
+    error: str=''
+    def setError(self,error:Any):
+        self.error=str(error)
+        return self
 
-class PageInfo:
+class PageInfo(FetchResult):
     status: SearchStatus
     total: int=0
     offset: int=0

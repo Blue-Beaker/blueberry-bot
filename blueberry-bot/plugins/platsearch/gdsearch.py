@@ -286,13 +286,17 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 if orb_account.get()<25:
                     lines.addLine("额外信息需要持有 25 Orbs. 消耗可低于此值.")
                 else:
-                    level2=await downloadLevel2_async(level.id)
+                    level2,result=await downloadLevel2_async(level.id)
                     if level2 and level2.level_string:
                         cost=min(25,level2.level_string.__len__()//100000)
                         orb_account.add(-cost)
                         lines.addLine(f"已消耗 {cost} Orbs.")
+                    elif result:
+                        lines.addLine(f"获取完整信息失败: {result.error}")
             else:
-                level2=await downloadLevel2_async(level.id)
+                level2,result=await downloadLevel2_async(level.id)
+                if (not level2) and result:
+                    lines.addLine(f"获取完整信息失败: {result.error}")
             return level2
         
         async def gather_thumbnail():
