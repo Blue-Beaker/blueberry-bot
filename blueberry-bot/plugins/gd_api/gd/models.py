@@ -95,9 +95,9 @@ BASE_LEVEL_MAPPING.add(MappingEntry('name','2',str))
 BASE_LEVEL_MAPPING.add(MappingEntry('creator','50',str))
 
 class BaseLevel:
-    id: int
-    name: str
-    creator: str
+    id: int=0
+    name: str=''
+    creator: str=''
 
     def __init__(self) -> None:
         pass

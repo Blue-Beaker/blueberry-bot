@@ -148,8 +148,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     except Exception as e:
         if isinstance(e,FinishedException):
             raise e
-        await gdlist.finish("查询出错.")
         logger.error(traceback.format_exc())
+        await gdlist.finish(f"查询出错: {e}")
     
 
 gdthumb = on_command("gdthumb")
