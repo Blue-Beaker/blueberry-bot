@@ -141,7 +141,7 @@ async def getLevel_async(search:int|str|None=None,page:int=0,rated:bool=False,se
     result, _ = await getLevel2_async(search, page, rated, searchType=searchType, **kwargs)
     return result
 
-@async_cached(TTLCache(maxsize=100, ttl=60))  # type: ignore[arg-type]
+# @async_cached(TTLCache(maxsize=100, ttl=60))  # type: ignore[arg-type]
 async def getLevel2_async(search:int|str|None=None,page:int=0,rated:bool=False,searchType:LevelSearchType|int=0,**kwargs):
     client = await get_client()
     
@@ -188,28 +188,28 @@ async def getLevel2_async(search:int|str|None=None,page:int=0,rated:bool=False,s
     
     leveldata=parseLine(spl[0])
     
-    creator_to_level:dict[int,Level]={}
-    
-    for data in leveldata:
-        # print(leveldata)
-        l=Level().load(data)
-        if l.id==-1:
-            continue
-        result.append(l)
-        creator_to_level[l.creator_id]=l
+    # creator_to_level:dict[int,Level]={}
     
     creators=spl[1].split("|")
+    creators_map:dict[int,str]={}
     for c in creators:
         try:
             spl=c.split(":")
             creator_id=safeInt(spl[0])
             creator=spl[1]
-            # print(creator)
-            level=creator_to_level.get(creator_id)
-            if level:
-                level.creator=creator
+            creators_map[creator_id]=creator
         except:
             pass
+        
+    for data in leveldata:
+        # print(leveldata)
+        l=Level().load(data)
+        if l.id==-1:
+            continue
+        l.creator=creators_map.get(l.creator_id,"")
+        result.append(l)
+        # creator_to_level[l.creator_id]=l
+    
         
     logger.info(f"Found {result.__len__()} results.")
     return result,PageInfo().parse(rawPageInfo)
