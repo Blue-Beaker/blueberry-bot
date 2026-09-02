@@ -34,6 +34,8 @@ class GDLevelInfoProvider:
     pemonlist_entry:PemonlistLevel|None=None
     pemonlist_entries:list[PemonlistLevel]
     
+    gddl_entry:GDDLLevel|None=None
+    
     def __init__(self,level_id:int) -> None:
         self.level_id=level_id
         self.dc_entries=[]
@@ -168,7 +170,21 @@ class GDLevelInfoProvider:
         underrated_entries=self.underrated_entries
         nlwlike_entry=self.nlwlike_entry
         nlwlike_entries=self.nlwlike_entries
+        gddl_entry=self.gddl_entry
         lines:list[str]=[]
+        
+        if gddl_entry:
+            lines.append("--GDDL--")
+            
+            def repr_float(value:float|None):
+                return f"{value:.1f}" if value is not None else '-'
+            lines.append(f"Tier: {repr_float(gddl_entry.Rating)} ({gddl_entry.RatingCount}) Enjoyment: {repr_float(gddl_entry.Enjoyment)} ({gddl_entry.EnjoymentCount})")
+            lines.append(f"Popularity: {repr_float(gddl_entry.Popularity)}")
+            
+            if gddl_entry.IsTwoPlayer:
+                lines.append(f"2P Tier: {repr_float(gddl_entry.TwoPlayerRating)} Enjoyment: {repr_float(gddl_entry.TwoPlayerEnjoyment)}")
+            
+        
         if dc_entries:
             lines.append("--Difficulty Chart--")
             for e in dc_entries:
@@ -197,3 +213,7 @@ class GDLevelInfoProvider:
             for e in nlwlike_entries:
                 lines.append(formatters.formatListsLevel(e,False,True,not image_shown))
         return lines
+    
+    def setGDDL(self,entry:GDDLLevel|None):
+        self.gddl_entry=entry
+        return self

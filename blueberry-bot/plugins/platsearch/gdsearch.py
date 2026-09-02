@@ -35,6 +35,7 @@ from ..gd_api.gd import getLevel2_async,getLevelSearch2_async,getList2_async,get
 from ..gd_api import gd
 from ..gd_api.gd import Level
 from ..gd_api.thumbs import getThumbnail_async,getThumbnailUrl
+from ..gd_api.gddl.search import getGDDLLevel
 
 require("bbot_perms")
 from ..bbot_perms import get_perms
@@ -270,6 +271,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     level2=None
     thumb=None
     song=None
+    gddl_level=None
     
     try:
         # Async gatherers. return None instantly for unneeded ones
@@ -308,10 +310,17 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             song=await getSong_async(level.songID,level.official_song)
             return song
         
-        level2, thumb, song = await asyncio.gather(gather_level2(),gather_thumbnail(),gather_song())
+        async def gather_gddl():
+            if not level.demon:
+                return None
+            gddl_level,_=await getGDDLLevel(level.id)
+            return gddl_level
+        
+        level2, thumb, song, gddl_level = await asyncio.gather(gather_level2(),gather_thumbnail(),gather_song(),gather_gddl())
             
         info_provider=GDLevelInfoProvider(level.id)
         info_provider.fetch(level.demon,level.is_plat())
+        info_provider.setGDDL(gddl_level)
         
         info_image=False
         # Image Sections

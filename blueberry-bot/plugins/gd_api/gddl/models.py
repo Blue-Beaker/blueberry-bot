@@ -54,7 +54,7 @@ class GDDLLevel(BaseAdaptingModel):
     Difficulty:GDDLDifficulty=GDDLDifficulty.OFFICIAL
     SongID:int=0
     PublisherID:int=0
-    UploadedAt:Any=None
+    UploadedAt:str|None=None
     # From Meta/Publisher/name
     Publisher:str=""
     # From Meta/Song
