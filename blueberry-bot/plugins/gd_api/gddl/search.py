@@ -21,39 +21,73 @@ class GDDLSearchResult2:
     def __repr__(self) -> str:
         return f"[{self.__class__.__name__}]{self.__dict__}"
     
+_HEADERS = {
+    "User-Agent": "",
+    "accept": "application/json"
+}
+    
 async def searchGDDLLevel(args:GDDLSearchArgs):
     url=f"https://gdladder.com/api/levels"
-    headers = {
-        "User-Agent": "",
-        "accept": "application/json"
-    }
-    
     async with httpx.AsyncClient(timeout=30) as client:
         try:
-            resp = await client.get(url, headers=headers, params=args.getData())
+            resp = await client.get(url, headers=_HEADERS, params=args.getData())
         except httpx.ConnectError as e:
             return None,str(e)
     if resp.status_code!=200:
         return None,resp.text
     else:
         return GDDLSearchResult2().load(resp.json()),None
+
+async def getGDDLTagsRaw(level_id:int):
+    url=f"https://gdladder.com/api/levels/{level_id}/tags"
+    async with httpx.AsyncClient(timeout=30) as client:
+        try:
+            resp = await client.get(url, headers=_HEADERS)
+        except httpx.ConnectError as e:
+            return None,str(e)
+    if resp.status_code!=200:
+        return None,resp.text
+    else:
+        return resp.json(),None
     
-async def getGDDLLevel(level_id:int):
+async def getGDDLTagsEligible(level_id:int):
+    url=f"https://gdladder.com/api/levels/{level_id}/tags/eligible"
+    async with httpx.AsyncClient(timeout=30) as client:
+        try:
+            resp = await client.get(url, headers=_HEADERS)
+        except httpx.ConnectError as e:
+            return None,str(e)
+    if resp.status_code!=200:
+        return None,resp.text
+    else:
+        return bool(dict(resp.json()).get('eligible',False)),None
+    
+async def getGDDLLevelRaw(level_id:int):
     url=f"https://gdladder.com/api/levels/{level_id}"
-    headers = {
-        "User-Agent": "",
-        "accept": "application/json"
-    }
     
     async with httpx.AsyncClient(timeout=30) as client:
         try:
-            resp = await client.get(url, headers=headers)
+            resp = await client.get(url, headers=_HEADERS)
         except httpx.ConnectError as e:
             return None,str(e)
     if resp.status_code!=200:
         return None,resp.text
     else:
         return GDDLLevel().load(resp.json()),None
+    
+async def getGDDLLevel(level_id:int):
+    level_resp, tags_resp, eligible_resp = await asyncio.gather(getGDDLLevelRaw(level_id),getGDDLTagsRaw(level_id),getGDDLTagsEligible(level_id))
+    level,e1=level_resp
+    tags,e2=tags_resp
+    eligible,e3=eligible_resp
+    if not level:
+        return level,e1,e2,e3
+    if tags:
+        level.load_tags(tags)
+    if eligible is not None:
+        level.tags_eligible=eligible
+        
+    return level,e1,e2,e3
     
 _A = TypeVar(name="_A")
 def callOrFallback(i:Any,callable:Callable[[Any],_A],fallback:_A=-1) -> _A:

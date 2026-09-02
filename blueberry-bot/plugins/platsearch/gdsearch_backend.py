@@ -179,6 +179,7 @@ class GDLevelInfoProvider:
             def repr_float(value:float|None):
                 return f"{value:.1f}" if value is not None else '-'
             lines.append(f"Tier: {repr_float(gddl_entry.Rating)} ({gddl_entry.RatingCount}) Enjoyment: {repr_float(gddl_entry.Enjoyment)} ({gddl_entry.EnjoymentCount})")
+            lines.append(f"Tags: {', '.join([f'{t.get_tag().tag_name}/{t.ReactCount}' for t in gddl_entry.tags])}")
             lines.append(f"Popularity: {repr_float(gddl_entry.Popularity)}")
             
             if gddl_entry.IsTwoPlayer:

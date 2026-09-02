@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import Any, get_type_hints
+from typing import Any, ClassVar, get_type_hints
+from typing_extensions import Self
 
 from ..models import BaseAdaptingModel
 
@@ -11,6 +12,45 @@ class GDDLDifficulty(Enum):
     HARD="Hard"
     INSANE="Insane"
     EXTREME="Extreme"
+    
+class GDDLTags(Enum):
+    # 类型检查器需要的属性声明
+    tag_name: str
+    tag_desc: str
+    tag_order: int
+    
+    CUBE=(1, "Cube", "This level has cube sections that make up a large portion of its difficulty.", 1)
+    SHIP=(2, "Ship", "This level has ship sections that make up a large portion of its difficulty.", 2)
+    BALL=(3, "Ball", "This level has ball sections that make up a large portion of its difficulty.", 3)
+    UFO=(4, "UFO", "This level has UFO sections that make up a large portion of its difficulty.", 4)
+    WAVE=(5, "Wave", "This level has wave sections that make up a large portion of its difficulty.", 5)
+    ROBOT=(6, "Robot", "This level has robot sections that make up a large portion of its difficulty.", 6)
+    SPIDER=(7, "Spider", "This level has spider sections that make up a large portion of its difficulty.", 7)
+    SWING=(20, "Swing", "This level has swing sections that make up a large portion of its difficulty.", 8)
+    NERVE_CONTROL=(8, "Nerve Control", "This level tests your consistency and ability to handle stress near the end of the level.", 9)
+    MEMORY=(9, "Memory", "This level requires remembering a complex path to complete, usually with several fakes, potential routes, and/or visual obscurity.", 10)
+    LEARNY=(10, "Learny", "This level needs a significant time investment in order to understand its complex/unintuitive gameplay.", 11)
+    DUALS=(11, "Duals", "This level has duals that make up a large portion of its difficulty. Generally refers to asymmetrical duals.", 12)
+    CHOKEPOINTS=(12, "Chokepoints", "This level contains parts with very condensed difficulty in relation to the rest of the level.", 13)
+    HIGH_CPS=(13, "High CPS", "This level has several sections that require very fast (usually controlled) inputs.", 14)
+    TIMINGS=(14, "Timings", "This level tests your ability to perform many very precise inputs.", 15)
+    FLOW=(15, "Flow", "This level has many dynamic gameplay transitions throughout the level, forming a \"smooth\" and \"flowy\" type of gameplay.", 16)
+    OVERALL=(16, "Overall", "This level has no specific skillset it tests, instead drawing on multiple skillsets in smaller proportion for its difficulty.", 17)
+    GIMMICKY=(17, "Gimmicky", "This level primarily focuses on developing an experimental, unorthodox gameplay type.", 18)
+    FAST_PACED=(18, "Fast-Paced", "This level has fast-moving sections (3x or 4x speed) for the majority of the level.", 19)
+    SLOW_PACED=(19, "Slow-Paced", "This level has slower-moving sections (0.5x) for a large part of the level.", 20)
+    
+    def __new__(cls, *args):
+        if len(args) == 4:
+            value, tag_name, tag_desc, tag_order = args
+        else:
+            value, tag_name, tag_desc, tag_order = args[0]
+        inst = object.__new__(cls)
+        inst._value_ = value
+        inst.tag_name = tag_name
+        inst.tag_desc = tag_desc
+        inst.tag_order = tag_order
+        return inst
 
 
 class GDDLSearchLevel(BaseAdaptingModel):
@@ -60,6 +100,12 @@ class GDDLLevel(BaseAdaptingModel):
     # From Meta/Song
     SongName:str=""
     SongAuthor:str=""
+    # Tags
+    tags: list['GDDLLevelTag']
+    tags_eligible: bool=False
+    def __init__(self) -> None:
+        super().__init__()
+        self.tags=[]
     @classmethod
     def from_search(cls,data:GDDLSearchLevel):
         inst=cls()
@@ -97,8 +143,22 @@ class GDDLLevel(BaseAdaptingModel):
                 self.SongAuthor=song.get("Author","")
             
         return self
+    def load_tags(self,data:list[dict]):
+        self.tags=[]
+        for i in data:
+            tag=GDDLLevelTag().from_dict(i)
+            self.tags.append(tag)
+        return self
     def __repr__(self) -> str:
         return f"GDDLLevel[{self.Name} by {self.Publisher} {self.ID}]"
+    
+class GDDLLevelTag(BaseAdaptingModel):
+    levelID:int
+    HasVoted:int
+    ReactCount:int
+    TagID:int
+    def get_tag(self):
+        return GDDLTags(self.TagID)
     
 if __name__ == "__main__":
     import json,requests

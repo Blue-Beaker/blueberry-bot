@@ -313,7 +313,13 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         async def gather_gddl():
             if not level.demon:
                 return None
-            gddl_level,_=await getGDDLLevel(level.id)
+            gddl_level,e1,e2,e3=await getGDDLLevel(level.id)
+            if e1:
+                lines.addLine(f"获取关卡出错: {e1}")
+            if e2:
+                lines.addLine(f"获取Tags出错: {e2}")
+            if e3:
+                lines.addLine(f"获取Eligible出错: {e3}")
             return gddl_level
         
         level2, thumb, song, gddl_level = await asyncio.gather(gather_level2(),gather_thumbnail(),gather_song(),gather_gddl())
