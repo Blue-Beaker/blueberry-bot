@@ -2,12 +2,15 @@ import asyncio
 from typing import Any, TypeVar
 from nonebot import logger
 import httpx
+from .search_args import GDDLSearchArgs
+from .models import GDDLSearchLevel
 
 class GDDLSearchResult:
     total:int
     limit:int
     page:int
     levels:list[dict[str,Any]]
+    # levels:list[GDDLSearchLevel]
     def __init__(self) -> None:
         pass
     def load(self,resp:dict):
@@ -15,9 +18,43 @@ class GDDLSearchResult:
         self.limit=safeInt(resp.get("limit"),-1)
         self.page=safeInt(resp.get("page"),-1)
         self.levels=resp.get("data",{})
+        # self.levels=[GDDLSearchLevel.from_dict(l) for l in resp.get("data",{})]
         return self
     def __repr__(self) -> str:
         return f"[{self.__class__.__name__}]{self.__dict__}"
+    
+class GDDLSearchResult2:
+    total:int
+    limit:int
+    page:int
+    levels:list[GDDLSearchLevel]
+    def __init__(self) -> None:
+        pass
+    def load(self,resp:dict):
+        self.total=safeInt(resp.get("total"),-1)
+        self.limit=safeInt(resp.get("limit"),-1)
+        self.page=safeInt(resp.get("page"),-1)
+        self.levels=[GDDLSearchLevel.from_dict(l) for l in resp.get("data",{})]
+        return self
+    def __repr__(self) -> str:
+        return f"[{self.__class__.__name__}]{self.__dict__}"
+    
+async def searchGDDLLevel(args:GDDLSearchArgs):
+    url=f"https://gdladder.com/api/levels"
+    headers = {
+        "User-Agent": "",
+        "accept": "application/json"
+    }
+    
+    async with httpx.AsyncClient(timeout=30) as client:
+        try:
+            resp = await client.get(url, headers=headers, params=args.getData())
+        except httpx.ConnectError:
+            return None
+    if resp.status_code!=200:
+        return None
+    else:
+        return GDDLSearchResult2().load(resp.json())
 
 async def getGDDLResponse(page:int=0,limit:int=25):
     url=f"https://gdladder.com/api/levels?limit={limit}&page={page}&sort=ID&sortDirection=asc&length=6"
