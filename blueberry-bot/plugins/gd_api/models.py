@@ -1,5 +1,6 @@
 
 from abc import abstractmethod
+from types import NoneType, UnionType
 from typing import Any, get_type_hints
 from nonebot import logger
     
@@ -7,12 +8,30 @@ class BaseAdaptingModel:
     def adapt_variable(self,key:str,value:Any):
         if value is None:
             return
-        target=get_type_hints(type(self)).get(key,None)
-        if target:
+        targets=[]
+        type_hint=get_type_hints(type(self)).get(key,None)
+        if isinstance(type_hint,UnionType):
+            targets.extend(type_hint.__args__)
+        elif type_hint is not None:
+            targets.append(type_hint)
+        
+        fitted=False
+        errors=[]
+            
+        for target in targets:
             try:
+                if target==NoneType:
+                    if value==None:
+                        fitted=True
+                        break
+                    continue
                 value=target(value)
+                fitted=True
+                break
             except Exception as e:
-                logger.error(f"Failed loading value {value} -> {target} in {self.__class__.__name__}: {e}")
+                errors.append(e)
+        if (not fitted) and errors:
+            logger.error(f"Failed loading value {value} -> {target} in {self.__class__.__name__}: {errors}")
         self.__dict__[key]=value
         
     def to_dict(self) -> dict:
