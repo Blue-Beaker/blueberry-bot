@@ -1,5 +1,5 @@
 import pytest
-from plugins.gd_api.gddl.gddl_internal import searchGDDLLevel
+from plugins.gd_api.gddl.search import searchGDDLLevel
 from plugins.gd_api.gddl.search_args import GDDLSearchArgs,Difficulty,Sort,SortDir
 
 @pytest.mark.asyncio
