@@ -3,7 +3,7 @@ from typing import Any, Callable, TypeVar
 from nonebot import logger
 import httpx
 from .search_args import GDDLSearchArgs
-from .models import GDDLSearchLevel
+from .models import GDDLSearchLevel,GDDLLevel
 
 class GDDLSearchResult2:
     total:int
@@ -31,12 +31,29 @@ async def searchGDDLLevel(args:GDDLSearchArgs):
     async with httpx.AsyncClient(timeout=30) as client:
         try:
             resp = await client.get(url, headers=headers, params=args.getData())
-        except httpx.ConnectError:
-            return None
+        except httpx.ConnectError as e:
+            return None,str(e)
     if resp.status_code!=200:
-        return None
+        return None,resp.text
     else:
-        return GDDLSearchResult2().load(resp.json())
+        return GDDLSearchResult2().load(resp.json()),None
+    
+async def getGDDLLevel(level_id:int):
+    url=f"https://gdladder.com/api/levels/{level_id}"
+    headers = {
+        "User-Agent": "",
+        "accept": "application/json"
+    }
+    
+    async with httpx.AsyncClient(timeout=30) as client:
+        try:
+            resp = await client.get(url, headers=headers)
+        except httpx.ConnectError as e:
+            return None,str(e)
+    if resp.status_code!=200:
+        return None,resp.text
+    else:
+        return GDDLLevel().load(resp.json()),None
     
 _A = TypeVar(name="_A")
 def callOrFallback(i:Any,callable:Callable[[Any],_A],fallback:_A=-1) -> _A:
