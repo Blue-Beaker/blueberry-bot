@@ -9,16 +9,20 @@ from .. import run_async
 def getThumbnail(levelID:int,api_base:str="https://levelthumbs.prevter.me/thumbnail/",small:bool=False):
     return run_async(getThumbnail_async(levelID,api_base,small))
 
-@async_cached(TTLCache(maxsize=20, ttl=600))  # type: ignore[arg-type]
+@async_cached(TTLCache(maxsize=20, ttl=60))  # type: ignore[arg-type]
+async def getThumbnailRaw(url:str):
+    async with httpx.AsyncClient(timeout=10, headers={"User-Agent": ""}) as client:
+        req = await client.get(url=url)
+        req.raise_for_status()
+    return req
+
 async def getThumbnail_async(levelID:int,api_base:str="https://levelthumbs.prevter.me/thumbnail/",small:bool=False):
     url=getThumbnailUrl(levelID,api_base,small)
     logger.info(f"Getting thumbnail for {levelID}: {url}")
-    async with httpx.AsyncClient(timeout=10, headers={"User-Agent": ""}) as client:
-        try:
-            req = await client.get(url=url)
-        except httpx.ConnectError:
-            return None
-    if req.status_code!=200:
+    try:
+        req = await getThumbnailRaw(url=url)
+    except httpx.HTTPError as e:
+        logger.error(f"Error getting thumbnail for {levelID}: {e}")
         return None
     return req.content
 
