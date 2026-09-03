@@ -3,7 +3,7 @@ from typing import override
 from nonebot import get_driver,require,logger
 
 require('bbot_api')
-from ..bbot_api.sheets_api import Sheet,list_sheet_names
+from ..bbot_api.sheets_api import SheetRange,list_sheet_names
 from ..bbot_api import safeConversion
 
 from .models import BaseSerializableEntry
@@ -55,7 +55,7 @@ class PlatRankPlayer(BaseSerializableEntry):
         else:
             return self.exactMatch(search)
         
-class PlatRankSheet(Sheet):
+class PlatRankSheet(SheetRange):
     def __init__(self, id: str) -> None:
         super().__init__(id, "")
         self.ready=False

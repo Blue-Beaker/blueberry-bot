@@ -5,7 +5,7 @@ from cachetools import cached, TTLCache
 from nonebot import require
 
 require('bbot_api')
-from ..bbot_api.sheets_api import Sheet
+from ..bbot_api.sheets_api import SheetRange
 require('gd_api')
 from ..gd_api import gddl
 from ..gd_api.gddl import GDDLLevel 
@@ -17,14 +17,14 @@ from .utils import split_str_lists,has_skills
 PLAT_RANK_ID = "1uicngbhpej4PEmtYYeGmYlFsA28PwTzzouWb4EWQkTY"
 
     
-PLAT_RANK_WEIGHTS = Sheet(PLAT_RANK_ID,"Weight!A2:E")
+PLAT_RANK_WEIGHTS = SheetRange(PLAT_RANK_ID,"Weight!A2:E")
 
-HDS_PLAT = Sheet("1M7C58CG_5cLGsJEXTLQBtO6nzbpA-1zxCb8ZV8ux3zg","THE Plat List!A2:H")
-IDS_PLAT = Sheet("15ehtAIpCR8s04qIb8zij9sTpUdGJbmAE_LDcfVA3tcU","Tha Platformer Levels!A2:G")
-NLW_PLAT = Sheet("1YxUE2kkvhT2E6AjnkvTf-o8iu_shSLbuFkEFcZOvieA","Tha Plevles!B2:H")
+HDS_PLAT = SheetRange("1M7C58CG_5cLGsJEXTLQBtO6nzbpA-1zxCb8ZV8ux3zg","THE Plat List!A2:H")
+IDS_PLAT = SheetRange("15ehtAIpCR8s04qIb8zij9sTpUdGJbmAE_LDcfVA3tcU","Tha Platformer Levels!A2:G")
+NLW_PLAT = SheetRange("1YxUE2kkvhT2E6AjnkvTf-o8iu_shSLbuFkEFcZOvieA","Tha Plevles!B2:H")
 
-UPI_SHEET = Sheet("13rpmCGCC8NKvRJhVcUuxixUdEuc_I6rm9LlwgB2HAsM","Levels!A2:E")
-DIFFICULTY_CHART = Sheet("1ApwiAVAcBmfyoPW3wvDzc8JvY4Lfg5tFsPlYg3DNWhc","The Chart!A4:G")
+UPI_SHEET = SheetRange("13rpmCGCC8NKvRJhVcUuxixUdEuc_I6rm9LlwgB2HAsM","Levels!A2:E")
+DIFFICULTY_CHART = SheetRange("1ApwiAVAcBmfyoPW3wvDzc8JvY4Lfg5tFsPlYg3DNWhc","The Chart!A4:G")
 
 PATTERN_CHALLENGE = re.compile(r"(.*)\((.*?)\)")
 CHALLENGE_TYPES = set(['deathless','coin','unnerfed','nerfed'])

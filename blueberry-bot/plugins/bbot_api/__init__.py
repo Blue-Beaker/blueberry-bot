@@ -8,7 +8,7 @@ from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent
 from nonebot.adapters.qq import Bot as QQBot, Message as QQMessage, MessageSegment as QQMessageSegment, MessageEvent as QQMessageEvent, C2CMessageCreateEvent as QQC2CMessageCreateEvent, GroupMessageCreateEvent as QQGroupMessageCreateEvent
 from nonebot.adapters.minecraft import BaseChatEvent as MCBaseChatEvent
 from . import sheets_api
-sheets_api=sheets_api
+_=sheets_api
 from nonebot import get_plugin_config,logger
 from .config import Config
 from .profile_link.profile_link import get_profile_link_manager

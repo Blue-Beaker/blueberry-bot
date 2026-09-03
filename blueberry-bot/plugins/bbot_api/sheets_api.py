@@ -9,10 +9,18 @@ from nonebot import logger
 from .config import Config
 
 plugin_config = get_plugin_config(Config)
-    
+
 class Sheet:
-    def __init__(self,id:str,range:str) -> None:
+    def __init__(self,id:str) -> None:
         self.id=id
+    def get_range(self,range:str):
+        return get(self.id,range)
+    def list_sheet_names(self):
+        return list_sheet_names(self.id)
+    
+class SheetRange(Sheet):
+    def __init__(self,id:str,range:str) -> None:
+        super().__init__(id)
         self.range=range
     def get(self):
         return get(self.id,self.range)

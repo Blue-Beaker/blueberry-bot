@@ -4,7 +4,7 @@ from nonebot import require
 from .plat_sheets import LevelEntry
 
 require('bbot_api')
-from ..bbot_api.sheets_api import Sheet
+from ..bbot_api.sheets_api import SheetRange
 from ..bbot_api import safeInt
 from .utils import split_str_lists
 
@@ -35,12 +35,12 @@ class UnderratedLevel(LevelEntry):
         return get_tier_reference(self.section,self.tier)
 
 UNDERRATED_ID="1-Abvx7zXRAqpGFVbdTXpn6g1TRYp9WuZqW2pHWE7Dr4"
-UR_AUTO = Sheet(UNDERRATED_ID,"Auto 1*!A2:G")
-UR_EASY = Sheet(UNDERRATED_ID,"Easy 2*!A2:G")
-UR_NORMAL = Sheet(UNDERRATED_ID,"Normal 3*!A2:G")
-UR_HARD = Sheet(UNDERRATED_ID,"Hard 4-5*!A2:G")
-UR_HARDER = Sheet(UNDERRATED_ID,"Harder 6-7*!A2:G")
-UR_INSANE = Sheet(UNDERRATED_ID,"Insane 8-9*!A2:G")
+UR_AUTO = SheetRange(UNDERRATED_ID,"Auto 1*!A2:G")
+UR_EASY = SheetRange(UNDERRATED_ID,"Easy 2*!A2:G")
+UR_NORMAL = SheetRange(UNDERRATED_ID,"Normal 3*!A2:G")
+UR_HARD = SheetRange(UNDERRATED_ID,"Hard 4-5*!A2:G")
+UR_HARDER = SheetRange(UNDERRATED_ID,"Harder 6-7*!A2:G")
+UR_INSANE = SheetRange(UNDERRATED_ID,"Insane 8-9*!A2:G")
 
 class Sections(Enum):
     AUTO="Auto"

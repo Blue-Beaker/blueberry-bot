@@ -15,7 +15,7 @@ require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
 from apscheduler.triggers.cron import CronTrigger
 require('bbot_api')
-from ..bbot_api.sheets_api import Sheet
+from ..bbot_api.sheets_api import SheetRange
 from ..bbot_api import safeInt
 from ..bbot_api.argparse import ArgumentError,ArgParser
 
