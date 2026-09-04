@@ -2,8 +2,8 @@ from enum import Enum
 from typing import Literal
 from nonebot import get_driver,require
 from .plat_sheets import LevelEntry,NLWLikeEntry,PlatChartEntry
-from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,PEMONLIST_CACHE,AREDL_CACHE,UNDERRATED_CACHE,AREDLLevel,PemonlistLevel
-from .underrated_data import UnderratedLevel,formatUnderrated
+from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,PEMONLIST_CACHE,AREDL_CACHE,UNDERRATED_CACHE,AREDLLevel,PemonlistLevel,GDDL_BACKUP
+from .underrated_data import UnderratedLevel,formatUnderrated,Sections as URSection
 from . import formatters
 
 require('bbot_api')
@@ -11,7 +11,7 @@ from ..bbot_api.message_compat import TextImageMessage
 require('gd_api')
 from ..gd_api.gd import Difficulty,Length
 from ..gd_api import gd
-from ..gd_api.gd import Level as GDLevel
+from ..gd_api.gd import Level as GDLevel, Song as GDSong
 from ..gd_api.thumbs import getThumbnail_async,getThumbnailUrl
 from ..gd_api.gddl import GDDLLevel
 require('bbot_render')
@@ -159,6 +159,39 @@ class GDLevelInfoProvider:
         description2="\n".join(description2_lines)
         imargs.description2=description2
         
+    def fill_base_info(self,imargs:LevelLargeRenderArgs):
+        imargs.level_id=self.level_id
+        
+        if self.dc_entry or self.pemonlist_entry:
+            imargs.length=Length.PLAT.get_name()
+            imargs.is_plat=True
+        
+        if self.pemonlist_entry:
+            imargs.stars=10
+            
+        if self.gddl_entry:
+            level=self.gddl_entry
+            imargs.level_name=level.Name
+            imargs.song_id=level.SongID
+            imargs.song_author=level.SongAuthor
+            imargs.song_name=level.SongName
+            imargs.creator=level.Publisher
+            imargs.stars=10
+            if not imargs.length: 
+                length = level.get_length()
+                imargs.length=length.get_name() if length else ''
+            imargs.difficulty=level.Difficulty.as_official().value
+            imargs.feature_level=level.Rarity
+            if not imargs.is_plat: imargs.is_plat=level.is_plat()
+            imargs.description=level.Description
+            
+        if self.underrated_entry:
+            level=self.underrated_entry
+            imargs.level_name=level.name
+            imargs.creator=level.creator
+            imargs.difficulty=level.get_difficulty().value
+            if not imargs.is_plat: imargs.is_plat=level.skillsets.__contains__("Platformer")
+        
     def getTextDescription(self,image_shown:bool):
         dc_entry=self.dc_entry
         dc_entries=self.dc_entries
@@ -179,8 +212,10 @@ class GDLevelInfoProvider:
             def repr_float(value:float|None):
                 return f"{value:.1f}" if value is not None else '-'
             lines.append(f"Tier: {repr_float(gddl_entry.Rating)} ({gddl_entry.RatingCount}) Enjoyment: {repr_float(gddl_entry.Enjoyment)} ({gddl_entry.EnjoymentCount})")
-            lines.append(f"Tags: {', '.join([f'{t.get_tag().tag_name}/{t.ReactCount}' for t in gddl_entry.tags])}")
-            lines.append(f"Popularity: {repr_float(gddl_entry.Popularity)}")
+            if gddl_entry.tags:
+                lines.append(f"Tags: {', '.join([f'{t.get_tag().tag_name}/{t.ReactCount}' for t in gddl_entry.tags])}")
+            if gddl_entry.Popularity:
+                lines.append(f"Popularity: {repr_float(gddl_entry.Popularity)}")
             
             if gddl_entry.IsTwoPlayer:
                 lines.append(f"2P Tier: {repr_float(gddl_entry.TwoPlayerRating)} Enjoyment: {repr_float(gddl_entry.TwoPlayerEnjoyment)}")
@@ -214,6 +249,12 @@ class GDLevelInfoProvider:
             for e in nlwlike_entries:
                 lines.append(formatters.formatListsLevel(e,False,True,not image_shown))
         return lines
+    
+    def fetch_GDDL_backup(self):
+        entries=GDDL_BACKUP.get_for_id(self.level_id)
+        if entries:
+            self.gddl_entry=entries[0]
+        return self
     
     def setGDDL(self,entry:GDDLLevel|None):
         self.gddl_entry=entry

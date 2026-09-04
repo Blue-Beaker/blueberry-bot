@@ -3,7 +3,9 @@ from enum import Enum
 from typing import Any, ClassVar, get_type_hints
 from typing_extensions import Self
 
-from ..models import BaseAdaptingModel
+from ..models import BaseAdaptingModel,LevelWithID
+from ..gd.models import Difficulty as GDDifficulty,Length as GDLength
+
 
 class GDDLDifficulty(Enum):
     OFFICIAL="Official"
@@ -12,6 +14,24 @@ class GDDLDifficulty(Enum):
     HARD="Hard"
     INSANE="Insane"
     EXTREME="Extreme"
+    
+    def as_official(self):
+        return _DIFFICULTY_MAP.get(self,GDDifficulty.HARD)
+    
+_DIFFICULTY_MAP={
+    GDDLDifficulty.OFFICIAL:GDDifficulty.HARD_DEMON,
+    GDDLDifficulty.EASY:GDDifficulty.EASY_DEMON,
+    GDDLDifficulty.MEDIUM:GDDifficulty.MEDIUM_DEMON,
+    GDDLDifficulty.HARD:GDDifficulty.HARD_DEMON,
+    GDDLDifficulty.INSANE:GDDifficulty.INSANE_DEMON,
+    GDDLDifficulty.EXTREME:GDDifficulty.EXTREME_DEMON
+}
+
+_OFFICIAL_LEVEL_ID_MAP={
+    1:14,
+    2:18,
+    3:20
+}
     
 class GDDLTags(Enum):
     # 类型检查器需要的属性声明
@@ -51,9 +71,11 @@ class GDDLTags(Enum):
         inst.tag_desc = tag_desc
         inst.tag_order = tag_order
         return inst
+    
+def map_official_id(id:int):
+    return _OFFICIAL_LEVEL_ID_MAP.get(id,id)
 
-
-class GDDLSearchLevel(BaseAdaptingModel):
+class GDDLSearchLevel(LevelWithID):
     id: int=0
     rating: float=0
     enjoyment: float=0
@@ -65,12 +87,14 @@ class GDDLSearchLevel(BaseAdaptingModel):
     songName: str=""
     isInPack: int=0
     isComplete: int=0
+    def get_id(self) -> int:
+        return map_official_id(self.id)
     def to_gddl_level(self):
         return GDDLLevel.from_search(self)
     def __repr__(self) -> str:
         return f"GDDLSearchLevel[{self.name} by {self.publisherName} {self.id}]"
     
-class GDDLLevel(BaseAdaptingModel):
+class GDDLLevel(LevelWithID):
     ID:int=0
     Rating:float|None=None
     Enjoyment:float|None=None
@@ -92,6 +116,7 @@ class GDDLLevel(BaseAdaptingModel):
     Length:int=0
     IsTwoPlayer:bool=False
     Difficulty:GDDLDifficulty=GDDLDifficulty.OFFICIAL
+    Rarity:int=0
     SongID:int=0
     PublisherID:int=0
     UploadedAt:str|None=None
@@ -106,6 +131,28 @@ class GDDLLevel(BaseAdaptingModel):
     def __init__(self) -> None:
         super().__init__()
         self.tags=[]
+        
+    def get_id(self) -> int:
+        return map_official_id(self.ID)
+    
+    def get_stars(self):
+        if self.Difficulty!=GDDLDifficulty.OFFICIAL:
+            return 10
+        else:
+            return {
+                1:14,
+                2:14,
+                3:15
+            }.get(self.ID,10)
+            
+    def is_plat(self) -> bool:
+        return self.Length-1 == GDLength.PLAT.value
+    def get_length(self):
+        try:
+            return GDLength(self.Length-1)
+        except:
+            return None
+        
     @classmethod
     def from_search(cls,data:GDDLSearchLevel):
         inst=cls()
@@ -127,7 +174,7 @@ class GDDLLevel(BaseAdaptingModel):
         if isinstance(meta,dict):
             if "ID" in meta:
                 self.adapt_variable("MetaID",meta["ID"])
-            for k in ["Name","Description","Length","IsTwoPlayer","Difficulty","SongID","PublisherID","UploadedAt"]:
+            for k in ["Name","Description","Length","IsTwoPlayer","Difficulty","SongID","PublisherID","UploadedAt","Rarity"]:
                 if k in meta.keys():
                     self.adapt_variable(k,meta[k])
             

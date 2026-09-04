@@ -77,7 +77,7 @@ def load_gddl_entries(lines:list[list[str]]):
 class GDDLSheetEntry(BaseSerializableEntry,GDDLLevel):
     @override
     def getID(self) -> int:
-        return self.ID
+        return self.get_id()
     def load_line(self,line:list[str]):
         line=line.copy()
         while line.__len__()<7:

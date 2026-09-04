@@ -23,6 +23,19 @@ class UnderratedLevel(LevelEntry):
         self.creator=""
         self.skillsets=[]
         self.desc=""
+    def get_section(self):
+        return Sections(self.section)
+    def get_difficulty(self):
+        from ..gd_api.gd.models import Difficulty
+        _SECTIONS={
+            Sections.AUTO:Difficulty.AUTO,
+            Sections.EASY:Difficulty.EASY,
+            Sections.NORMAL:Difficulty.NORMAL,
+            Sections.HARD:Difficulty.HARD,
+            Sections.HARDER:Difficulty.HARDER,
+            Sections.INSANE:Difficulty.INSANE
+        }
+        return _SECTIONS.get(self.get_section(),Difficulty.NA)
     def update(self,line:list[str]):
         self.tier=safeInt(line[0])
         self.name=line[1]

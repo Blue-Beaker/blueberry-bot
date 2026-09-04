@@ -1,37 +1,19 @@
-from argparse import Namespace
 import asyncio
-from enum import Enum
-import math
-import os
-import random
-import threading
-import traceback
-import time
-from typing import Any, Generic, Sequence, TypeVar
-from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
-from nonebot.rule import is_type
+from nonebot import on_command,logger,get_plugin_config
 from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
-from nonebot.permission import SUPERUSER
 from nonebot.exception import MatcherException
-import nonebot.config
 from nonebot import get_driver,require
-from nonebot.adapters.discord import Message as DCMessage,Bot as DCBot,MessageSegment as DCMessageSegment,GuildMessageCreateEvent
-from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGroupMessageEvent,MessageSegment as OBMessageSegment
 
 from .config import Config
-from .gd_icon import IconType, construct_icon_url,get_icon,ICON_TYPES
-from .utils import repr_level,repr_list
-from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,PEMONLIST_CACHE,AREDL_CACHE,AREDLLevel,PemonlistLevel,UNDERRATED_CACHE
-from .underrated_data import formatUnderrated,UnderratedLevel
-from .plat_sheets import LevelEntry,NLWLikeEntry,PlatChartEntry
-from . import formatters
+from .utils import repr_level
+from .gd_data import PLAT_CHART_CACHE,AREDL_CACHE
 
 require('bbot_api')
 from .. import bbot_api
-from ..bbot_api.argparse import ArgumentError,ArgParser
+from ..bbot_api.argparse import ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2_async,getLevelSearch2_async,getList2_async,getUser_async,getLevelsFromList_async,ListSearchType,LevelSearchType,PlayerIcons,downloadLevel2_async,LevelSearchArgs,Difficulty,Length,getLevelsFromUser_async,PageInfo,getSong_async
+from ..gd_api.gd import getLevelSearch2_async,LevelSearchType,downloadLevel2_async,LevelSearchArgs,Difficulty,Length,getLevelsFromUser_async,getSong_async
 from ..gd_api import gd
 from ..gd_api.gd import Level
 from ..gd_api.thumbs import getThumbnail_async,getThumbnailUrl
@@ -40,7 +22,7 @@ from ..gd_api.gddl.search import getGDDLLevel
 require("bbot_perms")
 from ..bbot_perms import get_perms
 
-from .utils import repr_level,repr_list,ensure_gd_level,SearchException
+from .utils import repr_level,ensure_gd_level,SearchException
 from . import utils
 
 from .gdsearch_backend import GDLevelInfoProvider

@@ -24,7 +24,6 @@ from ..bbot_render import RenderAPI
 from ..bbot_render.models import LevelLargeRenderArgs
 require('gd_api')
 from ..gd_api.thumbs import getThumbnail_async,getThumbnailUrl
-from ..gd_api import gddl
 
 driver=get_driver()
 plugin_cfg=get_plugin_config(Config)
@@ -77,6 +76,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         entries=result[1]
         info_provider=GDLevelInfoProvider(level_id)
         info_provider.fetch()
+        info_provider.fetch_GDDL_backup()
         
         thumb=await getThumbnail_async(level_id)
         shown_image=False
@@ -84,6 +84,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         if enable_image:
             req_id_base=bbot_api.getid(event)
             imargs=LevelLargeRenderArgs(req_id_base+"_base")
+            info_provider.fill_base_info(imargs)
             info_provider.fillRenderArgs(imargs)
             imargs.level_id=level_id
             imargs.thumbnail=getThumbnailUrl(level_id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or ""
@@ -148,7 +149,7 @@ class GDDLCacheProvider(SearchProvider):
         if not data:
             return []
         levels=data
-        return [MinimalLevel(l.ID,l.Name,ProviderMeta(self.name,self.cname),l.Publisher) for l in levels if (searchInName(search,l.Name,fuzzy) or str(l.ID)==search)]
+        return [MinimalLevel(l.get_id(),l.Name,ProviderMeta(self.name,self.cname),l.Publisher) for l in levels if (searchInName(search,l.Name,fuzzy) or str(l.get_id())==search)]
     
 class LocalSearchManager:
     providers:list[SearchProvider]
