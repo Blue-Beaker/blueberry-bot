@@ -8,7 +8,7 @@ from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
 from ..bbot_api.message_compat import TextImageMessage
 
-from .gd_data import PEMONLIST_CACHE,AREDL_CACHE,PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE
+from .gd_data import PEMONLIST_CACHE,AREDL_CACHE,PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE,GDDL_BACKUP
 from .data_cache import BaseCache
 from .utils import select_page
 from .gdsearch_backend import GDLevelInfoProvider
@@ -144,10 +144,10 @@ class GDDLCacheProvider(SearchProvider):
     def __init__(self,name:str,cname:str|None) -> None:
         super().__init__(name,cname)
     def search(self,search:str,fuzzy:bool):
-        data=gddl.getGDDLPlat()
+        data=GDDL_BACKUP.get()
         if not data:
             return []
-        levels=data.values()
+        levels=data
         return [MinimalLevel(l.ID,l.Name,ProviderMeta(self.name,self.cname),l.Publisher) for l in levels if (searchInName(search,l.Name,fuzzy) or str(l.ID)==search)]
     
 class LocalSearchManager:

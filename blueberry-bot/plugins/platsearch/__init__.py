@@ -34,6 +34,7 @@ from nonebot import require
 require("bbot_help")
 from ..bbot_help import addHelpFunc,HelpRegistry
 from .gdhelp import GD_HELP
+from .sheets_data import gddl_backup
 
 _KEEP_IMPORTS=[
     plat_sheets,levelid_filler,gd_data,underrated,gd_extras,gduser,platsearch,gdmusic,gdsearch,plat_rank,gdlocalsearch

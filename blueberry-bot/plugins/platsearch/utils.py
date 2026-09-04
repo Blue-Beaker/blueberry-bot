@@ -1,6 +1,8 @@
 
+import asyncio
 import math
 import re
+import threading
 from typing import Any, Callable, TypeVar
 from nonebot import require
 from nonebot.matcher import Matcher
@@ -81,4 +83,24 @@ def searchInName(search:str,name:str,fuzzy:bool):
         if matched:
             name=matched.group(1)
         return search.lower().strip() == name.lower().strip()
+    
+
+_A = TypeVar(name="_A")
+def safeInt(i:Any,fallback:_A=-1) -> int|_A:
+    return safeConversion(i,int,-1)
+    
+def safeFloat(i:Any,fallback:_A=-1.0) -> float|_A:
+    return safeConversion(i,float,-1.0)
+    
+_T = TypeVar(name="_T")
+def safeConversion(i:Any, converter:Callable[[Any],_T],fallback:_A=None) -> _T|_A:
+    try:
+        return converter(i)
+    except:
+        return fallback
+    
+async def async_run_thread(thread:threading.Thread, check_interval:float=0.1):
+    thread.start()
+    while thread.is_alive():
+        await asyncio.sleep(check_interval)
     

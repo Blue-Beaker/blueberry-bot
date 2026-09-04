@@ -94,11 +94,12 @@ class FillerMapping:
     
     @cached(TTLCache(maxsize=1,ttl=10))
     def loadNamesToLevelMappings(self):
+        from .gd_data import GDDL_BACKUP
         self.names_to_levels.clear()
-        levels=gddl.getGDDLPlat()
+        levels=GDDL_BACKUP.get()
         if not levels:
             return
-        for id,level in levels.items():
+        for level in levels:
             entries=self.getEntriesForName(level.Name)
             if (level.Publisher,level.ID) in entries:
                 continue

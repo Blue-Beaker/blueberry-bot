@@ -3,6 +3,7 @@ import json
 import os
 import threading
 import time
+import traceback
 from typing import Any, TypeVar
 from nonebot import on_command,logger,get_plugin_config
 from nonebot.permission import SUPERUSER
@@ -22,6 +23,9 @@ from .underrated_data import UnderratedLevel,get_all_underrated
 from .models import GDDLLevel,AREDLLevel,PemonlistLevel,TPLLevel
 from .plat_sheets import PlatChartEntry,PlatChartCache
 from .plat_rank_data import PlatRankPlayer,get_plat_rank
+
+from .sheets_data.gddl_backup import GDDLSheetEntry,update_gddl_entries
+from .utils import async_run_thread
 
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
@@ -45,6 +49,8 @@ AREDL_CACHE = CacheWithIDMap(AREDLLevel,"",3600,"AREDL Levels")
 PLAT_RANK_CACHE = BaseCache(PlatRankPlayer,"platsearch_cache/plat_rank_cache.json",
     plugin_config.sheets_update_interval,"Platformer Rank Cache").with_update_function(get_plat_rank)
 
+GDDL_BACKUP = CacheWithIDMap(GDDLSheetEntry,"cache/gddl_backup.json",864000,"GDDL Backup").with_update_function(update_gddl_entries)
+
 caches:list[BaseCache]=[PLAT_SHEET_CACHE,UNDERRATED_CACHE,
                         PEMONLIST_CACHE,TPL_CACHE,PLAT_CHART_CACHE,AREDL_CACHE,PLAT_RANK_CACHE]
 
@@ -52,7 +58,6 @@ caches:list[BaseCache]=[PLAT_SHEET_CACHE,UNDERRATED_CACHE,
 async def load():
     os.makedirs("platsearch_cache",exist_ok=True)
     levelid_filler.FILLER_MAPPING.load()
-    gddl.CACHE.get()
     
     for cache in caches:
         cache.get()
@@ -62,23 +67,37 @@ async def load():
     trigger=CronTrigger.from_crontab('*/30 * * * *') # Update every 30 mins
     scheduler.add_job(update_caches,trigger,args=[False],id="Plat Cache Update",misfire_grace_time=1800)
     
+    trigger=CronTrigger.from_crontab('0 5 * * *') # Update every day at 5:00
+    scheduler.add_job(update_gddl, trigger=trigger, id="GDDL_UPDATE", misfire_grace_time=86400)
+    
     update_thread = threading.Thread(target=update_all,name="update_all")
     update_thread.start()
     
 def update_all():
-    for cache in caches:
-        cache.getOrUpdate()
-        logger.info(cache.getLogInfo())
-    
+    all_caches=caches.copy()
+    all_caches.append(GDDL_BACKUP)
+    for cache in all_caches:
+        try:
+            cache.getOrUpdate()
+            logger.info(cache.getLogInfo())
+        except:
+            logger.error(f"Error loading {cache.name}: \n{traceback.format_exc()}")
+            
+def update_gddl():
+    try:
+        GDDL_BACKUP.getOrUpdate()
+        logger.info(GDDL_BACKUP.getLogInfo())
+    except:
+        logger.error(f"Error loading {GDDL_BACKUP.name}: \n{traceback.format_exc()}")
     
 async def update_caches(force_gddl:bool=False):
     os.makedirs("platsearch_cache",exist_ok=True)
     
     levelid_filler.FILLER_MAPPING.load()
     if force_gddl:
-        await gddl.CACHE.updateNow()
+        GDDL_BACKUP.update()
     else:
-        await gddl.CACHE.getOrUpdate()
+        GDDL_BACKUP.getOrUpdate()
     
     for cache in caches:
         threading.Thread(target=threaded_update_cache,args=[cache],name=cache.name).start()
@@ -171,9 +190,10 @@ gdupdate = on_command("gddlupdate",permission=SUPERUSER)
 async def _():
     logger.info("Updating GDDL cache...")
     await gdupdate.send("开始刷新GDDL缓存...")
-    msg=[]
-    await gddl.CACHE.updateNow()
-    await gdupdate.finish(f"刷新完毕: {(gddl.CACHE.get() or []).__len__()}")
+    start_time=time.time()
+    await async_run_thread(threading.Thread(target=GDDL_BACKUP.update,name="GDDL Manual Update"))
+    end_time=time.time()
+    await gdupdate.finish(f"刷新完毕, 用时{end_time-start_time:.1f}, 总条目数: {(GDDL_BACKUP.get() or []).__len__()}")
     return
 
 require("bbot_help")
@@ -182,5 +202,6 @@ from ..bbot_help import SUPERUSER_HELP_REGISTRY
 def _():
     return [
         "platupdate 刷新Plat相关缓存",
-        "gdupdate 刷新GD数据缓存"
+        "gdupdate 刷新GD数据缓存",
+        "gddlupdate 刷新GDDL数据缓存"
             ]

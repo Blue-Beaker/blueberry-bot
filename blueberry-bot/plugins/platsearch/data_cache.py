@@ -15,7 +15,7 @@ class BaseCache(Generic[_T]):
     entry_type:Type[_T]
     ttl:int=3600
     
-    update_function:Callable[[],list[_T]]
+    update_function:Callable[[],list[_T]|None]
     file_path:str|None
     
     name:str=""
@@ -36,12 +36,12 @@ class BaseCache(Generic[_T]):
         result={"expiration_time":self.expiration_time,"entries":[e.to_dict() for e in self.entries]}
         return result
     
-    def with_update_function(self,func:Callable[[],list[_T]]):
+    def with_update_function(self,func:Callable[[],list[_T]|None]):
         self.update_function=func
         return self
     
     # For decorating a function, do not modify the function's original behavior
-    def wrap_update_function(self,func:Callable[[],list[_T]]):
+    def wrap_update_function(self,func:Callable[[],list[_T]|None]):
         self.update_function=func
         return func
     
@@ -60,7 +60,7 @@ class BaseCache(Generic[_T]):
         if hasattr(self,"update_function"):
             try:
                 result=self.update_function()
-                if result.__len__()>0:
+                if result is not None and result.__len__()>0:
                     self.entries=result
                     self.expiration_time=int(time.time())+self.ttl
                     if self.file_path:

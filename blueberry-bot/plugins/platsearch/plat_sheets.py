@@ -12,7 +12,7 @@ from ..gd_api.gddl import GDDLLevel
 
 from .data_cache import CacheWithIDMap,KeyMapCache
 from .models import BaseSerializableEntry
-from .utils import split_str_lists,has_skills
+from .utils import split_str_lists,has_skills,safeInt
 
 PLAT_RANK_ID = "1uicngbhpej4PEmtYYeGmYlFsA28PwTzzouWb4EWQkTY"
 
@@ -341,10 +341,3 @@ def get_plat_chart():
         entry.weight_type=entry1.section
 
     return results
-
-_A = TypeVar(name="_A")
-def safeInt(i:Any,fallback:_A=-1) -> int|_A:
-    try:
-        return int(i)
-    except:
-        return fallback

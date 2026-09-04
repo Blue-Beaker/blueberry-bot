@@ -1,5 +1,6 @@
 
 from abc import abstractmethod
+from enum import Enum
 from types import NoneType, UnionType
 from typing import Any, get_type_hints
 from nonebot import logger
@@ -35,7 +36,16 @@ class BaseAdaptingModel:
         self.__dict__[key]=value
         
     def to_dict(self) -> dict:
-        return self.__dict__.copy()
+        data={}
+        
+        for k,v in self.__dict__.items():
+            def_value=getattr(self.__class__,k,None)
+            if v==None and def_value==None:
+                continue
+            if isinstance(v,Enum):
+                v=v.value
+            data[k]=v
+        return data
     
     def load_dict(self,data:dict):
         for k,v in data.items():
