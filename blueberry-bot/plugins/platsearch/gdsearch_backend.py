@@ -113,6 +113,7 @@ class GDLevelInfoProvider:
         underrated_entries=self.underrated_entries
         nlwlike_entry=self.nlwlike_entry
         nlwlike_entries=self.nlwlike_entries
+        gddl_entry=self.gddl_entry
         
         if dc_entry:
             imargs.weight = str(dc_entry.weight or '-')
@@ -148,6 +149,9 @@ class GDLevelInfoProvider:
                     imargs.checkpoints=l.checkpoints.replace("∞","Infinite")
                     break
                 
+        if gddl_entry:
+            if gddl_entry.seconds and not hasattr(imargs,'length2'): imargs.length2=format_time(gddl_entry.seconds)
+                
         description2_lines:list[str]=[]
         if aredl_entry and aredl_entry.description:
             description2_lines.append("AREDL Description:\n"+aredl_entry.description)
@@ -177,12 +181,12 @@ class GDLevelInfoProvider:
             imargs.song_name=level.SongName
             imargs.creator=level.Publisher
             imargs.stars=10
-            if not imargs.length: 
+            if not hasattr(imargs,'length'): 
                 length = level.get_length()
                 imargs.length=length.get_name() if length else ''
             imargs.difficulty=level.Difficulty.as_official().value
             imargs.feature_level=level.Rarity
-            if not imargs.is_plat: imargs.is_plat=level.is_plat()
+            if not hasattr(imargs,'is_plat'): imargs.is_plat=level.is_plat()
             imargs.description=level.Description
             
         if self.underrated_entry:
@@ -190,7 +194,7 @@ class GDLevelInfoProvider:
             imargs.level_name=level.name
             imargs.creator=level.creator
             imargs.difficulty=level.get_difficulty().value
-            if not imargs.is_plat: imargs.is_plat=level.skillsets.__contains__("Platformer")
+            if not hasattr(imargs,'is_plat'): imargs.is_plat=level.skillsets.__contains__("Platformer")
         
     def getTextDescription(self,image_shown:bool):
         dc_entry=self.dc_entry
@@ -259,3 +263,17 @@ class GDLevelInfoProvider:
     def setGDDL(self,entry:GDDLLevel|None):
         self.gddl_entry=entry
         return self
+    
+def format_time(seconds:float) -> str:
+    total_sec = round(seconds)
+    h = total_sec // 3600
+    m = (total_sec % 3600) // 60
+    s = total_sec % 60
+    parts = []
+    if h:
+        parts.append(f"{h}h")
+    if m:
+        parts.append(f"{m}m")
+    if s or not parts:
+        parts.append(f"{s}s")
+    return " ".join(parts)

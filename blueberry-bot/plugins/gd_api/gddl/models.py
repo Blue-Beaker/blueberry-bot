@@ -108,6 +108,9 @@ class GDDLLevel(LevelWithID):
     DefaultRating:float|None=None
     Showcase:str=""
     Popularity:float|None=None
+    AREDLPosition:int|None=None
+    PopularityIndex:int|None=None
+    DifficultyIndex:int|None=None
     # Meta ID
     MetaID:int=0
     # From Meta
@@ -120,6 +123,8 @@ class GDDLLevel(LevelWithID):
     SongID:int=0
     PublisherID:int=0
     UploadedAt:str|None=None
+    seconds:float|None=None
+    objects:int|None=None
     # From Meta/Publisher/name
     Publisher:str=""
     # From Meta/Song
@@ -166,7 +171,7 @@ class GDDLLevel(LevelWithID):
         for k in ["ID","Rating","Enjoyment","Deviation","RatingCount",
                    "EnjoymentCount","SubmissionCount","TwoPlayerRating",
                    "TwoPlayerEnjoyment","TwoPlayerDeviation","DefaultRating",
-                   "Showcase","Popularity"]:
+                   "Showcase","Popularity","AREDLPosition","PopularityIndex","DifficultyIndex"]:
             if k in data.keys():
                 self.adapt_variable(k,data[k])
         
@@ -174,7 +179,7 @@ class GDDLLevel(LevelWithID):
         if isinstance(meta,dict):
             if "ID" in meta:
                 self.adapt_variable("MetaID",meta["ID"])
-            for k in ["Name","Description","Length","IsTwoPlayer","Difficulty","SongID","PublisherID","UploadedAt","Rarity"]:
+            for k in ["Name","Description","Length","IsTwoPlayer","Difficulty","SongID","PublisherID","UploadedAt","Rarity","seconds","objects"]:
                 if k in meta.keys():
                     self.adapt_variable(k,meta[k])
             
