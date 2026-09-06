@@ -1,9 +1,11 @@
 from enum import Enum
 from types import NoneType, UnionType
-from typing import Any, Generic, TypeVar, get_type_hints, override
-from nonebot import get_driver, logger,require
-require('gd_api')
-from ..gd_api import gd,thumbs,gddl,aredl,pemonlist,platformerlist
+from typing import Any, Generic, TypeVar, get_type_hints
+from nonebot import logger
+
+from enum import Enum
+from typing import Generic, TypeVar
+
 
 class BaseSerializableEntry:
     def getID(self) -> int:
@@ -33,36 +35,7 @@ class GenericLevelEntry(BaseSerializableEntry,Generic[_L]):
     def __init__(self,level:_L) -> None:
         super().__init__()
         self.__dict__.update(level.__dict__)
-    
-    
-class GDDLLevel(gddl.GDDLLevel,BaseSerializableEntry):
-    def __init__(self,level:gddl.GDDLLevel) -> None:
-        super().__init__()
-        self.__dict__.update(level.__dict__)
-    @override
-    def getID(self):
-        return self.ID
-    
-class AREDLLevel(aredl.Level,BaseSerializableEntry):
-    def __init__(self,level:aredl.Level) -> None:
-        super().__init__()
-        self.__dict__.update(level.__dict__)
-    @override
-    def getID(self):
-        return self.level_id
-    
-class PemonlistLevel(pemonlist.Level,GenericLevelEntry[pemonlist.Level]):
-    @override
-    def getID(self):
-        return self.get_id()
-    
-class TPLLevel(platformerlist.Level,GenericLevelEntry[platformerlist.Level]):
-    @override
-    def getID(self):
-        return self.get_id()
-    
-
-
+        
 def adapt_variable(inst,key:str,value:Any):
     if value is None:
         return

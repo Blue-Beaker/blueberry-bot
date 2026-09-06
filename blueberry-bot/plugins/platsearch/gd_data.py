@@ -20,7 +20,7 @@ require('gd_api')
 from ..gd_api import gd,thumbs,gddl,aredl,pemonlist,platformerlist
 
 from .underrated_data import UnderratedLevel,get_all_underrated
-from .models import GDDLLevel,AREDLLevel,PemonlistLevel,TPLLevel
+from .models.gdapi import GDDLLevel,AREDLLevel,PemonlistLevel,TPLLevel
 from .plat_sheets import PlatChartEntry,PlatChartCache
 from .plat_rank_data import PlatRankPlayer,get_plat_rank
 

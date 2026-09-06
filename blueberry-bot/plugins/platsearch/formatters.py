@@ -1,7 +1,7 @@
 from typing import Any, Callable,TypeVar
 from .plat_sheets import PlatChartEntry,NLWLikeEntry,LevelEntry
 
-from .models import AREDLLevel,PemonlistLevel
+from .models.gdapi import AREDLLevel,PemonlistLevel
 
 _FORMAT_FUNCS:dict[type,Callable[[Any,bool,bool],str]]={
 }
