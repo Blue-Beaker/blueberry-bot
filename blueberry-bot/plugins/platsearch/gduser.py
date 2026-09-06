@@ -90,7 +90,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     # Image Sections
     if enable_image:
         req_id_base=bbot_api.getid(event)
-        imargs0=PlayerInfoRenderArgs(req_id_base+"_base")
+        imargs0=PlayerInfoRenderArgs()
         
         player_icons=getIconIDs(user.icon)
         icon_type=ICON_TYPES[icon.icon_type]
@@ -116,16 +116,16 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
         # Async gatherers. return None instantly for unneeded ones
         async def render_base():
-            return await render_api.render(imargs0)
+            return await render_api.render(imargs0,request_id=f"{req_id_base}_base_{time.time()//1}")
         
         async def render_nondemons1():
             if show_classic or show_plat:
-                return await render_nondemons(req_id_base+"_nondemon",c,p)
+                return await render_nondemons(f"{req_id_base}_nondemons_{time.time()//1}",c,p)
             return None
         
         async def render_demons1():
             if show_demons:
-                return await render_demons(req_id_base+"_demon",c_demons,pemons)
+                return await render_demons(f"{req_id_base}_demons_{time.time()//1}",c_demons,pemons)
             return None
         
         img,img1_nd,img2_d = await asyncio.gather(render_base(),render_nondemons1(),render_demons1())
@@ -198,7 +198,7 @@ def getIconIDs(icon: PlayerIcons):
 
     
 async def render_nondemons(req_id:str,classic:gd.PlayerLevels,plat:gd.PlayerLevels):
-    imargs=NonDemonsRenderArgs(req_id)
+    imargs=NonDemonsRenderArgs()
     imargs.c_auto=classic.auto
     imargs.c_easy=classic.easy
     imargs.c_normal=classic.normal
@@ -218,10 +218,10 @@ async def render_nondemons(req_id:str,classic:gd.PlayerLevels,plat:gd.PlayerLeve
     imargs.daily=classic.daily
     imargs.gauntlet=classic.gauntlet
     
-    return await render_api.render(imargs)
+    return await render_api.render(imargs,request_id=req_id)
 
 async def render_demons(req_id:str,classic:gd.PlayerDemonLevels,plat:gd.PlayerDemonLevels):
-    imargs=DemonsRenderArgs(req_id)
+    imargs=DemonsRenderArgs()
     imargs.c_ezd=classic.ezd
     imargs.c_med=classic.med
     imargs.c_hdd=classic.hdd
@@ -239,7 +239,7 @@ async def render_demons(req_id:str,classic:gd.PlayerDemonLevels,plat:gd.PlayerDe
     imargs.weekly=classic.weekly
     imargs.gauntlet=classic.gauntlet
     
-    return await render_api.render(imargs)
+    return await render_api.render(imargs,request_id=req_id)
 
 from .gdhelp import GD_HELP
 @GD_HELP.addHelpFunc

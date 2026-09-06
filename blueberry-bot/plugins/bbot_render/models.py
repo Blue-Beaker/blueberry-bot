@@ -4,9 +4,8 @@ import inspect
 IMG_TYPE = Union[str,bytes]
 
 class RenderArgs:
-    request_id: str=""
-    def __init__(self,request_id:str="") -> None:
-        self.request_id=request_id
+    def __init__(self) -> None:
+        pass
     def get_params(self):
         keys:set[str]=set()
         keys.update(self.__class__.__dict__.keys())

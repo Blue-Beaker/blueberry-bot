@@ -1,4 +1,5 @@
 import asyncio
+import time
 from nonebot import on_command,logger,get_plugin_config
 from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
@@ -314,7 +315,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         # Image Sections
         if enable_image:
             req_id_base=bbot_api.getid(event)
-            imargs=LevelLargeRenderArgs(req_id_base+"_base")
+            imargs=LevelLargeRenderArgs()
             
             info_provider.fillRenderArgs(imargs)
             
@@ -341,7 +342,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
                 imargs.length2=format_verify_time(level2.verification_time)
                 imargs.song_info=f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}"
             
-            img=await render_api.render(imargs)
+            img=await render_api.render(imargs,request_id=f"{req_id_base}_{time.time()//1}")
             if isinstance(img,bytes):
                 msg2=bbot_api.TextImageMessage.build(bot)
                 msg2.addLine(repr_level(level))

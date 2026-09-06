@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import time
 from nonebot import logger, require, get_driver, get_plugin_config
 from nonebot import on_command
 from nonebot.adapters import Message,Event,Bot
@@ -87,7 +88,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
             
             if enable_image:
                 req_id_base=bbot_api.getid(event)
-                imargs=LevelLargeRenderArgs(req_id_base+"_base")
+                imargs=LevelLargeRenderArgs()
                 info_provider.fill_base_info(imargs)
                 info_provider.fillRenderArgs(imargs)
                 imargs.level_id=level_id
@@ -96,7 +97,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
                 imargs.level_name=entries[0].name
                 imargs.creator=entries[0].creator
                 
-                img=await render_api.render(imargs)
+                img=await render_api.render(imargs,request_id=f"{req_id_base}_{time.time()//1}")
                 if isinstance(img,bytes):
                     msg2=bbot_api.TextImageMessage.build(bot)
                     msg2.addLine(f"{level_id}")

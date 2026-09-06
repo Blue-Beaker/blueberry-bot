@@ -13,6 +13,7 @@ import base64
 import json
 import asyncio
 import time
+import uuid
 from nonebot import logger
 
 try:
@@ -215,9 +216,12 @@ class RenderAPI:
                   if k not in ("self", "request_id") and v is not None}
         return await self._render("text_scene", request_id, params)
     
-    async def render(self, args:RenderArgs) -> bytes | dict | None:
+    async def render(self, args:RenderArgs, request_id:str|None=None) -> bytes | dict | None:
         """使用特定的RenderArgs渲染场景。
         """
         params = args.get_params()
-        return await self._render(args.scene_type, args.request_id, params)
+        
+        if not request_id:
+            request_id=f"{args.scene_type}_{time.time()//1}"
+        return await self._render(args.scene_type, request_id, params)
 
