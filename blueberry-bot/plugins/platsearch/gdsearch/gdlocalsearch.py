@@ -6,24 +6,24 @@ from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
 from nonebot.exception import MatcherException
 require('bbot_api')
-from .. import bbot_api
-from ..bbot_api.argparse import ArgParser
-from ..bbot_api.message_compat import TextImageMessage
+from ... import bbot_api
+from ...bbot_api.argparse import ArgParser
+from ...bbot_api.message_compat import TextImageMessage
 
-from .gd_data import AREDL_CACHE,PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE,GDDL_BACKUP
-from .data_cache import BaseCache
-from .utils import select_page
+from ..gd_data import AREDL_CACHE,PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE,GDDL_BACKUP
+from ..data_cache import BaseCache
+from ..utils import select_page
 from .gdsearch_backend import GDLevelInfoProvider
-from .plat_sheets import LevelEntry
-from .models.gdapi import AREDLLevel
-from .config import Config
-from .utils import searchInName
+from ..plat_sheets import LevelEntry
+from ..models.gdapi import AREDLLevel
+from ..config import Config
+from ..utils import searchInName
 
 require('bbot_render')
-from ..bbot_render import RenderAPI
-from ..bbot_render.models import LevelLargeRenderArgs
+from ...bbot_render import RenderAPI
+from ...bbot_render.models import LevelLargeRenderArgs
 require('gd_api')
-from ..gd_api.thumbs import getThumbnail_async,getThumbnailUrl
+from ...gd_api.thumbs import getThumbnail_async,getThumbnailUrl
 
 driver=get_driver()
 plugin_cfg=get_plugin_config(Config)

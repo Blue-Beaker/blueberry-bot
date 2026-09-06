@@ -6,25 +6,25 @@ from nonebot.params import CommandArg
 from nonebot.exception import MatcherException
 from nonebot import get_driver,require
 
-from .config import Config
-from .utils import repr_level
-from .gd_data import PLAT_CHART_CACHE,AREDL_CACHE,TPL_CACHE
+from ..config import Config
+from ..utils import repr_level
+from ..gd_data import PLAT_CHART_CACHE,AREDL_CACHE,TPL_CACHE
 
 require('bbot_api')
 from .. import bbot_api
-from ..bbot_api.argparse import ArgParser
+from ...bbot_api.argparse import ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevelSearch2_async,LevelSearchType,downloadLevel2_async,LevelSearchArgs,Difficulty,Length,getLevelsFromUser_async,getSong_async
-from ..gd_api import gd
-from ..gd_api.gd import Level
-from ..gd_api.thumbs import getThumbnail_async,getThumbnailUrl
-from ..gd_api.gddl.search import getGDDLLevel
+from ...gd_api.gd import getLevelSearch2_async,LevelSearchType,downloadLevel2_async,LevelSearchArgs,Difficulty,Length,getLevelsFromUser_async,getSong_async
+from ...gd_api import gd
+from ...gd_api.gd import Level
+from ...gd_api.thumbs import getThumbnail_async,getThumbnailUrl
+from ...gd_api.gddl.search import getGDDLLevel
 
 require("bbot_perms")
-from ..bbot_perms import get_perms
+from ...bbot_perms import get_perms
 
-from .utils import repr_level,ensure_gd_level,SearchException
-from . import utils
+from ..utils import repr_level,ensure_gd_level,SearchException
+from .. import utils
 
 from .gdsearch_backend import GDLevelInfoProvider
 
@@ -43,7 +43,7 @@ utils.REPR_LEVEL_FUNC=get_level_line
 
 try:
     require("orb_api")
-    from .. import orb_api
+    from ... import orb_api
 except:
     orb_api=None
     
@@ -51,8 +51,8 @@ driver=get_driver()
 plugin_cfg=get_plugin_config(Config)
 
 require('bbot_render')
-from ..bbot_render import RenderAPI
-from ..bbot_render.models import LevelLargeRenderArgs
+from ...bbot_render import RenderAPI
+from ...bbot_render.models import LevelLargeRenderArgs
 render_api=RenderAPI(uri=plugin_cfg.render_server_uri)
 
 _DIFFICULTY_MAPPINGS:dict[str,Difficulty]={
@@ -355,7 +355,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             raise e
         await gdsearch.finish(f"出错: {e}")
 
-from .gdhelp import GD_HELP
+from ..gdhelp import GD_HELP
 @GD_HELP.addHelpFunc
 def get_help(bot:Bot,event:Event):
     return ["gdsearch [参数] [关名/ID] 搜索关卡"]
