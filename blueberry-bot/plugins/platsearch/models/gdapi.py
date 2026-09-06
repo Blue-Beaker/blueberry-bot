@@ -5,28 +5,22 @@ from .basic_models import BaseSerializableEntry,GenericLevelEntry
 require('gd_api')
 from ...gd_api import gddl,aredl,pemonlist,platformerlist
     
-class GDDLLevel(gddl.GDDLLevel,BaseSerializableEntry):
-    def __init__(self,level:gddl.GDDLLevel) -> None:
-        super().__init__()
-        self.__dict__.update(level.__dict__)
-    @override
-    def getID(self):
-        return self.ID
-    
-class AREDLLevel(aredl.Level,BaseSerializableEntry):
-    def __init__(self,level:aredl.Level) -> None:
-        super().__init__()
-        self.__dict__.update(level.__dict__)
-    @override
-    def getID(self):
-        return self.level_id
-    
-class PemonlistLevel(pemonlist.Level,GenericLevelEntry[pemonlist.Level]):
+class GDDLLevel(GenericLevelEntry[gddl.GDDLLevel],gddl.GDDLLevel):
     @override
     def getID(self):
         return self.get_id()
     
-class TPLLevel(platformerlist.Level,GenericLevelEntry[platformerlist.Level]):
+class AREDLLevel(GenericLevelEntry[aredl.Level],aredl.Level):
+    @override
+    def getID(self):
+        return self.get_id()
+    
+class PemonlistLevel(GenericLevelEntry[pemonlist.Level],pemonlist.Level):
+    @override
+    def getID(self):
+        return self.get_id()
+    
+class TPLLevel(GenericLevelEntry[platformerlist.Level],platformerlist.Level):
     @override
     def getID(self):
         return self.get_id()

@@ -6,9 +6,6 @@ from nonebot import require
 
 require('bbot_api')
 from ..bbot_api.sheets_api import SheetRange
-require('gd_api')
-from ..gd_api import gddl
-from ..gd_api.gddl import GDDLLevel 
 
 from .data_cache import CacheWithIDMap,KeyMapCache
 from .models import LevelEntry

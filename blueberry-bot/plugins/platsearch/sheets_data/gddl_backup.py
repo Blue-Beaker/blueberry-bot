@@ -6,11 +6,13 @@ from nonebot import logger, require,get_driver
 from pathlib import Path
 
 require("gd_api")
-from ...gd_api.gddl.models import GDDLLevel,GDDLDifficulty
+from ...gd_api.gddl.models import GDDLDifficulty
 from ..data_cache import BaseSerializableEntry,CacheWithIDMap
 
 require("bbot_api")
 from ...bbot_api.sheets_api import SheetRange
+
+from ..models.gdapi import GDDLLevel
 
 from ..utils import safeConversion
 
@@ -74,7 +76,7 @@ def load_gddl_entries(lines:list[list[str]]):
         entries.append(entry)
     return entries
 
-class GDDLSheetEntry(BaseSerializableEntry,GDDLLevel):
+class GDDLSheetEntry(GDDLLevel):
     @override
     def getID(self) -> int:
         return self.get_id()

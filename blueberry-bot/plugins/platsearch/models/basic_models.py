@@ -57,9 +57,10 @@ class LevelEntry(BaseSerializableEntry):
 _L = TypeVar("_L")
     
 class GenericLevelEntry(BaseSerializableEntry,Generic[_L]):
-    def __init__(self,level:_L) -> None:
+    def __init__(self,level:_L|None=None) -> None:
         super().__init__()
-        self.__dict__.update(level.__dict__)
+        if level is not None:
+            self.__dict__.update(level.__dict__)
         
 def adapt_variable(inst,key:str,value:Any):
     if value is None:
