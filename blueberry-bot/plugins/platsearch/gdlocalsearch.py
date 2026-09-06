@@ -89,7 +89,6 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
             if enable_image:
                 req_id_base=bbot_api.getid(event)
                 imargs=LevelLargeRenderArgs()
-                info_provider.fill_base_info(imargs)
                 info_provider.fillRenderArgs(imargs)
                 imargs.level_id=level_id
                 imargs.thumbnail=getThumbnailUrl(level_id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or ""

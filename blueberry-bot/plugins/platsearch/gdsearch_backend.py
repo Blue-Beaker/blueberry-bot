@@ -36,6 +36,9 @@ class GDLevelInfoProvider:
     
     gddl_entry:GDDLLevel|None=None
     
+    gd_level:GDLevel|None=None
+    gd_song:GDSong|None=None
+    
     def __init__(self,level_id:int) -> None:
         self.level_id=level_id
         self.dc_entries=[]
@@ -163,7 +166,44 @@ class GDLevelInfoProvider:
         description2="\n".join(description2_lines)
         imargs.description2=description2
         
-    def fill_base_info(self,imargs:LevelLargeRenderArgs):
+        self._fill_gd_args(imargs)
+        
+        if not self.gd_level and not self.gd_song:
+            self._fill_base_info(imargs)
+        
+    def _fill_gd_args(self,imargs:LevelLargeRenderArgs):
+        if self.gd_level:
+            level=self.gd_level
+            
+            imargs.level_id=level.id
+            
+            imargs.level_name=level.name
+            imargs.song_id=level.songID
+            imargs.creator=level.creator
+            imargs.stars=level.stars
+            imargs.length=level.get_length().get_name()
+            imargs.difficulty=level.get_difficulty().value
+            imargs.feature_level=level.epic+1 if level.featured>0 else 0
+            imargs.is_plat=level.is_plat()
+            imargs.coins=level.coins
+            imargs.bronze_coins=not level.verifiedCoins
+            imargs.downloads=level.downloads
+            imargs.likes=level.likes
+            imargs.description=level.get_description()
+            
+            if level.verification_time:
+                imargs.length2=format_time(level.verification_time/240)
+                
+            if level.song_ids or level.sfx_ids:
+                imargs.song_info=f"Songs: {len(level.song_ids or '')}, SFXs: {len(level.sfx_ids or '')}"
+            
+        if self.gd_song:
+            song=self.gd_song
+            imargs.song_author=song.artistName if song else "Unknown"
+            imargs.song_name=song.name if song else "Unknown"
+            
+        
+    def _fill_base_info(self,imargs:LevelLargeRenderArgs):
         imargs.level_id=self.level_id
         
         if self.dc_entry or self.pemonlist_entry:
@@ -209,6 +249,8 @@ class GDLevelInfoProvider:
         nlwlike_entries=self.nlwlike_entries
         gddl_entry=self.gddl_entry
         lines:list[str]=[]
+        
+        lines.extend(self._format_gd_desc(image_shown))
         
         if gddl_entry:
             lines.append("--GDDL--")
@@ -256,14 +298,47 @@ class GDLevelInfoProvider:
                 lines.append(formatters.formatListsLevel(e,False,True,not image_shown))
         return lines
     
+    def _format_gd_desc(self,image_shown:bool) -> list[str]:
+        lines:list[str]=[]
+        if not self.gd_level:
+            return []
+        level=self.gd_level
+        lines.append(f"Version: {level.version} Game ver.: {level.game_version}")
+        lines.append(f"2P: {level.two_player}, Objects: {level.objects}")
+        
+        if self.gd_song:
+            song=self.gd_song
+            lines.append(f"Song: {song.name} by {song.artistName} ({song.id})")
+        
+        if not image_shown:
+            lines.append(f"Length: {gd.Length(level.length).name}")
+            if level.verification_time:
+                lines[-1]=lines[-1]+(f" ({format_time(level.verification_time/240)})")
+                
+            lines.append(f"Coins: {level.coins}")
+            if not level.verifiedCoins:
+                lines[-1]=lines[-1]+(" (Bronze)")
+                
+            if level.song_ids and level.sfx_ids:
+                lines.append(f"Songs: {len(level.song_ids or '')}, SFXs: {len(level.sfx_ids or '')}")
+            
+        if level.upload_date and level.update_date:
+            lines.append(f"Upload/update: {level.upload_date}/{level.update_date}")
+        return lines
+    
     def fetch_GDDL_backup(self):
         entries=GDDL_BACKUP.get_for_id(self.level_id)
         if entries:
             self.gddl_entry=entries[0]
         return self
     
-    def setGDDL(self,entry:GDDLLevel|None):
+    def set_GDDL(self,entry:GDDLLevel|None):
         self.gddl_entry=entry
+        return self
+    
+    def set_gd_entry(self,entry:GDLevel|None,song:GDSong|None):
+        self.gd_level=entry
+        self.gd_song=song
         return self
     
 def format_time(seconds:float) -> str:

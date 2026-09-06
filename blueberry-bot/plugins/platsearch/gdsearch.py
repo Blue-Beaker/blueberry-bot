@@ -306,10 +306,15 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             return gddl_level
         
         level2, thumb, song, gddl_level = await asyncio.gather(gather_level2(),gather_thumbnail(),gather_song(),gather_gddl())
+        # Merge level info
+        if level2:
+            for k,v in level2.__dict__.items():
+                if not level.__dict__.get(k,None):
+                    level.__dict__[k]=v
             
         info_provider=GDLevelInfoProvider(level.id)
         info_provider.fetch(level.demon,level.is_plat())
-        info_provider.setGDDL(gddl_level)
+        info_provider.set_GDDL(gddl_level)
         
         info_image=False
         # Image Sections
@@ -317,30 +322,10 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             req_id_base=bbot_api.getid(event)
             imargs=LevelLargeRenderArgs()
             
+            info_provider.set_gd_entry(level,song)
             info_provider.fillRenderArgs(imargs)
             
-            imargs.level_id=level.id
             imargs.thumbnail=getThumbnailUrl(level.id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or ""
-            
-            imargs.level_name=level.name
-            imargs.song_id=level.songID
-            imargs.song_author=song.artistName if song else "Unknown"
-            imargs.song_name=song.name if song else "Unknown"
-            imargs.creator=level.creator
-            imargs.stars=level.stars
-            imargs.length=level.get_length().get_name()
-            imargs.difficulty=level.get_difficulty().value
-            imargs.feature_level=level.epic+1 if level.featured>0 else 0
-            imargs.is_plat=level.is_plat()
-            imargs.coins=level.coins
-            imargs.bronze_coins=not level.verifiedCoins
-            imargs.downloads=level.downloads
-            imargs.likes=level.likes
-            imargs.description=level.get_description()
-            
-            if level2:
-                imargs.length2=format_verify_time(level2.verification_time)
-                imargs.song_info=f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}"
             
             img=await render_api.render(imargs,request_id=f"{req_id_base}_{time.time()//1}")
             if isinstance(img,bytes):
@@ -358,28 +343,6 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
         if not verbose:
             lines.addLine(f"-v 参数查询具体时长, 上传/更新日期, 及额外曲目.")
-            
-            
-        lines.addLine(f"Version: {level.version} Game ver.: {level.game_version}")
-        lines.addLine(f"2P: {level.two_player}, Objects: {level.objects}")
-        
-        if song:
-            lines.addLine(f"Song: {song.name} by {song.artistName} ({song.id})")
-        
-        if not info_image:
-            lines.addLine(f"Length: {gd.Length(level.length).name}")
-            if level2:
-                lines.addText(f" ({format_verify_time(level2.verification_time)})")
-                
-            lines.addLine(f"Coins: {level.coins}")
-            if not level.verifiedCoins:
-                lines.addText(" (Bronze)")
-                
-            if level2:
-                lines.addLine(f"Songs: {len(level2.song_ids or '')}, SFXs: {len(level2.sfx_ids or '')}")
-            
-        if level2:
-            lines.addLine(f"Upload/update: {level2.upload_date}/{level2.update_date}")
         
         for l in info_provider.getTextDescription(info_image):
             lines.addLine(l)
