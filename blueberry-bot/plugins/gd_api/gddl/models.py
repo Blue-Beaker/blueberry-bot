@@ -15,6 +15,8 @@ class GDDLDifficulty(Enum):
     INSANE="Insane"
     EXTREME="Extreme"
     
+    def as_abbr(self):
+        return _DIFFICULTY_ABBR.get(self,"D")
     def as_official(self):
         return _DIFFICULTY_MAP.get(self,GDDifficulty.HARD)
     
@@ -25,6 +27,15 @@ _DIFFICULTY_MAP={
     GDDLDifficulty.HARD:GDDifficulty.HARD_DEMON,
     GDDLDifficulty.INSANE:GDDifficulty.INSANE_DEMON,
     GDDLDifficulty.EXTREME:GDDifficulty.EXTREME_DEMON
+}
+
+_DIFFICULTY_ABBR={
+    GDDLDifficulty.OFFICIAL:"D",
+    GDDLDifficulty.EASY:"EZD",
+    GDDLDifficulty.MEDIUM:"MED",
+    GDDLDifficulty.HARD:"HDD",
+    GDDLDifficulty.INSANE:"INSD",
+    GDDLDifficulty.EXTREME:"EXD"
 }
 
 _OFFICIAL_LEVEL_ID_MAP={

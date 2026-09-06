@@ -68,7 +68,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     
     if count==0:
         reply.addLine("Not found")
-    else:
+    elif results.__len__()>1:
         reply.addLine(f"{count} found (Page {page}/{maxpages}):")
     
         for l in results:
@@ -82,6 +82,8 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
             info_provider=GDLevelInfoProvider(level_id)
             info_provider.fetch()
             info_provider.fetch_GDDL_backup()
+            
+            reply.addLine(info_provider.repr_level_base())
             
             thumb=await getThumbnail_async(level_id)
             shown_image=False

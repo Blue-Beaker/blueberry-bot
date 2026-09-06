@@ -1,6 +1,27 @@
+from typing import Any, Callable,TypeVar
 from .plat_sheets import PlatChartEntry,NLWLikeEntry,LevelEntry
 
 from .models import AREDLLevel,PemonlistLevel
+
+_FORMAT_FUNCS:dict[type,Callable[[Any,bool,bool],str]]={
+}
+
+def format(l:PlatChartEntry|AREDLLevel|PemonlistLevel|NLWLikeEntry,compact:bool=False,exclude_base_info:bool=False):
+    for k,v in _FORMAT_FUNCS.items():
+        if isinstance(l,k):
+            return v(l,compact,exclude_base_info)
+    return f"Error type {type(l)}"
+
+def set_formatters():
+    _set_formatter(PlatChartEntry,formatDiffChart)
+    _set_formatter(NLWLikeEntry,formatListsLevel)
+    _set_formatter(PemonlistLevel,formatPemonlist)
+    _set_formatter(AREDLLevel,formatAREDLLevel)
+
+_T=TypeVar("_T")
+def _set_formatter(t:type[_T],f:Callable[[_T,bool,bool],str]):
+    _FORMAT_FUNCS[t]=f
+    return f
 
 def formatDiffChart(l:PlatChartEntry,compact:bool=False,exclude_base_info:bool=False):
     lines:list[str]=[]
@@ -98,3 +119,4 @@ def formatPemonlist(l:PemonlistLevel,compact:bool=False,exclude_base_info:bool=F
         
     return "\n".join(lines)
     
+set_formatters()

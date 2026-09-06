@@ -4,6 +4,7 @@ from nonebot import get_driver,require
 from .plat_sheets import LevelEntry,NLWLikeEntry,PlatChartEntry
 from .gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,PEMONLIST_CACHE,AREDL_CACHE,UNDERRATED_CACHE,AREDLLevel,PemonlistLevel,GDDL_BACKUP
 from .underrated_data import UnderratedLevel,formatUnderrated,Sections as URSection
+from .utils import repr_level
 from . import formatters
 
 require('bbot_api')
@@ -325,6 +326,38 @@ class GDLevelInfoProvider:
         if level.upload_date and level.update_date:
             lines.append(f"Upload/update: {level.upload_date}/{level.update_date}")
         return lines
+    
+    def _format_base_from_others(self,image_shown:bool) -> list[str]:
+        lines:list[str]=[]
+        if self.gddl_entry:
+            e=self.gddl_entry
+            lines.append(f"2P: {e.IsTwoPlayer}, Objects: {e.objects}")
+        
+            lines.append(f"Song: {e.SongName} by {e.SongAuthor} ({e.SongID})")
+        
+        if not image_shown:
+            l = e.get_length()
+            if l:
+                lines.append(f"Length: {l.name}")
+        return lines
+    
+    def repr_level_base(self):
+        if self.gd_level:
+            return repr_level(self.gd_level)
+        elif self.gddl_entry:
+            l=self.gddl_entry
+            return f"{l.Name} by {l.Publisher} ({l.Difficulty.as_abbr()} {l.get_stars()}{'⭐' if not l.is_plat() else '🌙'}) ({l.ID})"
+        elif self.underrated_entry:
+            return formatUnderrated(self.underrated_entry,True,False,False)
+        elif self.aredl_entry:
+            return formatters.format(self.aredl_entry,True,False)
+        elif self.dc_entry:
+            return formatters.format(self.dc_entry,True,False)
+        elif self.pemonlist_entry:
+            return formatters.format(self.pemonlist_entry,True,False)
+        elif self.nlwlike_entry:
+            return formatters.format(self.nlwlike_entry,True,False)
+        return "Unknown"
     
     def fetch_GDDL_backup(self):
         entries=GDDL_BACKUP.get_for_id(self.level_id)
