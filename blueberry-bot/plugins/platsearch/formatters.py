@@ -1,5 +1,6 @@
 from typing import Any, Callable,TypeVar
-from .plat_sheets import PlatChartEntry,NLWLikeEntry,LevelEntry
+from .plat_sheets import PlatChartEntry,NLWLikeEntry
+from .models import LevelEntry
 
 from .models.gdapi import AREDLLevel,PemonlistLevel
 

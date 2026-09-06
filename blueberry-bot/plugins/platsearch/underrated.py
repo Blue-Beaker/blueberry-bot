@@ -7,7 +7,7 @@ from nonebot import get_driver, require,logger,on_command,get_plugin_config
 from nonebot.adapters import Bot,Message,Event
 from nonebot.params import CommandArg
 
-from .plat_sheets import LevelEntry
+from .models import LevelEntry
 from .data_cache import BaseCache
 from .config import Config
 

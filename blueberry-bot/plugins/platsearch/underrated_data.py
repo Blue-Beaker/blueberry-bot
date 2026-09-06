@@ -1,7 +1,7 @@
 from enum import Enum
 from nonebot import require
 
-from .plat_sheets import LevelEntry
+from .models import LevelEntry
 
 require('bbot_api')
 from ..bbot_api.sheets_api import SheetRange

@@ -11,7 +11,7 @@ from ..gd_api import gddl
 from ..gd_api.gddl import GDDLLevel 
 
 from .data_cache import CacheWithIDMap,KeyMapCache
-from .models import BaseSerializableEntry
+from .models import LevelEntry
 from .utils import split_str_lists,has_skills,safeInt
 
 PLAT_RANK_ID = "1uicngbhpej4PEmtYYeGmYlFsA28PwTzzouWb4EWQkTY"
@@ -30,29 +30,6 @@ PATTERN_CHALLENGE = re.compile(r"(.*)\((.*?)\)")
 CHALLENGE_TYPES = set(['deathless','coin','unnerfed','nerfed'])
 
 BASENAME_REGEX = re.compile(r"(.*)\((.*)\)")
-    
-class LevelEntry(BaseSerializableEntry):
-    id:int=0
-    name:str
-    
-    @override
-    def getID(self) -> int:
-        return self.id
-    def exactMatch(self,search:str):
-        return search.lower().replace("(","").replace(")","").strip() == self.name.lower().replace("(","").replace(")","").strip()
-    def matchesName(self,search:str,fuzzy_match:bool=False):
-        if self.exactMatch(search):
-            return True
-        if fuzzy_match:
-            return search.lower() in self.name.lower()
-        else:
-            matched=BASENAME_REGEX.match(self.name)
-            name=self.name
-            if matched:
-                name=matched.group(1)
-            return search.lower().strip() == name.lower().strip()
-    def nameKey(self):
-        return self.name.lower().strip()
 
 class PlatWeight(LevelEntry):
     def update(self,section:str,name:str,weight:int|None=None):

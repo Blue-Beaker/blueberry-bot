@@ -1,6 +1,7 @@
 from enum import Enum
+import re
 from types import NoneType, UnionType
-from typing import Any, Generic, TypeVar, get_type_hints
+from typing import Any, Generic, TypeVar, get_type_hints, override
 from nonebot import logger
 
 from enum import Enum
@@ -28,6 +29,30 @@ class BaseSerializableEntry:
             adapt_variable(inst,k,v)
         # inst.__dict__.update(data)
         return inst
+    
+BASENAME_REGEX = re.compile(r"(.*)\((.*)\)")
+class LevelEntry(BaseSerializableEntry):
+    id:int=0
+    name:str
+    
+    @override
+    def getID(self) -> int:
+        return self.id
+    def exactMatch(self,search:str):
+        return search.lower().replace("(","").replace(")","").strip() == self.name.lower().replace("(","").replace(")","").strip()
+    def matchesName(self,search:str,fuzzy_match:bool=False):
+        if self.exactMatch(search):
+            return True
+        if fuzzy_match:
+            return search.lower() in self.name.lower()
+        else:
+            matched=BASENAME_REGEX.match(self.name)
+            name=self.name
+            if matched:
+                name=matched.group(1)
+            return search.lower().strip() == name.lower().strip()
+    def nameKey(self):
+        return self.name.lower().strip()
     
 _L = TypeVar("_L")
     

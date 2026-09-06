@@ -14,7 +14,7 @@ from ..gd_data import AREDL_CACHE,PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_C
 from ..data_cache import BaseCache
 from ..utils import select_page
 from .gdsearch_backend import GDLevelInfoProvider
-from ..plat_sheets import LevelEntry
+from ..models import LevelEntry
 from ..models.gdapi import AREDLLevel
 from ..config import Config
 from ..utils import searchInName
