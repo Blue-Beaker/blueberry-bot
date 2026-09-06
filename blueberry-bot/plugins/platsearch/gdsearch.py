@@ -8,7 +8,7 @@ from nonebot import get_driver,require
 
 from .config import Config
 from .utils import repr_level
-from .gd_data import PLAT_CHART_CACHE,AREDL_CACHE
+from .gd_data import PLAT_CHART_CACHE,AREDL_CACHE,TPL_CACHE
 
 require('bbot_api')
 from .. import bbot_api
@@ -369,7 +369,7 @@ def censor_unrate_levels(level:Level):
     return level1
 
 def is_unrated_hidden(level:gd.Level):
-    return level.stars==0 and level.downloads<5000
+    return level.stars==0 and level.downloads<5000 and (not PLAT_CHART_CACHE.get_for_id(level.id)) and (not TPL_CACHE.get_for_id(level.id))
 
 def format_verify_time(frame_count: int | None, fps: int = 240) -> str:
     """将验证用时（帧）格式化为 1h 1m 1s 形式，低于 1h/1m 时隐藏对应段落。"""
