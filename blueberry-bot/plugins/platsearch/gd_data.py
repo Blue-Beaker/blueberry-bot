@@ -70,10 +70,10 @@ async def load():
     trigger=CronTrigger.from_crontab('0 5 * * *') # Update every day at 5:00
     scheduler.add_job(update_gddl, trigger=trigger, id="GDDL_UPDATE", misfire_grace_time=86400)
     
-    update_thread = threading.Thread(target=update_all,name="update_all")
+    update_thread = threading.Thread(target=update_all_needed,name="update_all")
     update_thread.start()
     
-def update_all():
+def update_all_needed():
     all_caches=caches.copy()
     all_caches.append(GDDL_BACKUP)
     for cache in all_caches:

@@ -3,6 +3,7 @@ from nonebot import logger, require, get_driver, get_plugin_config
 from nonebot import on_command
 from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
+from nonebot.exception import MatcherException
 require('bbot_api')
 from .. import bbot_api
 from ..bbot_api.argparse import ArgumentError,ArgParser
@@ -40,12 +41,14 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         parser.add_argument('-p',help='Page',type=int)
         parser.add_argument('-f',help="Fuzzy",action='store_true')
         parser.add_argument('--text',help="Plain Text",action='store_true')
+        parser.add_argument('--pagesize',help="Page Size",type=int,default=10)
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parsed=parser.parse_args(raw_args)
         
         search=" ".join(parsed.search)
         page=parsed.p or 1
         fuzzy=parsed.f or False
+        pagesize = int(parsed.pagesize)
         enable_image=(supports_image and not parsed.text)
         
     except Exception as e:
@@ -59,7 +62,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     levels=[(k,v) for k,v in level_ids.items()]
 
     count=levels.__len__()
-    entries_per_page=5
+    entries_per_page=pagesize
     results,maxpages,page=select_page(levels,count,entries_per_page,page)
     
     if count==0:
@@ -68,41 +71,46 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         reply.addLine(f"{count} found (Page {page}/{maxpages}):")
     
         for l in results:
-            reply.addLine(f"{l[0]} ({l[1][0].name} by {l[1][0].creator}) ({','.join([p.provider.cname for p in l[1]])})")
+            reply.addLine(f"({l[0]}) {l[1][0].name} by {l[1][0].creator} ({','.join([p.provider.cname for p in l[1]])})")
             
     if results.__len__()==1:
-        result=results[0]
-        level_id=result[0]
-        entries=result[1]
-        info_provider=GDLevelInfoProvider(level_id)
-        info_provider.fetch()
-        info_provider.fetch_GDDL_backup()
-        
-        thumb=await getThumbnail_async(level_id)
-        shown_image=False
-        
-        if enable_image:
-            req_id_base=bbot_api.getid(event)
-            imargs=LevelLargeRenderArgs(req_id_base+"_base")
-            info_provider.fill_base_info(imargs)
-            info_provider.fillRenderArgs(imargs)
-            imargs.level_id=level_id
-            imargs.thumbnail=getThumbnailUrl(level_id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or ""
+        try:
+            result=results[0]
+            level_id=result[0]
+            entries=result[1]
+            info_provider=GDLevelInfoProvider(level_id)
+            info_provider.fetch()
+            info_provider.fetch_GDDL_backup()
             
-            imargs.level_name=entries[0].name
-            imargs.creator=entries[0].creator
+            thumb=await getThumbnail_async(level_id)
+            shown_image=False
             
-            img=await render_api.render(imargs)
-            if isinstance(img,bytes):
-                msg2=bbot_api.TextImageMessage.build(bot)
-                msg2.addLine(f"{level_id}")
-                msg2.addImage(img)
-                shown_image=True
-                await msg2.send(gdlocalsearch)
+            if enable_image:
+                req_id_base=bbot_api.getid(event)
+                imargs=LevelLargeRenderArgs(req_id_base+"_base")
+                info_provider.fill_base_info(imargs)
+                info_provider.fillRenderArgs(imargs)
+                imargs.level_id=level_id
+                imargs.thumbnail=getThumbnailUrl(level_id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or ""
+                
+                imargs.level_name=entries[0].name
+                imargs.creator=entries[0].creator
+                
+                img=await render_api.render(imargs)
+                if isinstance(img,bytes):
+                    msg2=bbot_api.TextImageMessage.build(bot)
+                    msg2.addLine(f"{level_id}")
+                    msg2.addImage(img)
+                    shown_image=True
+                    await msg2.send(gdlocalsearch)
+            
+            for l in info_provider.getTextDescription(shown_image):
+                reply.addLine(l)
+        except Exception as e:
+            if isinstance(e,MatcherException):
+                raise e
+            reply.addLine(f"出错: {e}")
         
-        for l in info_provider.getTextDescription(shown_image):
-            reply.addLine(l)
-    
     await reply.finish(gdlocalsearch)
     
 class ProviderMeta:
