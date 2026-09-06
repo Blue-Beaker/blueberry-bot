@@ -14,5 +14,5 @@ async def test_search_args():
     
 @pytest.mark.asyncio
 async def test_search_level():
-    level,_ = await getGDDLLevel(97906220)
+    level,_,_,_ = await getGDDLLevel(97906220)
     print(level.__dict__)
