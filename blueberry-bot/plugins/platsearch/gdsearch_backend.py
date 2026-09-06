@@ -251,7 +251,10 @@ class GDLevelInfoProvider:
         gddl_entry=self.gddl_entry
         lines:list[str]=[]
         
-        lines.extend(self._format_gd_desc(image_shown))
+        if self.gd_level:
+            lines.extend(self._format_gd_desc(image_shown))
+        else:
+            lines.extend(self._format_base_from_others(image_shown))
         
         if gddl_entry:
             lines.append("--GDDL--")
@@ -331,9 +334,13 @@ class GDLevelInfoProvider:
         lines:list[str]=[]
         if self.gddl_entry:
             e=self.gddl_entry
-            lines.append(f"2P: {e.IsTwoPlayer}, Objects: {e.objects}")
-        
-            lines.append(f"Song: {e.SongName} by {e.SongAuthor} ({e.SongID})")
+            if e.objects:
+                lines.append(f"2P: {e.IsTwoPlayer}, Objects: {e.objects}")
+            lines.append(f"Song: {e.SongName}")
+            if e.SongAuthor:
+                lines[-1]+=f" by {e.SongAuthor}"
+            if e.SongID:
+                lines[-1]+=f" ({e.SongID})"
         
         if not image_shown:
             l = e.get_length()
