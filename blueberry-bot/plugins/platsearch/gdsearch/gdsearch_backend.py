@@ -166,8 +166,7 @@ class GDLevelInfoProvider:
         
         self._fill_gd_args(imargs)
         
-        if not self.gd_level and not self.gd_song:
-            self._fill_base_info(imargs)
+        self._fill_base_info(imargs)
         
     def _fill_gd_args(self,imargs:LevelLargeRenderArgs):
         if self.gd_level:
@@ -202,37 +201,40 @@ class GDLevelInfoProvider:
             
         
     def _fill_base_info(self,imargs:LevelLargeRenderArgs):
-        imargs.level_id=self.level_id
-        
-        if self.dc_entry or self.pemonlist_entry:
-            imargs.length=Length.PLAT.get_name()
-            imargs.is_plat=True
-        
-        if self.pemonlist_entry:
-            imargs.stars=10
+        if not self.gd_level:
+            imargs.level_id=self.level_id
             
-        if self.gddl_entry:
+            if self.dc_entry or self.pemonlist_entry:
+                imargs.length=Length.PLAT.get_name()
+                imargs.is_plat=True
+            
+            if self.pemonlist_entry:
+                imargs.stars=10
+                
+            if self.gddl_entry:
+                level=self.gddl_entry
+                imargs.level_name=level.Name
+                imargs.creator=level.Publisher
+                imargs.stars=10
+                if not hasattr(imargs,'length'): 
+                    length = level.get_length()
+                    imargs.length=length.get_name() if length else ''
+                imargs.difficulty=level.Difficulty.as_official().value
+                imargs.feature_level=level.Rarity
+                if not hasattr(imargs,'is_plat'): imargs.is_plat=level.is_plat()
+                imargs.description=level.Description
+                
+            if self.underrated_entry:
+                level=self.underrated_entry
+                imargs.level_name=level.name
+                imargs.creator=level.creator
+                imargs.difficulty=level.get_difficulty().value
+                if not hasattr(imargs,'is_plat'): imargs.is_plat=level.skillsets.__contains__("Platformer")
+        if self.gddl_entry and not self.gd_song:
             level=self.gddl_entry
-            imargs.level_name=level.Name
             imargs.song_id=level.SongID
             imargs.song_author=level.SongAuthor
             imargs.song_name=level.SongName
-            imargs.creator=level.Publisher
-            imargs.stars=10
-            if not hasattr(imargs,'length'): 
-                length = level.get_length()
-                imargs.length=length.get_name() if length else ''
-            imargs.difficulty=level.Difficulty.as_official().value
-            imargs.feature_level=level.Rarity
-            if not hasattr(imargs,'is_plat'): imargs.is_plat=level.is_plat()
-            imargs.description=level.Description
-            
-        if self.underrated_entry:
-            level=self.underrated_entry
-            imargs.level_name=level.name
-            imargs.creator=level.creator
-            imargs.difficulty=level.get_difficulty().value
-            if not hasattr(imargs,'is_plat'): imargs.is_plat=level.skillsets.__contains__("Platformer")
         
     def getTextDescription(self,image_shown:bool):
         dc_entry=self.dc_entry
@@ -248,10 +250,9 @@ class GDLevelInfoProvider:
         gddl_entry=self.gddl_entry
         lines:list[str]=[]
         
-        if self.gd_level:
-            lines.extend(self._format_gd_desc(image_shown))
-        else:
-            lines.extend(self._format_base_from_others(image_shown))
+        lines.extend(self._format_gd_desc(image_shown))
+        
+        lines.extend(self._format_base_from_others(image_shown))
         
         if gddl_entry:
             lines.append("--GDDL--")
@@ -288,47 +289,47 @@ class GDLevelInfoProvider:
     
     def _format_gd_desc(self,image_shown:bool) -> list[str]:
         lines:list[str]=[]
-        if not self.gd_level:
-            return []
         level=self.gd_level
-        lines.append(f"Version: {level.version} Game ver.: {level.game_version}")
-        lines.append(f"2P: {level.two_player}, Objects: {level.objects}")
+        if level:
+            lines.append(f"Version: {level.version} Game ver.: {level.game_version}")
+            lines.append(f"2P: {level.two_player}, Objects: {level.objects}")
         
         if self.gd_song:
             song=self.gd_song
             lines.append(f"Song: {song.name} by {song.artistName} ({song.id})")
         
-        if not image_shown:
-            lines.append(f"Length: {gd.Length(level.length).name}")
-            if level.verification_time:
-                lines[-1]=lines[-1]+(f" ({format_time(level.verification_time/240)})")
+        if level:
+            if not image_shown:
+                lines.append(f"Length: {gd.Length(level.length).name}")
+                if level.verification_time:
+                    lines[-1]=lines[-1]+(f" ({format_time(level.verification_time/240)})")
+                    
+                lines.append(f"Coins: {level.coins}")
+                if not level.verifiedCoins:
+                    lines[-1]=lines[-1]+(" (Bronze)")
+                    
+                if level.song_ids and level.sfx_ids:
+                    lines.append(f"Songs: {len(level.song_ids or '')}, SFXs: {len(level.sfx_ids or '')}")
                 
-            lines.append(f"Coins: {level.coins}")
-            if not level.verifiedCoins:
-                lines[-1]=lines[-1]+(" (Bronze)")
-                
-            if level.song_ids and level.sfx_ids:
-                lines.append(f"Songs: {len(level.song_ids or '')}, SFXs: {len(level.sfx_ids or '')}")
-            
-        if level.upload_date and level.update_date:
-            lines.append(f"Upload/update: {level.upload_date}/{level.update_date}")
+            if level.upload_date and level.update_date:
+                lines.append(f"Upload/update: {level.upload_date}/{level.update_date}")
         return lines
     
     def _format_base_from_others(self,image_shown:bool) -> list[str]:
         lines:list[str]=[]
         if self.gddl_entry:
             e=self.gddl_entry
-            if e.objects:
+            if e.objects and not self.gd_level:
                 lines.append(f"2P: {e.IsTwoPlayer}, Objects: {e.objects}")
             lines.append(f"Song: {e.SongName}")
-            if e.SongAuthor:
+            if e.SongAuthor and not self.gd_song:
                 lines[-1]+=f" by {e.SongAuthor}"
-            if e.SongID:
+            if e.SongID and not self.gd_song:
                 lines[-1]+=f" ({e.SongID})"
         
         if not image_shown:
             l = e.get_length()
-            if l:
+            if l and not self.gd_level:
                 lines.append(f"Length: {l.name}")
         return lines
     
