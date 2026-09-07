@@ -135,9 +135,7 @@ _FLAGS:dict[str,BaseArg]={
     "--sort":TemplateArg("sort","Sort By",str,Sort),
     "--sort-dir":TemplateArg("sortDirection","Sort Direction",str,SortDir),
     "--song":TemplateArg("song","Song Name",str,str),
-    "-u":TemplateArg("creator","From Creator",str,TwoPlayer),
-    "--2-player":TemplateArg("twoPlayer","2-Player",str,TwoPlayer),
-    
+    "-u":TemplateArg("creator","From Creator",str,str),
     "--top-skill":TemplateArg("topTagId","Tag ID",str,get_tag_id_from_name),
     "--skill":TemplateArg("hasSkillset","Has Skillset",str,get_tag_id_from_name),
     
