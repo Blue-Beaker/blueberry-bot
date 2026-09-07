@@ -138,15 +138,15 @@ _FLAGS:dict[str,BaseArg]={
     "-u":TemplateArg("creator","From Creator",str,TwoPlayer),
     "--2-player":TemplateArg("twoPlayer","2-Player",str,TwoPlayer),
     
-    "--top-skill":TemplateArg("top_tag_id","Tag ID",str,get_tag_id_from_name),
-    "--skill":TemplateArg("has_skillset","Has Skillset",str,get_tag_id_from_name),
+    "--top-skill":TemplateArg("topTagId","Tag ID",str,get_tag_id_from_name),
+    "--skill":TemplateArg("hasSkillset","Has Skillset",str,get_tag_id_from_name),
     
-    "-t":RangeArg("min_rating","max_rating","Tier Range (low-high)",float),
-    "-e":RangeArg("min_enjoyment","max_enjoyment","Enjoyment Range",float),
-    "--deviation":RangeArg("min_deviation","max_deviation","Deviation Range",float),
-    "--enj-count":RangeArg("min_enjoyment_count","max_enjoyment_count","Enjoyment Count Range",int),
-    "--sub-count":RangeArg("min_submission_count","max_submission_count","Submission Count Range",int),
-    "--id-range":RangeArg("min_id","max_id","ID Range",int),
+    "-t":RangeArg("minRating","maxRating","Tier Range (low-high)",float),
+    "-e":RangeArg("minEnjoyment","maxEnjoyment","Enjoyment Range",float),
+    "--deviation":RangeArg("minDeviation","maxDeviation","Deviation Range",float),
+    "--enj-count":RangeArg("minEnjoymentCount","maxEnjoymentCount","Enjoyment Count Range",int),
+    "--sub-count":RangeArg("minSubmissionCount","maxSubmissionCount","Submission Count Range",int),
+    "--id-range":RangeArg("minId","maxId","ID Range",int),
 }
 
 update_diff_aliases()

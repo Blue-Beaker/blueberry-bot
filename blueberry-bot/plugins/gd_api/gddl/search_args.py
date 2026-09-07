@@ -50,7 +50,7 @@ class GDDLSearchArgs:
 
     # Sorting
     sort: Optional[Sort] = None
-    sort_direction: Optional[SortDir] = None
+    sortDirection: Optional[SortDir] = None
 
     # Search
     name: Optional[str] = None
@@ -58,38 +58,38 @@ class GDDLSearchArgs:
     song: Optional[str] = None
 
     # Rating / Enjoyment / Deviation ranges
-    min_rating: Optional[float] = None
-    max_rating: Optional[float] = None
-    min_enjoyment: Optional[float] = None
-    max_enjoyment: Optional[float] = None
-    min_enjoyment_count: Optional[int] = None
-    max_enjoyment_count: Optional[int] = None
-    min_deviation: Optional[float] = None
-    max_deviation: Optional[float] = None
-    min_submission_count: Optional[int] = None
-    max_submission_count: Optional[int] = None
+    minRating: Optional[float] = None
+    maxRating: Optional[float] = None
+    minEnjoyment: Optional[float] = None
+    maxEnjoyment: Optional[float] = None
+    minEnjoyment_count: Optional[int] = None
+    maxEnjoyment_count: Optional[int] = None
+    minDeviation: Optional[float] = None
+    maxDeviation: Optional[float] = None
+    minSubmission_count: Optional[int] = None
+    maxSubmission_count: Optional[int] = None
 
     # Difficulty & level properties
     difficulty: Optional[Difficulty] = None
-    min_id: Optional[int] = None
-    max_id: Optional[int] = None
+    minId: Optional[int] = None
+    maxId: Optional[int] = None
     length: Optional[Length] = None
-    two_player: Optional[TwoPlayer] = None
-    is_in_pack: Optional[bool] = None
+    twoPlayer: Optional[TwoPlayer] = None
+    isInPack: Optional[bool] = None
 
     # Tags & skillsets
-    top_tag_id: Optional[int] = None
-    has_skillset: Optional[int] = None
+    topTagId: Optional[int] = None
+    hasSkillset: Optional[int] = None
 
     # User-based exclusions
-    not_rated_by: Optional[int] = None
+    notRatedBy: Optional[int] = None
 
     # Exclude flags
-    exclude_completed: Optional[bool] = None
-    exclude_rated: Optional[bool] = None
-    exclude_rated_enjoyment: Optional[bool] = None
-    exclude_unrated: Optional[bool] = None
-    exclude_unrated_enjoyment: Optional[bool] = None
+    excludeCompleted: Optional[bool] = None
+    excludeRated: Optional[bool] = None
+    excludeRatedEnjoyment: Optional[bool] = None
+    excludeUnrated: Optional[bool] = None
+    excludeUnratedEnjoyment: Optional[bool] = None
     
     def getData(self):
         data:dict[str,Any]={}
