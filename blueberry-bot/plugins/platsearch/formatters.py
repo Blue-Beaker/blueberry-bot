@@ -2,7 +2,11 @@ from typing import Any, Callable,TypeVar
 from .plat_sheets import PlatChartEntry,NLWLikeEntry
 from .models import LevelEntry
 
-from .models.gdapi import AREDLLevel,PemonlistLevel
+from nonebot import require
+require('gd_api')
+from ..gd_api.gddl import GDDLLevel
+from ..gd_api.aredl import Level as AREDLLevel
+from ..gd_api.pemonlist import Level as PemonlistLevel
 
 _FORMAT_FUNCS:dict[type,Callable[[Any,bool,bool],str]]={
 }
@@ -18,6 +22,7 @@ def set_formatters():
     _set_formatter(NLWLikeEntry,formatListsLevel)
     _set_formatter(PemonlistLevel,formatPemonlist)
     _set_formatter(AREDLLevel,formatAREDLLevel)
+    _set_formatter(GDDLLevel,formatGDDLLevel)
 
 _T=TypeVar("_T")
 def _set_formatter(t:type[_T],f:Callable[[_T,bool,bool],str]):
@@ -119,5 +124,48 @@ def formatPemonlist(l:PemonlistLevel,compact:bool=False,exclude_base_info:bool=F
         lines.append(line)
         
     return "\n".join(lines)
+
+def formatGDDLLevel(l:GDDLLevel,compact:bool=False,exclude_base_info:bool=False):
     
+    def base_info():
+        return f"{l.Name} by {l.Publisher} ({l.get_id()})"
+    
+    if compact:
+        line=f"T{repr_float(l.Rating)} E{repr_float(l.Enjoyment)}"
+        if not exclude_base_info:
+            line=base_info()+" "+line
+        return line
+    
+    lines:list[str]=[]
+    if not exclude_base_info:
+        lines.append(base_info())
+    lines.append(f"Tier: {repr_float(l.Rating)} ({l.RatingCount}) Enjoyment: {repr_float(l.Enjoyment)} ({l.EnjoymentCount})")
+    if l.seconds:
+        lines.append(f"Length: {format_time(l.seconds)}")
+    if l.tags:
+        lines.append(f"Tags: {', '.join([f'{t.get_tag().tag_name}/{t.ReactCount}' for t in l.tags])}")
+    if l.Popularity:
+        lines.append(f"Popularity: {repr_float(l.Popularity)}")
+    
+    if l.IsTwoPlayer:
+        lines.append(f"2P Tier: {repr_float(l.TwoPlayerRating)} Enjoyment: {repr_float(l.TwoPlayerEnjoyment)}")
+        
+    return "\n".join(lines)
+    
+def repr_float(value:float|None):
+    return f"{value:.1f}" if value is not None else '-'
+def format_time(seconds:float) -> str:
+    total_sec = round(seconds)
+    h = total_sec // 3600
+    m = (total_sec % 3600) // 60
+    s = total_sec % 60
+    parts = []
+    if h:
+        parts.append(f"{h}h")
+    if m:
+        parts.append(f"{m}m")
+    if s or not parts:
+        parts.append(f"{s}s")
+    return " ".join(parts)
+
 set_formatters()

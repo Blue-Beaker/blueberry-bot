@@ -255,20 +255,7 @@ class GDLevelInfoProvider:
         
         if gddl_entry:
             lines.append("--GDDL--")
-            
-            def repr_float(value:float|None):
-                return f"{value:.1f}" if value is not None else '-'
-            lines.append(f"Tier: {repr_float(gddl_entry.Rating)} ({gddl_entry.RatingCount}) Enjoyment: {repr_float(gddl_entry.Enjoyment)} ({gddl_entry.EnjoymentCount})")
-            if gddl_entry.seconds:
-                lines.append(f"Length: {format_time(gddl_entry.seconds)}")
-            if gddl_entry.tags:
-                lines.append(f"Tags: {', '.join([f'{t.get_tag().tag_name}/{t.ReactCount}' for t in gddl_entry.tags])}")
-            if gddl_entry.Popularity:
-                lines.append(f"Popularity: {repr_float(gddl_entry.Popularity)}")
-            
-            if gddl_entry.IsTwoPlayer:
-                lines.append(f"2P Tier: {repr_float(gddl_entry.TwoPlayerRating)} Enjoyment: {repr_float(gddl_entry.TwoPlayerEnjoyment)}")
-            
+            lines.append(formatters.formatGDDLLevel(gddl_entry,False,True))
         
         if dc_entries:
             lines.append("--Difficulty Chart--")
