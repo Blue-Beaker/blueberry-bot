@@ -128,7 +128,7 @@ def get_tag_id_from_name(value:str):
             tag = GDDLTags.__getitem__(key)
             return int(tag.value)
         except KeyError:
-            raise SearchException(f"Tag不存在: {key}")
+            raise KeyError(f"Tag不存在: {key}")
 
 _FLAGS:dict[str,BaseArg]={
     "--2-player":TemplateArg("twoPlayer","2-Player",str,TwoPlayer),
