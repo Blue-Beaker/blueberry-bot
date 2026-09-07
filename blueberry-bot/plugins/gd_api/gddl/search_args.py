@@ -28,6 +28,14 @@ class Difficulty(Enum):
     INSANE = "Insane"
     EXTREME = "Extreme"
 
+class Length(Enum):
+    ANY = 0
+    TINY = 1
+    SHORT = 2
+    MEDIUM = 3
+    LONG = 4
+    XL = 5
+    PLAT = 6
 
 class TwoPlayer(Enum):
     ANY = "any"
@@ -65,7 +73,7 @@ class GDDLSearchArgs:
     difficulty: Optional[Difficulty] = None
     min_id: Optional[int] = None
     max_id: Optional[int] = None
-    length: Optional[int] = None
+    length: Optional[Length] = None
     two_player: Optional[TwoPlayer] = None
     is_in_pack: Optional[bool] = None
 
