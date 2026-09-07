@@ -88,8 +88,8 @@ class TemplateArg(BaseArg[_T],Generic[_T,_T2]):
     attr_name:str
     help_str:str
     input_type:Type[_T]
-    target_converter:Callable[[_T],_T2]|None
-    def __init__(self,attr_name:str,help_str:str,input_type:Type[_T],target_converter:Callable[[_T],_T2]|None=None) -> None:
+    target_converter:Callable[[_T],_T2|None]|None
+    def __init__(self,attr_name:str,help_str:str,input_type:Type[_T],target_converter:Callable[[_T],_T2|None]|None=None) -> None:
         super().__init__(help_str,input_type)
         self.attr_name=attr_name
         self.target_converter=target_converter
@@ -118,6 +118,17 @@ class RangeArg(BaseArg[str],Generic[_T2]):
         
         setattr(searchArgs,self.attr_name_1,low)
         setattr(searchArgs,self.attr_name_2,high)
+        
+def get_tag_id_from_name(value:str):
+    try:
+        return int(value)
+    except:
+        key=value.upper().strip().replace(" ","_")
+        try:
+            tag = GDDLTags.__getitem__(key)
+            return int(tag.value)
+        except KeyError:
+            raise SearchException(f"Tag不存在: {key}")
 
 _FLAGS:dict[str,BaseArg]={
     "--2-player":TemplateArg("twoPlayer","2-Player",str,TwoPlayer),
@@ -126,6 +137,9 @@ _FLAGS:dict[str,BaseArg]={
     "--song":TemplateArg("song","Song Name",str,str),
     "-u":TemplateArg("creator","From Creator",str,TwoPlayer),
     "--2-player":TemplateArg("twoPlayer","2-Player",str,TwoPlayer),
+    
+    "--top-skill":TemplateArg("top_tag_id","Tag ID",str,get_tag_id_from_name),
+    "--skill":TemplateArg("has_skillset","Has Skillset",str,get_tag_id_from_name),
     
     "-t":RangeArg("min_rating","max_rating","Tier Range (low-high)",float),
     "-e":RangeArg("min_enjoyment","max_enjoyment","Enjoyment Range",float),
