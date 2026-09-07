@@ -146,6 +146,8 @@ _FLAGS:dict[str,BaseArg]={
     "--deviation":RangeArg("minDeviation","maxDeviation","Deviation Range",float),
     "--enj-count":RangeArg("minEnjoymentCount","maxEnjoymentCount","Enjoyment Count Range",int),
     "--sub-count":RangeArg("minSubmissionCount","maxSubmissionCount","Submission Count Range",int),
+    "--seconds":RangeArg("minSeconds","maxSeconds","Seconds Range",float),
+    "--objects":RangeArg("minObjects","maxObjects","Objects Range",int),
     "--id-range":RangeArg("minId","maxId","ID Range",int),
 }
 
@@ -219,7 +221,6 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         logger.info(searchArgs.getData())
         
     except Exception as e:
-        logger.error(traceback.format_exc())
         await gddlsearch.finish(str(e))
         return
     

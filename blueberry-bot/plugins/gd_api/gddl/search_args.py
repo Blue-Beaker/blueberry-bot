@@ -62,23 +62,27 @@ class GDDLSearchArgs:
     maxRating: Optional[float] = None
     minEnjoyment: Optional[float] = None
     maxEnjoyment: Optional[float] = None
-    minEnjoyment_count: Optional[int] = None
-    maxEnjoyment_count: Optional[int] = None
+    minEnjoymentCount: Optional[int] = None
+    maxEnjoymentCount: Optional[int] = None
     minDeviation: Optional[float] = None
     maxDeviation: Optional[float] = None
-    minSubmission_count: Optional[int] = None
-    maxSubmission_count: Optional[int] = None
 
     # Difficulty & level properties
     difficulty: Optional[Difficulty] = None
-    minId: Optional[int] = None
-    maxId: Optional[int] = None
+    minID: Optional[int] = None
+    maxID: Optional[int] = None
     length: Optional[Length] = None
+    minSeconds: Optional[float] = None
+    maxSeconds: Optional[float] = None
+    minObjects: Optional[int] = None
+    maxObjects: Optional[int] = None
+    minDensity: Optional[float] = None
+    maxDensity: Optional[float] = None
     twoPlayer: Optional[TwoPlayer] = None
     isInPack: Optional[bool] = None
 
     # Tags & skillsets
-    topTagId: Optional[int] = None
+    topTagID: Optional[int] = None
     hasSkillset: Optional[int] = None
 
     # User-based exclusions
