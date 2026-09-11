@@ -215,7 +215,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         force_text=bool(parsed.text)
         show_thumbnail=bool(parsed.i)
         
-        logger.info(f"gddlsearch: {parsed.__dict__} -> {locals()}")
+        logger.info(f"gddlsearch: {parsed.__dict__}")
         logger.info(searchArgs.getData())
         
     except Exception as e:
