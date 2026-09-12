@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any, Optional, Union
 import inspect
 
 IMG_TYPE = Union[str,bytes]
@@ -17,6 +17,8 @@ class RenderArgs:
                 continue
             val=getattr(self,k)
             if val is not None:
+                if isinstance(val,RenderArgs):
+                    val=val.get_params()
                 data[k]=val
         return data
     def update_args(self,**kwargs):
@@ -148,3 +150,10 @@ class LevelLargeRenderArgs(LevelRenderArgs):
     nlw_type: str
     nlw_tier: str
     nlw_tags: str
+    
+class PlayerAllRenderArgs(RenderArgs):
+    scene_type: str = "player_all"
+    player_info: Optional[PlayerInfoRenderArgs] = None
+    nondemons: Optional[NonDemonsRenderArgs] = None
+    demons: Optional[DemonsRenderArgs] = None
+    

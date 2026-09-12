@@ -1,39 +1,26 @@
 import asyncio
-import math
-import os
-import random
-import threading
-import traceback
 import time
-from typing import Any, TypeVar
-from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
-from nonebot.rule import is_type
+from nonebot import on_command,logger,get_plugin_config
 from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
-from nonebot.permission import SUPERUSER
-from nonebot.exception import FinishedException
-import nonebot.config
 from nonebot import get_driver,require
-from nonebot.adapters.discord import Message as DCMessage,Bot as DCBot,MessageSegment as DCMessageSegment,GuildMessageCreateEvent
-from nonebot.adapters.onebot.v11 import Bot as OBBot, GroupMessageEvent as OBGroupMessageEvent,MessageSegment as OBMessageSegment
 
 from .config import Config
 from .gd_icon import IconType, construct_icon_url,get_icon,ICON_TYPES
 
 require('bbot_api')
 from .. import bbot_api
-from ..bbot_api.argparse import ArgumentError,ArgParser
+from ..bbot_api.argparse import ArgParser
 require('gd_api')
-from ..gd_api.gd import getLevel2_async,getList2_async,getUser_async,getLevelsFromList_async,ListSearchType,LevelSearchType,PlayerIcons,PlayerInfo
+from ..gd_api.gd import getUser_async,PlayerIcons,PlayerInfo
 from ..gd_api import gd
-from ..gd_api.thumbs import getThumbnail_async
 
 driver=get_driver()
 plugin_cfg=get_plugin_config(Config)
 
 require('bbot_render')
 from ..bbot_render import RenderAPI
-from ..bbot_render.models import PlayerInfoRenderArgs,DemonsRenderArgs,NonDemonsRenderArgs
+from ..bbot_render.models import PlayerInfoRenderArgs,DemonsRenderArgs,NonDemonsRenderArgs,PlayerAllRenderArgs
 render_api=RenderAPI(uri=plugin_cfg.render_server_uri)
 
 gduser = on_command("gduser")
@@ -42,6 +29,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
     try:
         parser=ArgParser("gduser")
+        parser.add_argument('-a',help='Show All breakdown in one image',action='store_true')
         parser.add_argument('-c',help='Show Classic breakdown',action='store_true')
         parser.add_argument('-p',help='Show Platformer breakdown',action='store_true')
         parser.add_argument('-d',help='Show Demons breakdown',action='store_true')
@@ -51,9 +39,12 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parsed=parser.parse_args(raw_args)
         search=" ".join(parsed.search)
-        show_classic=bool(parsed.c)
-        show_plat=bool(parsed.p)
-        show_demons=bool(parsed.d)
+        
+        show_all=bool(parsed.a)
+        show_classic=bool(parsed.c) or show_all
+        show_plat=bool(parsed.p) or show_all
+        show_demons=bool(parsed.d) or show_all
+        
         show_other=bool(parsed.v)
         force_text=bool(parsed.t)
         show_icons=bool(parsed.i)
@@ -114,18 +105,26 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         imargs0.c_demons=c_demons.sum()
         imargs0.pemons=pemons.sum()
         
+        imargs1 = fill_nondemons(c,p)
+        imargs2 = fill_demons(c_demons,pemons)
+        
+        all_args = PlayerAllRenderArgs()
+        all_args.player_info=imargs0
+        all_args.nondemons=imargs1
+        all_args.demons=imargs2
+        
         # Async gatherers. return None instantly for unneeded ones
         async def render_base():
-            return await render_api.render(imargs0,request_id=f"{req_id_base}_base_{time.time()//1}")
+            return await render_api.render(all_args if show_all else imargs0,request_id=f"{req_id_base}_base_{time.time()//1}")
         
         async def render_nondemons1():
-            if show_classic or show_plat:
-                return await render_nondemons(f"{req_id_base}_nondemons_{time.time()//1}",c,p)
+            if not show_all and (show_classic or show_plat):
+                return await render_api.render(imargs1,request_id=f"{req_id_base}_nondemons_{time.time()//1}")
             return None
         
         async def render_demons1():
-            if show_demons:
-                return await render_demons(f"{req_id_base}_demons_{time.time()//1}",c_demons,pemons)
+            if not show_all and show_demons:
+                return await render_api.render(imargs2,request_id=f"{req_id_base}_demons_{time.time()//1}")
             return None
         
         img,img1_nd,img2_d = await asyncio.gather(render_base(),render_nondemons1(),render_demons1())
@@ -133,6 +132,10 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         if isinstance(img,bytes):
             msg.addImage(img)
             info_image=True
+            if show_all:
+                nondemon_image=True
+                demon_image=True
+                
         if isinstance(img1_nd,bytes):
             msg.addImage(img1_nd)
             nondemon_image=True
@@ -150,8 +153,10 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         lines.append(f"Non-demons: {user.classic_levels.sumNoAuto()}/{user.classic_levels.sum()}, Non-pemons: {user.plat_levels.sumNoAuto()}/{user.plat_levels.sum()}")
         lines.append(f"Demons: {c_demons.sum()}, Pemons: {pemons.sum()}")
     
-    if not (show_classic or show_plat or show_demons):
-        lines.append("使用-c、-p、-d参数, 可显示Classic、Plat与Demon关卡的详细计数")
+    if not (show_icons):
+        lines.append("-i参数显示所有图标.")
+    if not (show_all or show_classic or show_plat or show_demons):
+        lines.append("使用-c、-p、-d或-a参数, 可显示Classic、Plat与Demon关卡, 或以上所有的详细计数.")
         
     if not nondemon_image:
         # Nondemons (Text)
@@ -197,7 +202,7 @@ def getIconIDs(icon: PlayerIcons):
     return id_for_types
 
     
-async def render_nondemons(req_id:str,classic:gd.PlayerLevels,plat:gd.PlayerLevels):
+def fill_nondemons(classic:gd.PlayerLevels,plat:gd.PlayerLevels):
     imargs=NonDemonsRenderArgs()
     imargs.c_auto=classic.auto
     imargs.c_easy=classic.easy
@@ -217,10 +222,9 @@ async def render_nondemons(req_id:str,classic:gd.PlayerLevels,plat:gd.PlayerLeve
     
     imargs.daily=classic.daily
     imargs.gauntlet=classic.gauntlet
-    
-    return await render_api.render(imargs,request_id=req_id)
+    return imargs
 
-async def render_demons(req_id:str,classic:gd.PlayerDemonLevels,plat:gd.PlayerDemonLevels):
+def fill_demons(classic:gd.PlayerDemonLevels,plat:gd.PlayerDemonLevels):
     imargs=DemonsRenderArgs()
     imargs.c_ezd=classic.ezd
     imargs.c_med=classic.med
@@ -238,8 +242,7 @@ async def render_demons(req_id:str,classic:gd.PlayerDemonLevels,plat:gd.PlayerDe
     
     imargs.weekly=classic.weekly
     imargs.gauntlet=classic.gauntlet
-    
-    return await render_api.render(imargs,request_id=req_id)
+    return imargs
 
 from .gdhelp import GD_HELP
 @GD_HELP.addHelpFunc
