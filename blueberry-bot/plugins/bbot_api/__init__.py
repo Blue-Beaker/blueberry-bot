@@ -76,6 +76,12 @@ def safeConversion(i:Any, converter:Callable[[Any],_T],fallback:_A=None) -> _T|_
 def can_pack_message(bot:Bot):
     return isinstance(bot,OBBot) and plugin_config.ob_pack_message
 
+def should_filter_message(event: Event):
+    for t in [QQMessageEvent,OBMessageEvent,DCMessageEvent]:
+        if isinstance(event,t):
+            return True
+    return False
+
 class LoginInfo:
     user_id:int=-1
     nickname:str=""

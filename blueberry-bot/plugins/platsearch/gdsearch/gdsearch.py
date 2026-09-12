@@ -232,7 +232,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     if not include_unrated and not str.isdecimal(search):
         lines.addLine("默认只搜索 Rated 关卡. -a 以搜索全部关卡.")
         
-    if levels and not get_perms(event).gd_unrated:
+    if levels and not get_perms(event).gd_unrated and bbot_api.should_filter_message(event):
         levels = [censor_unrate_levels(l) for l in levels]
     
     try:
