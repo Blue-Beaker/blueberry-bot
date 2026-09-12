@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import asyncio
 import time
 from nonebot import require, get_driver, get_plugin_config
 from nonebot import on_command
@@ -24,12 +25,14 @@ from ...bbot_render import RenderAPI
 from ...bbot_render.models import LevelLargeRenderArgs
 require('gd_api')
 from ...gd_api.thumbs import getThumbnail_async,getThumbnailUrl
+from ...gd_api.gd import getLevel2_async,getSong_async
+from ...gd_api.gddl.search import getGDDLLevel
 
 driver=get_driver()
 plugin_cfg=get_plugin_config(Config)
 render_api=RenderAPI(uri=plugin_cfg.render_server_uri)
 
-gdlocalsearch=on_command("gdlocalsearch")
+gdlocalsearch=on_command("gdlocalsearch",aliases=set(["gdls","gdlsearch"]))
 @gdlocalsearch.handle()
 async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     
@@ -39,7 +42,9 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         parser=ArgParser("gdlocalsearch")
         parser.add_argument('-p',help='Page',type=int)
         parser.add_argument('-f',help="Fuzzy",action='store_true')
+        parser.add_argument('--offline',help="Don't fetch level info online",action='store_true')
         parser.add_argument('--text',help="Plain Text",action='store_true')
+        parser.add_argument('-i',help='Show Thumbnail',action='store_true')
         parser.add_argument('--pagesize',help="Page Size",type=int,default=10)
         parser.add_argument('search', nargs='*', type=str, help='search string')
         parsed=parser.parse_args(raw_args)
@@ -49,6 +54,8 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         fuzzy=parsed.f or False
         pagesize = int(parsed.pagesize)
         enable_image=(supports_image and not parsed.text)
+        offline=bool(parsed.offline)
+        show_thumbnail=bool(parsed.i)
         
     except Exception as e:
         await gdlocalsearch.finish(str(e))
@@ -72,44 +79,78 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         for l in results:
             reply.addLine(f"({l[0]}) {l[1][0].name} by {l[1][0].creator} ({','.join([p.provider.cname for p in l[1]])})")
             
-    if results.__len__()==1:
-        try:
-            result=results[0]
-            level_id=result[0]
-            entries=result[1]
-            info_provider=GDLevelInfoProvider(level_id)
-            info_provider.fetch()
+    if results.__len__()!=1:
+        await reply.finish(gdlocalsearch)
+    result=results[0]
+    level_id=result[0]
+    entries=result[1]
+        
+    gd_level = None
+    gd_song = None
+    gddl_level = None
+    thumb = None
+        
+    async def gather_gd():
+        if offline:
+            return None,None
+        levels,pageinfo = await getLevel2_async(level_id)
+        gd_level = levels[0] if levels else None
+        if not gd_level:
+            return None,None
+        song=await getSong_async(gd_level.songID,gd_level.official_song)
+        return gd_level,song
+    
+    async def gather_gddl():
+        if offline:
+            return None
+        gddl_level,e1,e2,e3=await getGDDLLevel(level_id)
+        return gddl_level
+    
+    async def gather_thumbnail():
+        if show_thumbnail or enable_image:
+            return await getThumbnail_async(level_id)
+        return None
+    
+    gd_result,gddl_level,thumb = await asyncio.gather(gather_gd(),gather_gddl(),gather_thumbnail())
+    
+    try:
+        info_provider=GDLevelInfoProvider(level_id)
+        info_provider.fetch()
+        if not gddl_level:
             info_provider.fetch_GDDL_backup()
+        else:
+            info_provider.set_GDDL(gddl_level)
             
-            reply.addLine(info_provider.repr_level_base())
+        info_provider.set_gd_entry(*gd_result)
+        
+        reply.addLine(info_provider.repr_level_base())
+    
+        shown_image=False
+        
+        if enable_image:
+            req_id_base=bbot_api.getid(event)
+            imargs=LevelLargeRenderArgs()
+            info_provider.fillRenderArgs(imargs)
+            imargs.level_id=level_id
+            imargs.thumbnail=getThumbnailUrl(level_id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or ""
             
-            thumb=await getThumbnail_async(level_id)
-            shown_image=False
+            imargs.level_name=entries[0].name
+            imargs.creator=entries[0].creator
             
-            if enable_image:
-                req_id_base=bbot_api.getid(event)
-                imargs=LevelLargeRenderArgs()
-                info_provider.fillRenderArgs(imargs)
-                imargs.level_id=level_id
-                imargs.thumbnail=getThumbnailUrl(level_id) if plugin_cfg.render_server_uri.startswith("ws") else thumb or ""
-                
-                imargs.level_name=entries[0].name
-                imargs.creator=entries[0].creator
-                
-                img=await render_api.render(imargs,request_id=f"{req_id_base}_{time.time()//1}")
-                if isinstance(img,bytes):
-                    msg2=bbot_api.TextImageMessage.build(bot)
-                    msg2.addLine(f"{level_id}")
-                    msg2.addImage(img)
-                    shown_image=True
-                    await msg2.send(gdlocalsearch)
-            
-            for l in info_provider.getTextDescription(shown_image):
-                reply.addLine(l)
-        except Exception as e:
-            if isinstance(e,MatcherException):
-                raise e
-            reply.addLine(f"出错: {e}")
+            img=await render_api.render(imargs,request_id=f"{req_id_base}_{time.time()//1}")
+            if isinstance(img,bytes):
+                msg2=bbot_api.TextImageMessage.build(bot)
+                msg2.addLine(info_provider.repr_level_base())
+                msg2.addImage(img)
+                shown_image=True
+                await msg2.send(gdlocalsearch)
+        
+        for l in info_provider.getTextDescription(shown_image):
+            reply.addLine(l)
+    except Exception as e:
+        if isinstance(e,MatcherException):
+            raise e
+        reply.addLine(f"出错: {e}")
         
     await reply.finish(gdlocalsearch)
     
@@ -183,3 +224,7 @@ SEARCH_MANAGER.addProvider(BaseLevelSearchProvider(PLAT_CHART_CACHE,"DiffChart",
 SEARCH_MANAGER.addProvider(BaseLevelSearchProvider(PLAT_SHEET_CACHE,"NLW-Like","NLW"))
 SEARCH_MANAGER.addProvider(BaseLevelSearchProvider(UNDERRATED_CACHE,"Underrated","UND"))
     
+from ..gdhelp import GD_HELP
+@GD_HELP.addHelpFunc
+def get_help(bot:Bot,event:Event):
+    return ["gdlocalsearch [参数] [关名/ID] 使用本地缓存搜索关卡"]
