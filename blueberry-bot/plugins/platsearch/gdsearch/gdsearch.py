@@ -27,6 +27,7 @@ from ..utils import repr_level,ensure_gd_level,SearchException
 from .. import utils
 
 from .gdsearch_backend import GDLevelInfoProvider
+from .orb_helpers import get_download_level
 
 def get_level_line(level:Level) -> str:
     levelstr=repr_level(level)
@@ -40,12 +41,6 @@ def get_level_line(level:Level) -> str:
     return levelstr
 
 utils.REPR_LEVEL_FUNC=get_level_line
-
-try:
-    require("orb_api")
-    from ... import orb_api
-except:
-    orb_api=None
     
 driver=get_driver()
 plugin_cfg=get_plugin_config(Config)
@@ -260,28 +255,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         # Async gatherers. return None instantly for unneeded ones
         async def gather_level2():
             level2=None
-            orb_account=None
             if not verbose:
                 return None
-            if orb_api:
-                orb_account=orb_api.OrbAccount.fromEvent(event)
-                if not orb_account:
-                    return
-                
-                if orb_account.get()<25:
-                    lines.addLine("额外信息需要持有 25 Orbs. 消耗可低于此值.")
-                else:
-                    level2,result=await downloadLevel2_async(level.id)
-                    if level2 and level2.level_string:
-                        cost=min(25,level2.level_string.__len__()//100000)
-                        orb_account.add(-cost)
-                        lines.addLine(f"已消耗 {cost} Orbs.")
-                    elif result:
-                        lines.addLine(f"获取完整信息失败: {result.error}")
-            else:
-                level2,result=await downloadLevel2_async(level.id)
-                if (not level2) and result:
-                    lines.addLine(f"获取完整信息失败: {result.error}")
+            level2, orbmsg = await get_download_level(level.id,event)
+            for l in orbmsg:
+                lines.addLine(l)
             return level2
         
         async def gather_thumbnail():

@@ -28,6 +28,8 @@ from ...gd_api.thumbs import getThumbnail_async,getThumbnailUrl
 from ...gd_api.gd import getLevel2_async,getSong_async
 from ...gd_api.gddl.search import getGDDLLevel
 
+from .orb_helpers import get_download_level
+
 driver=get_driver()
 plugin_cfg=get_plugin_config(Config)
 render_api=RenderAPI(uri=plugin_cfg.render_server_uri)
@@ -43,6 +45,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         parser.add_argument('-p',help='Page',type=int)
         parser.add_argument('-f',help="Fuzzy",action='store_true')
         parser.add_argument('--offline',help="Don't fetch level info online",action='store_true')
+        parser.add_argument('-v',help='Show Other Info (Time, Upload/Update date, ...)',action='store_true')
         parser.add_argument('--text',help="Plain Text",action='store_true')
         parser.add_argument('-i',help='Show Thumbnail',action='store_true')
         parser.add_argument('--pagesize',help="Page Size",type=int,default=10)
@@ -56,6 +59,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         enable_image=(supports_image and not parsed.text)
         offline=bool(parsed.offline)
         show_thumbnail=bool(parsed.i)
+        verbose=bool(parsed.v)
         
     except Exception as e:
         await gdlocalsearch.finish(str(e))
@@ -93,8 +97,14 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     async def gather_gd():
         if offline:
             return None,None
-        levels,pageinfo = await getLevel2_async(level_id)
-        gd_level = levels[0] if levels else None
+        gd_level = None
+        if verbose:
+            gd_level, orbmsg = await get_download_level(level_id,event)
+            for l in orbmsg:
+                reply.addLine(l)
+        if not gd_level:
+            levels,pageinfo = await getLevel2_async(level_id)
+            gd_level = levels[0] if levels else None
         if not gd_level:
             return None,None
         song=await getSong_async(gd_level.songID,gd_level.official_song)

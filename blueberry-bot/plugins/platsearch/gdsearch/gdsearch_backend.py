@@ -151,7 +151,7 @@ class GDLevelInfoProvider:
                     break
                 
         if gddl_entry:
-            if gddl_entry.seconds and not hasattr(imargs,'length2'): imargs.length2=format_time(gddl_entry.seconds)+"\n(GDDL)"
+            if gddl_entry.seconds and not getattr(imargs,'length2',None): imargs.length2=format_time(gddl_entry.seconds)+"\n(GDDL)"
                 
         description2_lines:list[str]=[]
         if aredl_entry and aredl_entry.description:
