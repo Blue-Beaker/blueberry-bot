@@ -50,6 +50,8 @@ async def _(bot:Bot, event: Event, msg: Message=CommandArg()):
     
     async def finish(msg:str,**kwargs):
         instance_header='[Debug] ' if plugin_config.debug_sessions_is_on else '[Production] '
+        if isinstance(msg,QQMessageEvent) and plugin_config.debug_sessions_is_on:
+            msg._reply_seq+=1
         await debug_cmd.finish(instance_header+msg,**kwargs)
         
     try:
