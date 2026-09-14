@@ -7,6 +7,7 @@ from nonebot import on_command,logger,get_plugin_config,get_loaded_plugins,get_d
 from nonebot.rule import is_type
 from nonebot.internal.adapter import Bot,Event,Message
 from nonebot.params import CommandArg
+from nonebot.permission import SUPERUSER
 import cv2
 import numpy as np
 
@@ -118,3 +119,8 @@ def get_help(bot:Bot,event:Event):
         "randint [X] [Y] 随机抽个X和Y之间的整数",
         "showcolor 显示指定颜色"
     ]
+    
+echo = on_command("echo",permission=SUPERUSER)
+@echo.handle()
+async def _(bot:Bot,event:Event,args:Message=CommandArg()):
+    await echo.send(args)
