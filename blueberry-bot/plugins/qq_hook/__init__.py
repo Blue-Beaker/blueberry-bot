@@ -15,7 +15,7 @@ plugin_config = get_plugin_config(Config)
 
 _CHOICES=["⭐","🌙","😈","💎","🫐","🍓"]
 
-PATTERN_URL=re.compile(r"https?:\/\/[\w\.-]+\.[\w\.-]+\/")
+PATTERN_URL=re.compile(r"[\w\.-]+\.[a-zA-Z]+(?=\/[\w\.\/]+)")
 
 @Bot.on_calling_api
 async def handle_api_call(bot: Bot, api: str, data: dict[str, Any]):
@@ -33,4 +33,5 @@ async def handle_api_call(bot: Bot, api: str, data: dict[str, Any]):
         data["content"]=re.sub(PATTERN_URL,replace,content)
         
 def replace(matched:re.Match[str]):
-    return ''.join([random.choice(_CHOICES) for i in matched.group(0)])
+    string=matched.group(0)
+    return ''.join([random.choice(_CHOICES) for i in string])
