@@ -72,7 +72,7 @@ def getid(event: Event) -> str:
     raw_id = get_raw_id(event)
     # profile_link 解析：实际 ID -> 通用 ID
     manager = get_profile_link_manager()
-    resolved = manager.resolve_user_id(raw_id)
+    resolved = manager.resolve_group_id(raw_id) or manager.resolve_user_id(raw_id)
     return resolved
 
 def is_group_event(event):

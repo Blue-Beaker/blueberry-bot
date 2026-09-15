@@ -58,7 +58,7 @@ async def _(bot:Bot, event: Event, msg: Message=CommandArg()):
         subcmds=["id","list","on","off"]
         
         if not args or args[0].lower()=="id":
-            session_id=getid(event)
+            session_id=get_raw_id(event)
             group_id=get_group_id(event)
             
             is_listed=(session_id in debuglist)
@@ -73,7 +73,7 @@ async def _(bot:Bot, event: Event, msg: Message=CommandArg()):
             return
             
         elif subcmd in ["on","off"]:
-            session_id=getid(event) if args.__len__()<2 else args[1]
+            session_id=get_raw_id(event) if args.__len__()<2 else args[1]
             if subcmd=="on":
                 debuglist.add(session_id)
                 await finish(f"已为 {session_id} 开启调试")
