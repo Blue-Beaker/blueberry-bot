@@ -26,7 +26,7 @@ def get_all_matchers():
     matchers:dict[str,Type[Matcher]]={}
     for plugin in get_loaded_plugins():
         for matcher in plugin.matcher:
-            if matcher.permission==SUPERUSER:
+            if not is_permission_manageable(matcher):
                 continue
             refers = get_matcher_references(matcher)
             for r in refers:
