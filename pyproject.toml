@@ -8,6 +8,7 @@ dependencies = [
     "nonebot-adapter-onebot>=2.4.6",
     "nonebot-plugin-apscheduler>=0.5.0",
     "nonebot-adapter-qq>=1.7.1",
+    "nonebot-adapter-discord>=1.1.10",
 ]
 
 [project.optional-dependencies]
