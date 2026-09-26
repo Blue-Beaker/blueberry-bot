@@ -13,6 +13,8 @@ class MatcherReference:
         self.command=command
     def format(self) -> str:
         return f"{self.plugin_id}:{self.command}"
+    def __repr__(self) -> str:
+        return self.format()
     def __str__(self) -> str:
         return self.format()
     @classmethod

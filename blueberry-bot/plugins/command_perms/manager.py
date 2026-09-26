@@ -1,4 +1,6 @@
 from enum import Enum
+import json
+import os
 from nonebot import logger, require
 from nonebot.dependencies import Dependent
 from nonebot.internal.adapter import Bot,Event
@@ -106,10 +108,15 @@ class CommandPermEntry:
         
 class CommandPermManager:
     entries:list[CommandPermEntry]=[]
-    def __init__(self) -> None:
+    config_path:str|None=None
+    def __init__(self,config_path:str|None=None) -> None:
         self.entries=[]
+        self.config_path=config_path
+        
     def add_entry(self,entry:CommandPermEntry):
         self.entries.append(entry)
+        self.sort()
+    def sort(self):
         self.entries.sort(key=CommandPermEntry.get_sort_key,reverse=True)
     
     def add_rule(self,group:str,commands:list[CommandMatcher],action:PermAction,priority:int=0):
@@ -136,3 +143,39 @@ class CommandPermManager:
                 continue
             return e.action
         return PermAction.ALLOW
+    
+    def to_dict(self):
+        data:dict[str,Any]={}
+        data["entries"]=[e.dump_rule() for e in self.entries]
+        return data
+    
+    def load_dict(self,data:dict[str,Any]):
+        if not isinstance(data,dict):
+            logger.error(f"Failed to load command perms: {data}")
+            return
+        entries:list[CommandPermEntry]=[]
+        for line in list(data.get("entries",[])):
+            entry=CommandPermEntry.load_rule(line)
+            if not entry:
+                continue
+            entries.append(entry)
+            
+        self.entries.clear()
+        for e in entries:
+            self.add_entry(e)
+        return self
+    
+    def save(self):
+        if not self.config_path:
+            return False
+        os.makedirs(os.path.dirname(self.config_path),exist_ok=True)
+        with open(self.config_path,"w") as f:
+            json.dump(self.to_dict(),f)
+            
+    def load(self):
+        if not self.config_path:
+            return False
+        if not os.path.isfile(self.config_path):
+            return False
+        with open(self.config_path,"r") as f:
+            self.load_dict(json.load(f))

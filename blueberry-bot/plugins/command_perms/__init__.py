@@ -1,5 +1,5 @@
 from enum import Enum
-from nonebot import logger, on_command,get_loaded_plugins,require
+from nonebot import logger, on_command,get_loaded_plugins,require,get_driver
 from nonebot.message import run_preprocessor
 from nonebot.adapters import Bot,Event,Message
 from nonebot.params import CommandArg
@@ -12,6 +12,16 @@ from .manager import CommandPermManager,CommandPermEntry,PermAction
 
 require("bbot_api")
 from ..bbot_api.argparse import ArgParser
+
+driver = get_driver()
+@driver.on_startup
+async def _():
+    MANAGER.load()
+    MANAGER.save()
+    
+@driver.on_shutdown
+async def _():
+    MANAGER.save()
 
 list_commands = on_command("cmd-list",permission=SUPERUSER)
 @list_commands.handle()
@@ -93,9 +103,13 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
                     break
             
             rules = MANAGER.get_command_rules(mat or MatcherReference(spl1[0],spl1[1]))
-            await finish('\n'.join([f"#{r.priority} {r.dump_rule()}" for r in rules]))
+            
+            references = get_matcher_references(mat) if mat else [MatcherReference(spl1[0],spl1[1])]
+            reply.append(f"命令 [{references}] 受如下规则影响:")
+            await finish('\n'.join([f"{r.priority} {r.dump_rule()}" for r in rules]))
             return
         elif action==PermsCmdAction.CLEAR:
+            MANAGER.save()
             await finish("暂未实现")
             return
             
@@ -109,12 +123,14 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
                 await finish(f"解析失败:{rule}")
                 return
             MANAGER.add_entry(rule1)
-            reply.append(f"已添加规则:{rule1}")
+            MANAGER.save()
+            reply.append(f"已添加规则:")
             await finish(rule1.dump_rule())
             
         elif action==PermsCmdAction.REMOVE:
             index = int(arg1) if args.__len__()>=2 else None
             removed=MANAGER.remove_rule(index)
+            MANAGER.save()
             reply.append(f"已移除规则")
             await finish(removed.dump_rule())
         
@@ -130,7 +146,7 @@ def format_rules(entry:CommandPermEntry|None):
     lines.append(entry.dump_rule())
     return "\n".join(lines)
 
-MANAGER = CommandPermManager()
+MANAGER = CommandPermManager("config/command_perms.json")
 
 # MANAGER.add_entry(CommandPermEntry("jrrp:jrrp").add_rule("global",False).add_rule("verified",True))
 
