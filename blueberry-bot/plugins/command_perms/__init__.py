@@ -7,8 +7,8 @@ from nonebot.permission import SUPERUSER
 from nonebot.rule import CommandRule
 from nonebot.matcher import Matcher
 from nonebot.exception import IgnoredException,MatcherException
-from .utils import get_matcher_references,is_permission_manageable
-from .manager import CommandPermManager,CommandPermEntry
+from .utils import format_matcher_references,is_permission_manageable,get_all_matchers,get_matcher_references,MatcherReference
+from .manager import CommandPermManager,CommandPermEntry,PermAction
 
 require("bbot_api")
 from ..bbot_api.argparse import ArgParser
@@ -23,7 +23,7 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
         for matcher in plugin.matcher:
             if not is_permission_manageable(matcher):
                 continue
-            references = get_matcher_references(matcher)
+            references = format_matcher_references(matcher)
             if args:
                 matched=False
                 for r in references:
@@ -49,15 +49,14 @@ cmd_perms = on_command("cmd-perms",permission=SUPERUSER)
 async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
     def get_help():
         return '\n'.join([
-            "列出所有命令规则:",
+            "列出所有规则:",
             "cmd-perms list",
-            "列出所选命令规则链:",
+            "列出匹配所选命令的规则:",
             "cmd-perms get <command>",
-            "在所选命令规则链中index位置(或末尾)加入/删除规则:",
-            "cmd-perms add <command> <group>=<enabled> [index]",
-            "cmd-perms remove <command> [index]",
-            "清除所选命令规则链:",
-            "cmd-perms clear <command>",
+            "在规则链中加入/删除规则:",
+            "cmd-perms add <group> <commands> <action> [priority]",
+            "删除所选位置的规则:",
+            "cmd-perms remove <index>"
         ])
         
     args=msg.extract_plain_text().split()
@@ -72,8 +71,8 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
     try:
         action = PermsCmdAction(args[0])
         if action==PermsCmdAction.LIST:
-            reply.append("当前绑定规则的命令:")
-            for i in MANAGER.entries.values():
+            reply.append("当前规则:")
+            for i in MANAGER.entries:
                 reply.append(format_rules(i))
             await finish()
             return
@@ -82,13 +81,21 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
             await finish("缺少 command 参数")
             return
             
-        cmd_id = args[1]
+        arg1 = args[1]
         if action==PermsCmdAction.GET:
-            rule = MANAGER.get_rule(cmd_id)
-            await finish(format_get_rules(cmd_id))
+            spl1=arg1.split(":")
+            mat:type[Matcher]|None=None
+            mats = get_all_matchers(spl1[0])
+            
+            for key,m in mats.items():
+                if key==arg1:
+                    mat=m
+                    break
+            
+            rules = MANAGER.get_command_rules(mat or MatcherReference(spl1[0],spl1[1]))
+            await finish('\n'.join([f"#{r.priority} {r.dump_rule()}" for r in rules]))
             return
         elif action==PermsCmdAction.CLEAR:
-            rule = MANAGER.get_rule(cmd_id)
             await finish("暂未实现")
             return
             
@@ -96,41 +103,31 @@ async def _(bot:Bot,event:Event,msg:Message=CommandArg()):
             if args.__len__()<3:
                 await finish("缺少 rule 参数")
                 return
-            rule = args[2]
-            index = int(args[3]) if args.__len__()>=4 else None
-            rule1 = CommandPermEntry.parse_rule(rule)
+            rule = " ".join(args[1:])
+            rule1 = CommandPermEntry.load_rule(rule)
             if not rule1:
                 await finish(f"解析失败:{rule}")
                 return
-            MANAGER.add_rule(cmd_id,rule1[0],rule1[1],index)
+            MANAGER.add_entry(rule1)
             reply.append(f"已添加规则:{rule1}")
-            await finish(format_get_rules(cmd_id))
+            await finish(rule1.dump_rule())
             
         elif action==PermsCmdAction.REMOVE:
-            index = int(args[2]) if args.__len__()>=3 else None
-            MANAGER.remove_rule(cmd_id,index)
+            index = int(arg1) if args.__len__()>=2 else None
+            removed=MANAGER.remove_rule(index)
             reply.append(f"已移除规则")
-            await finish(format_get_rules(cmd_id))
+            await finish(removed.dump_rule())
         
     except Exception as e:
         if isinstance(e,MatcherException):
             raise e
         await cmd_perms.send(f"错误: {e}")
-        
-def format_get_rules(cmd_id:str):
-    rule = MANAGER.get_rule(cmd_id)
-    if rule:
-        return format_rules(rule)
-    else:
-        return f"{cmd_id} 没有绑定规则"
     
 def format_rules(entry:CommandPermEntry|None):
     lines:list[str]=[]
     if not entry:
         return ""
-    lines.append(f"{entry.cmd_id}:")
-    for group,enable in entry.rule_chain:
-        lines.append(f"  {group}={enable}")
+    lines.append(entry.dump_rule())
     return "\n".join(lines)
 
 MANAGER = CommandPermManager()
@@ -141,6 +138,7 @@ MANAGER = CommandPermManager()
 async def _(bot:Bot, event: Event, matcher: Matcher):
     checked = MANAGER.check_permission(matcher,bot,event)
     # logger.info(f"{matcher} {checked}")
-    if not checked:
-        await matcher.send("此会话未启用此命令")
+    if checked != PermAction.ALLOW:
+        if checked == PermAction.DENY:
+            await matcher.send("此会话未启用此命令")
         raise IgnoredException(f"No permission: {bot} {event} {matcher}")
