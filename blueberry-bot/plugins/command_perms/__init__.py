@@ -13,6 +13,9 @@ from .manager import CommandPermManager,CommandPermEntry,PermAction
 require("bbot_api")
 from ..bbot_api.argparse import ArgParser
 
+require("bbot_help")
+from ..bbot_help import SUPERUSER_HELP_REGISTRY
+
 driver = get_driver()
 @driver.on_startup
 async def _():
@@ -163,3 +166,7 @@ async def _(bot:Bot, event: Event, matcher: Matcher):
         if SUPERUSER(bot,event):
             return
         raise IgnoredException(f"No permission: {bot} {event} {matcher}")
+    
+@SUPERUSER_HELP_REGISTRY.addHelpFunc
+def _():
+    return ["cmd-list 列出命令列表","cmd-perms 管理命令权限"]
