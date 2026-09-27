@@ -1,22 +1,17 @@
 from typing import Type, Union
-import uuid
-from nonebot import logger
-from nonebot.adapters import Event,Bot,Message
-from nonebot.adapters.discord import GuildMessageCreateEvent,MessageEvent as DCMessageEvent,Message as DCMessage,MessageSegment as DCMessageSegment,Bot as DCBot
-from nonebot.adapters.discord.api import Button,ButtonStyle
-
-from nonebot.adapters.onebot.v11 import GroupMessageEvent as OBGroupMessageEvent,Bot as OBBot,Message as OBMessage,MessageSegment as OBMessageSegment,MessageEvent as OBMessageEvent
-
+from nonebot.adapters import Bot
+from nonebot.adapters.discord import Message as DCMessage,MessageSegment as DCMessageSegment,Bot as DCBot
+from nonebot.adapters.onebot.v11 import Bot as OBBot,Message as OBMessage,MessageSegment as OBMessageSegment
 from nonebot.adapters.qq import Bot as QQBot, Message as QQMessage, MessageSegment as QQMessageSegment
+from nonebot.adapters.minecraft import Bot as MCBot, Message as MCMessage
 
-from nonebot.adapters.minecraft import Bot as MCBot, BaseChatEvent as MCBaseChatEvent, Message as MCMessage, MessageSegment as MCMessageSegment
+from .backends.base import BaseTextImageMessage as TextImageMessage
+from .backends.minecraft import MCTextImageMessage
+from .backends.onebot import OBTextImageMessage
+from .backends.discord import DCTextImageMessage
+from .backends.qq import QQTextImageMessage
 
-from nonebot.matcher import Matcher
-
-from .buttons import ButtonKeyboard,KBButton
-from .images import get_images_from_message,ImageFile
-from .backends.minecraft import image_to_mc_text
-from .backends import qq as back_qq
+from .backends import base
 
 def supportsRecord(bot:Bot):
     return isinstance(bot,OBBot) or isinstance(bot,DCBot) or isinstance(bot,QQBot)
@@ -53,103 +48,14 @@ def record(bot:Bot,content:bytes,filename:str,as_file:bool=False):
 
 MESSAGE_TYPE=Union[DCMessage,OBMessage,QQMessage,MCMessage,str]
 
-class TextImageMessage:
-    msg:MESSAGE_TYPE
-    bot_type:Type[Bot]
-    def __init__(self,msg:MESSAGE_TYPE,bot_type:Type[Bot]) -> None:
-        self.msg=msg
-        self.bot_type=bot_type
-    @classmethod
-    def build(cls,bot:Bot):
-        if isinstance(bot,DCBot):
-            return cls(DCMessage(),type(bot))
-        elif isinstance(bot,OBBot):
-            return cls(OBMessage(),type(bot))
-        elif isinstance(bot,QQBot):
-            return cls(QQMessage(),type(bot))
-        else:
-            return cls("",type(bot))
-    def append(self,text:str,markdown:bool=False):
-        return self.addLine(text,markdown=markdown)
-    def addText(self,text:str,markdown:bool=False):
-        if isinstance(self.msg,Message):
-            if not markdown and isinstance(self.msg,DCMessage):
-                self.msg.append(escapeMarkdown(text))
-            elif isinstance(self.msg,QQMessage):
-                if self.msg.count("markdown")>0:
-                    self.msg.get("markdown")
-            else:
-                self.msg.append(text)
-        else:
-            self.msg+=text
-        return self
-    def addLine(self,text:str,markdown:bool=False):
-        if self.msg.__len__()>0 and (isinstance(self.msg,str) or self.msg[-1].is_text()):
-            self.addText("\n")
-        self.addText(text,markdown=markdown)
-        return self
-    
-    def addImage(self,image:bytes,image_name:str="",small:bool=False):
-        if isinstance(self.msg,DCMessage):
-            if not image_name:
-                image_name=uuid.uuid4().hex+".png"
-            self.msg.append(DCMessageSegment.attachment(image_name,content=image))
-        elif isinstance(self.msg,OBMessage):
-            if small:
-                imgsegment=OBMessageSegment.image(image)
-                imgsegment.data["sub_type"]=1
-                self.msg.append(imgsegment)
-            else:
-                self.msg.append(OBMessageSegment.image(image))
-        elif isinstance(self.msg,QQMessage):
-            self.msg.append(QQMessageSegment.file_image(image,image_name))
-        elif self.bot_type==MCBot and image_to_mc_text is not None:
-            self.msg+=("\n"+image_to_mc_text("[image]",image))
-        return self
-    
-    def getMessage(self):
-        return self.msg
-    def getPlainText(self):
-        if isinstance(self.msg,Message):
-            return self.msg.extract_plain_text()
-        else:
-            return self.msg
+def build(bot:Bot):
+    if isinstance(bot,DCBot):
+        return DCTextImageMessage()
+    elif isinstance(bot,OBBot):
+        return OBTextImageMessage()
+    elif isinstance(bot,QQBot):
+        return QQTextImageMessage()
+    else:
+        return TextImageMessage("",type(bot))
         
-    def addButtons(self,buttons:ButtonKeyboard):
-        if isinstance(self.msg,QQMessage) and self.msg:
-            self.msg.append(back_qq.build_keyboard_md(buttons))
-            
-    def supportsButton(self):
-        return isinstance(self.msg,QQMessage)
-    
-    def addButton(self,button:KBButton):
-        if isinstance(self.msg,QQMessage):
-            self.msg.append(back_qq.convert_button_md(button))
-            
-    async def send(self,matcher:type[Matcher],**kwargs):
-        if isinstance(self.msg,QQMessage):
-            msgpart=QQMessage()
-            has_image=False
-            for i in self.msg:
-                if has_image and not i.is_text():
-                    # Send part of message
-                    await matcher.send(msgpart,**kwargs)
-                    msgpart=QQMessage()
-                        
-                msgpart.append(i)
-                if not i.is_text():
-                    has_image=True
-            await matcher.send(msgpart,**kwargs)
-            return
-        await matcher.send(self.msg,**kwargs)
-        
-    async def finish(self,matcher:type[Matcher],**kwargs):
-        await self.send(matcher,**kwargs)
-        await matcher.finish()
-        
-        
-def escapeMarkdown(text:str):
-    escapeCharactors="\\`()[]*!#"
-    for c in escapeCharactors:
-        text=text.replace(c,"\\"+c)
-    return text
+base.BUILD_FUNC=build
