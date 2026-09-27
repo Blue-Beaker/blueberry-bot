@@ -155,7 +155,7 @@ MANAGER = CommandPermManager("config/command_perms.json")
 
 @run_preprocessor
 async def _(bot:Bot, event: Event, matcher: Matcher):
-    is_superuser = SUPERUSER(bot,event)
+    is_superuser = await SUPERUSER(bot,event)
     
     checked = MANAGER.check_permission(matcher,bot,event)
     # logger.info(f"{matcher} {checked}")
@@ -163,7 +163,7 @@ async def _(bot:Bot, event: Event, matcher: Matcher):
         if checked == PermAction.DENY:
             await matcher.send("此会话未启用此命令")
             
-        if SUPERUSER(bot,event):
+        if is_superuser:
             return
         raise IgnoredException(f"No permission: {bot} {event} {matcher}")
     
