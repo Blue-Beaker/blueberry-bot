@@ -1,5 +1,6 @@
 from typing import Type, Union
 import uuid
+from nonebot import logger
 from nonebot.adapters import Event,Bot,Message
 from nonebot.adapters.discord import GuildMessageCreateEvent,MessageEvent as DCMessageEvent,Message as DCMessage,MessageSegment as DCMessageSegment,Bot as DCBot
 from nonebot.adapters.discord.api import Button,ButtonStyle
@@ -11,8 +12,11 @@ from nonebot.adapters.qq import Bot as QQBot, Message as QQMessage, MessageSegme
 from nonebot.adapters.minecraft import Bot as MCBot, BaseChatEvent as MCBaseChatEvent, Message as MCMessage, MessageSegment as MCMessageSegment
 
 from nonebot.matcher import Matcher
+
+from .buttons import ButtonKeyboard,KBButton
 from .images import get_images_from_message,ImageFile
 from .backends.minecraft import image_to_mc_text
+from .backends import qq as back_qq
 
 def supportsRecord(bot:Bot):
     return isinstance(bot,OBBot) or isinstance(bot,DCBot) or isinstance(bot,QQBot)
@@ -71,6 +75,9 @@ class TextImageMessage:
         if isinstance(self.msg,Message):
             if not markdown and isinstance(self.msg,DCMessage):
                 self.msg.append(escapeMarkdown(text))
+            elif isinstance(self.msg,QQMessage):
+                if self.msg.count("markdown")>0:
+                    self.msg.get("markdown")
             else:
                 self.msg.append(text)
         else:
@@ -107,7 +114,18 @@ class TextImageMessage:
             return self.msg.extract_plain_text()
         else:
             return self.msg
+        
+    def addButtons(self,buttons:ButtonKeyboard):
+        if isinstance(self.msg,QQMessage) and self.msg:
+            self.msg.append(back_qq.build_keyboard_md(buttons))
+            
+    def supportsButton(self):
+        return isinstance(self.msg,QQMessage)
     
+    def addButton(self,button:KBButton):
+        if isinstance(self.msg,QQMessage):
+            self.msg.append(back_qq.convert_button_md(button))
+            
     async def send(self,matcher:type[Matcher],**kwargs):
         if isinstance(self.msg,QQMessage):
             msgpart=QQMessage()
