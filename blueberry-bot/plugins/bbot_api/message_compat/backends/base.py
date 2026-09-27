@@ -48,7 +48,7 @@ class BaseTextImageMessage(Generic[_T]):
     def addButtons(self,buttons:ButtonKeyboard):
         return self
             
-    def supportsButton(self):
+    def supportsButton(self) -> bool:
         return False
     
     def addButton(self,button:KBButton):

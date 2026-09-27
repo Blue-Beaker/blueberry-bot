@@ -1,13 +1,15 @@
-from typing import Type
+from typing import Type, cast
 from nonebot.adapters import Bot
 from nonebot.internal.adapter import Message
 from nonebot.adapters.qq import Bot as QQBot, Message as QQMessage, MessageSegment as QQMessageSegment
 from nonebot.adapters.qq.models import MessageKeyboard,InlineKeyboard,InlineKeyboardRow,Button,Action,RenderData
+from nonebot.adapters.qq.message import Markdown
 from urllib.parse import quote,unquote
 from nonebot.matcher import Matcher
 
 from ..buttons import ButtonKeyboard,KBButton
 from .base import BaseTextImageMessage
+from ..utils import escapeMarkdown
 
 def convert_to_markdown(msg:Message|str):
     if isinstance(msg,Message):
@@ -39,9 +41,34 @@ class QQTextImageMessage(BaseTextImageMessage[QQMessage]):
     def __init__(self) -> None:
         super().__init__(QQMessage(),QQBot)
         
+    def convert_to_markdown(self):
+        if self.markdown:
+            return
+        self.msg=convert_to_markdown(self.msg)
+        
+    @property
+    def markdown(self):
+        result = self.msg.get("markdown")
+        return cast(Markdown,result[0]) if result.__len__()>0 else None
+    
+    @property
+    def markdown_data(self):
+        return self.markdown.data["markdown"] if self.markdown else None
+        
+    def addLine(self,text:str,markdown:bool=False):
+        if self.msg.__len__()>0 and (self.markdown or self.msg[-1].is_text()):
+            self.addText("\n")
+        self.addText(text,markdown=markdown)
+        return self
     def addText(self,text:str,markdown:bool=False):
-        if self.msg.count("markdown")>0:
-            self.msg.get("markdown")
+        md_data=self.markdown_data
+        if md_data:
+            if md_data.content==None:
+                md_data.content=""
+            if not markdown:
+                md_data.content+=escapeMarkdown(text)
+            else:
+                md_data.content+=text
         else:
             self.msg.append(text)
         return self
@@ -49,15 +76,19 @@ class QQTextImageMessage(BaseTextImageMessage[QQMessage]):
     def addImage(self,image:bytes,image_name:str="",small:bool=False):
         self.msg.append(QQMessageSegment.file_image(image,image_name))
         return self
+    
     def addButtons(self,buttons:ButtonKeyboard):
-        self.msg.append(build_keyboard_md(buttons))
+        self.convert_to_markdown()
+        self.addText(build_keyboard_md(buttons),True)
         return self
+    def addButton(self,button:KBButton):
+        self.convert_to_markdown()
+        self.addText(convert_button_md(button),True)
+        return self
+    
     def supportsButton(self):
         return True
     
-    def addButton(self,button:KBButton):
-        self.msg.append(convert_button_md(button))
-        return self
             
     async def send(self,matcher:type[Matcher]|Matcher,**kwargs):
         msgpart=QQMessage()
