@@ -83,9 +83,9 @@ def update_all_needed():
         except:
             logger.error(f"Error loading {cache.name}: \n{traceback.format_exc()}")
             
-def update_gddl():
+async def update_gddl():
     try:
-        GDDL_BACKUP.getOrUpdate()
+        await async_run_thread(threading.Thread(target=GDDL_BACKUP.getOrUpdate))
         logger.info(GDDL_BACKUP.getLogInfo())
     except:
         logger.error(f"Error loading {GDDL_BACKUP.name}: \n{traceback.format_exc()}")
@@ -94,10 +94,14 @@ async def update_caches(force_gddl:bool=False):
     os.makedirs("platsearch_cache",exist_ok=True)
     
     levelid_filler.FILLER_MAPPING.load()
-    if force_gddl:
-        GDDL_BACKUP.update()
-    else:
-        GDDL_BACKUP.getOrUpdate()
+    
+    def update_gddl2():
+        if force_gddl:
+            GDDL_BACKUP.update()
+        else:
+            GDDL_BACKUP.getOrUpdate()
+    
+    await async_run_thread(threading.Thread(target=update_gddl2))
     
     for cache in caches:
         threading.Thread(target=threaded_update_cache,args=[cache],name=cache.name).start()
