@@ -10,6 +10,7 @@ require('bbot_api')
 from ... import bbot_api
 from ...bbot_api.argparse import ArgParser
 from ...bbot_api.message_compat import TextImageMessage
+from ...bbot_api.message_compat.buttons import KBButton
 
 from ..gd_data import AREDL_CACHE,PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE,GDDL_BACKUP
 from ..data_cache import BaseCache
@@ -29,10 +30,15 @@ from ...gd_api.gd import getLevel2_async,getSong_async
 from ...gd_api.gddl.search import getGDDLLevel
 
 from .orb_helpers import get_download_level
+import re
+
 
 driver=get_driver()
 plugin_cfg=get_plugin_config(Config)
 render_api=RenderAPI(uri=plugin_cfg.render_server_uri)
+
+from .utils import add_page_buttons
+PATTERN_PAGE_ARG=re.compile(r"-p [0-9]+")
 
 gdlocalsearch=on_command("gdlocalsearch",aliases=set(["gdls","gdlsearch"]))
 @gdlocalsearch.handle()
@@ -79,9 +85,20 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         reply.addLine("Not found")
     elif results.__len__()>1:
         reply.addLine(f"{count} found (Page {page}/{maxpages}):")
-    
+        
+        if reply.supportsButton() and maxpages>1:
+            cmd=event.get_plaintext()
+            cmd_no_page=PATTERN_PAGE_ARG.sub("",cmd).strip()
+            
+            add_page_buttons(page, reply, maxpages, cmd_no_page)
+
         for l in results:
-            reply.addLine(f"({l[0]}) {l[1][0].name} by {l[1][0].creator} ({','.join([p.provider.cname for p in l[1]])})")
+            if reply.supportsButton():
+                reply.addLine("")
+                reply.addButton(KBButton(text=f"({l[0]})",command=f"-gdls {l[0]}"))
+                reply.addText(f" {l[1][0].name} by {l[1][0].creator} ({','.join([p.provider.cname for p in l[1]])})")
+            else:
+                reply.addLine(f"({l[0]}) {l[1][0].name} by {l[1][0].creator} ({','.join([p.provider.cname for p in l[1]])})")
             
     if results.__len__()!=1:
         await reply.finish(gdlocalsearch)
