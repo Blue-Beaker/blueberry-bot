@@ -1,5 +1,5 @@
 def escapeMarkdown(text:str):
-    escapeCharactors="\\`()[]*!#"
+    escapeCharactors="\\`[]*!#"
     for c in escapeCharactors:
         text=text.replace(c,"\\"+c)
     return text

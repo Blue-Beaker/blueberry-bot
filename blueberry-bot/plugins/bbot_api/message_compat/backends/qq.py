@@ -1,4 +1,5 @@
 from typing import Type, cast
+from nonebot import logger
 from nonebot.adapters import Bot
 from nonebot.internal.adapter import Message
 from nonebot.adapters.qq import Bot as QQBot, Message as QQMessage, MessageSegment as QQMessageSegment
@@ -93,6 +94,9 @@ class QQTextImageMessage(BaseTextImageMessage[QQMessage]):
     async def send(self,matcher:type[Matcher]|Matcher,**kwargs):
         msgpart=QQMessage()
         has_image=False
+        md_data=self.markdown_data
+        if md_data:
+            logger.info(md_data.content)
         for i in self.msg:
             if has_image and not i.is_text():
                 # Send part of message
