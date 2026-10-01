@@ -113,7 +113,7 @@ def split_int_list(int_list:str):
     return [int(l.strip()) for l in int_list.split(',') if l]
 
 LEVEL_LIST_MAPPING=GDModelMapping()
-LEVEL_LIST_MAPPING.add(MappingEntry('list_levels','51',split_int_list))
+LEVEL_LIST_MAPPING.add(MappingEntry('levels','51',split_int_list))
 
 class LevelList(BaseLevel):
     levels: list[int]
