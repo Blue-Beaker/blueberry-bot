@@ -148,7 +148,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     for s in search:
         if not s:
             continue
-        levels=[l for l in all_levels if (l.exactMatch(s) or str(l.id)==s) and l.weight]
+        levels=[l for l in all_levels if (l.exactMatch(s) or (str(l.id)==s and not l.challenge)) and l.weight]
         if levels.__len__()==1:
             results.append(levels[0])
             continue
