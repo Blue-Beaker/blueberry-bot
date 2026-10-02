@@ -143,7 +143,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     
     if lists_arg:
         levels_from_lists=await get_levels_from_lists(lists_arg)
-        results.extend([l for l in all_levels if l.id in levels_from_lists])
+        results.extend([l for l in all_levels if l.id in levels_from_lists and not l.challenge])
             
     for s in search:
         if not s:
