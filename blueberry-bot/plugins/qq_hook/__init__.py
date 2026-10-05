@@ -8,6 +8,7 @@ from nonebot.adapters.qq import Bot as QQBot, Message as QQMessage
 from nonebot.exception import MockApiException
 
 from .config import Config
+from . import patch
 
 import re
 
