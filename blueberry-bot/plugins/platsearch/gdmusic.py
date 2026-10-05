@@ -30,12 +30,14 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     try:
         parser=ArgParser("gdmusic")
         parser.add_argument("-d",action="store_true",help="Download music")
+        parser.add_argument("-f",action="store_true",help="Send music as file")
         parser.add_argument("music_id",type=int)
         
         parsed=parser.parse_args(text_args)
         
         music_id=int(parsed.music_id)
         download_music=bool(parsed.d)
+        send_as_file=bool(parsed.f)
         
     except Exception as e:
         await gdmusic.finish(f"错误: {e}")
@@ -56,12 +58,13 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     
     orb_cost=round(song_def.size*5)
     
-    if not download_music:
+    if not (download_music or send_as_file):
         if isinstance(bot,OBBot):
             msg+=f"\n-d参数播放本音乐 (最多2分钟, 将消耗 {orb_cost} Orbs)"
         else:
             msg+=f"\n-d参数播放本音乐 (将消耗 {orb_cost} Orbs)"
         await gdmusic.finish(msg)
+        return
         
     orb_id=None
     if orb_api:
@@ -130,9 +133,14 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
             music=stdout
         
         logger.info(f"Sending music {music.__len__()/1000/1000:.2f}MB")
-        try:
-            await gdmusic.send(message_compat.record(bot,music,f"{music_id}.ogg"))
-        except:
+        
+        if download_music:
+            try:
+                await gdmusic.send(message_compat.record(bot,music,f"{music_id}.ogg"))
+            except:
+                await gdmusic.send(message_compat.record(bot,music,f"{music_id}.ogg",as_file=True))
+            
+        if send_as_file:
             await gdmusic.send(message_compat.record(bot,music,f"{music_id}.ogg",as_file=True))
         
     except Exception as e:
