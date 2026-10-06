@@ -1,3 +1,5 @@
+import asyncio
+from typing import Iterable
 from nonebot import require
 from ..plat_sheets import NLWLikeEntry,PlatChartEntry
 from ..gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,PEMONLIST_CACHE,AREDL_CACHE,UNDERRATED_CACHE,GDDL_BACKUP
@@ -10,7 +12,7 @@ require('bbot_api')
 require('gd_api')
 from ...gd_api.gd import Length
 from ...gd_api import gd
-from ...gd_api.gd import Level as GDLevel, Song as GDSong
+from ...gd_api.gd import Level as GDLevel, Song as GDSong, getSong_async
 from ...gd_api.gddl import GDDLLevel
 require('bbot_render')
 from ...bbot_render.models import LevelLargeRenderArgs
@@ -36,6 +38,7 @@ class GDLevelInfoProvider:
     
     gd_level:GDLevel|None=None
     gd_song:GDSong|None=None
+    extra_songs:list[GDSong]
     
     def __init__(self,level_id:int) -> None:
         self.level_id=level_id
@@ -45,6 +48,7 @@ class GDLevelInfoProvider:
         self.underrated_entries=[]
         self.aredl_entries=[]
         self.pemonlist_entries=[]
+        self.extra_songs=[]
         
     # is_demon and is_plat are for optimizing the fetching, skipping unnecessary lookups in irrevelant caches. None values forces lookups in all caches.
     # is_demon and is_plat are for optimizing the fetching, skipping unnecessary lookups in irrevelant caches. None values forces lookups in all caches.
@@ -255,10 +259,12 @@ class GDLevelInfoProvider:
         lines.extend(self._format_base_from_others(image_shown))
         
         if gddl_entry:
+            if lines: lines.append("")
             lines.append("--GDDL--")
             lines.append(formatters.formatGDDLLevel(gddl_entry,False,True))
         
         if dc_entries:
+            if lines: lines.append("")
             lines.append("--Difficulty Chart--")
             for e in dc_entries:
                 lines.append(formatters.formatDiffChart(e,False,True))
@@ -272,19 +278,29 @@ class GDLevelInfoProvider:
             lines.append(formatters.formatPemonlist(pemonlist_entry,False,True)) 
             
         if aredl_entries:
+            if lines: lines.append("")
             lines.append("--AREDL--")
             for e in aredl_entries:
                 lines.append(formatters.formatAREDLLevel(e,False,True,not image_shown))
                 
         if underrated_entries:
+            if lines: lines.append("")
             lines.append("--Underrated Levels--")
             for e in underrated_entries:
                 lines.append(formatUnderrated(e,False,True,not image_shown))
         
         if nlwlike_entries:
+            if lines: lines.append("")
             lines.append("--NLW/IDS/HDS--")
             for e in nlwlike_entries:
                 lines.append(formatters.formatListsLevel(e,False,True,not image_shown))
+                
+        if self.extra_songs:
+            if lines: lines.append("")
+            lines.append(f"--All Songs--")
+            for song in self.extra_songs:
+                lines.append(f"{song.name} by {song.artistName} ({song.id})")
+                
         return lines
     
     def _format_gd_desc(self,image_shown:bool) -> list[str]:
@@ -379,3 +395,8 @@ def format_time(seconds:float) -> str:
     if s or not parts:
         parts.append(f"{s}s")
     return " ".join(parts)
+
+async def fetch_extra_songs(song_ids:Iterable[int],info_provider:GDLevelInfoProvider):
+    awaitables=[getSong_async(i) for i in song_ids]
+    results = await asyncio.gather(*awaitables)
+    info_provider.extra_songs=[i for i in results if i]

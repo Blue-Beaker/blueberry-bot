@@ -1,5 +1,6 @@
 import asyncio
 import time
+from typing import Iterable
 from nonebot import on_command,logger,get_plugin_config
 from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
@@ -26,7 +27,7 @@ from ...bbot_perms import get_perms
 from ..utils import repr_level,ensure_gd_level,SearchException
 from .. import utils
 
-from .gdsearch_backend import GDLevelInfoProvider
+from .gdsearch_backend import GDLevelInfoProvider, fetch_extra_songs
 from .orb_helpers import get_download_level
 
 def get_level_line(level:Level) -> str:
@@ -135,7 +136,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         parser.add_argument('--song',help='Song ID (prefix _ for official songs)',type=str,default="")
         
         parser.add_argument('-d',help='Difficulty',type=str,default="")
-        parser.add_argument('-v',help='Show Other Info (Time, Upload/Update date, ...)',action='store_true')
+        parser.add_argument('-v',help='Show Other Info (Time, Upload/Update date, ...). -vv for all songs',action='count',default=0)
         parser.add_argument('--text',help='Plain Text',action='store_true')
         parser.add_argument('-i',help='Show Thumbnail',action='store_true')
         parser.add_argument('-a',help='Include Unrated',action='store_true')
@@ -210,7 +211,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         searchArgs.setStar(not include_unrated)
         searchArgs.setPage(page)
         
-        verbose=bool(parsed.v)
+        verbose=int(parsed.v)
         force_text=bool(parsed.text)
         show_thumbnail=bool(parsed.i)
         
@@ -293,6 +294,9 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         info_provider=GDLevelInfoProvider(level.id)
         info_provider.fetch(level.demon,level.is_plat())
         info_provider.set_GDDL(gddl_level)
+        
+        if verbose>=2 and level.song_ids:
+            await fetch_extra_songs(level.song_ids,info_provider)
         
         info_image=False
         # Image Sections

@@ -15,7 +15,7 @@ from ...bbot_api.message_compat.buttons import KBButton
 from ..gd_data import AREDL_CACHE,PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE,GDDL_BACKUP
 from ..data_cache import BaseCache
 from ..utils import select_page
-from .gdsearch_backend import GDLevelInfoProvider
+from .gdsearch_backend import GDLevelInfoProvider, fetch_extra_songs
 from ..models import LevelEntry
 from ..models.gdapi import AREDLLevel
 from ..config import Config
@@ -51,7 +51,8 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         parser.add_argument('-p',help='Page',type=int)
         parser.add_argument('-f',help="Fuzzy",action='store_true')
         parser.add_argument('--offline',help="Don't fetch level info online",action='store_true')
-        parser.add_argument('-v',help='Show Other Info (Time, Upload/Update date, ...)',action='store_true')
+        parser.add_argument('-v',help='Show Other Info (Time, Upload/Update date, ...). -vv for all songs',action='count',default=0)
+        parser.add_argument('--all-songs',help='Show All Songs',action='store_true')
         parser.add_argument('--text',help="Plain Text",action='store_true')
         parser.add_argument('-i',help='Show Thumbnail',action='store_true')
         parser.add_argument('--pagesize',help="Page Size",type=int,default=10)
@@ -65,7 +66,7 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         enable_image=(supports_image and not parsed.text)
         offline=bool(parsed.offline)
         show_thumbnail=bool(parsed.i)
-        verbose=bool(parsed.v)
+        verbose=int(parsed.v)
         
     except Exception as e:
         await gdlocalsearch.finish(str(e))
@@ -143,6 +144,10 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
     try:
         info_provider=GDLevelInfoProvider(level_id)
         info_provider.fetch()
+        
+        if verbose>=2 and gd_result[0] and gd_result[0].song_ids:
+            await fetch_extra_songs(gd_result[0].song_ids,info_provider)
+        
         if not gddl_level:
             info_provider.fetch_GDDL_backup()
         else:
