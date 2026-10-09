@@ -142,7 +142,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         parser.add_argument('-a',help='Include Unrated',action='store_true')
         parser.add_argument('-u',help="User's Levels",action='store_true')
         
-        parser.add_argument('-p',help='Page',type=int,default=0)
+        parser.add_argument('-p',help='Page',type=int,default=1)
         
         parser.add_argument('-t', type=str, help=f"search type ({' | '.join(_SEARCH_TYPES)})", default='search')
         
@@ -209,7 +209,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             
         searchArgs.setDifficulty(difficulty)
         searchArgs.setStar(not include_unrated)
-        searchArgs.setPage(page)
+        searchArgs.setPage(page-1)
         
         verbose=int(parsed.v)
         force_text=bool(parsed.text)

@@ -70,7 +70,7 @@ def ensure_gd_level(levels:list[Level]|None,pageinfo:PageInfo,repr_level_functio
     elif levels.__len__()>1:
         lines=[]
         lines.append("找到多个关卡,请用id选择:")
-        lines.append(f"第 {pageinfo.offset/pageinfo.amount}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
+        lines.append(f"第 {int(pageinfo.offset/pageinfo.amount)+1}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
         for l in levels:
             lines.append(repr_level_function(l))
         raise SearchException("\n".join(lines))
