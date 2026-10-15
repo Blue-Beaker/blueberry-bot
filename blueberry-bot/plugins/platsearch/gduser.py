@@ -195,6 +195,54 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     msg.addText("\n".join(lines))
     await msg.finish(gduser)
     
+gdicon = on_command("gdicon")
+@gdicon.handle()
+async def _(bot:Bot, event:Event, args: Message = CommandArg()):
+    
+    raw_args=args.extract_plain_text().split()
+    try:
+        parser=ArgParser("gdicon")
+        parser.add_argument('username', type=str, help='Username for the player')
+        parser.add_argument('icontype', nargs='?', type=str, default='', help='Icon Type (defaults to user\'s default icon type)')
+        
+        parsed=parser.parse_args(raw_args)
+        username:str=parsed.username
+        icontype_arg:str=parsed.icontype
+        
+        logger.info(f"{locals()}")
+        
+    except Exception as e:
+        await gdicon.finish(str(e))
+        return
+    
+    await bbot_api.trigger_typing(bot,event)
+    
+    user:PlayerInfo|None=await getUser_async(username)
+    if not user or not user.account_id:
+        await gduser.finish("未找到玩家, 或发生错误.")
+        return
+    
+    msg=bbot_api.TextImageMessage.build(bot)
+    
+    icon=user.icon
+    icon_type=ICON_TYPES[icon.icon_type]
+    
+    if icontype_arg:
+        try:
+            icon_type=IconType(icontype_arg.lower())
+        except:
+            msg.append(f"未知图标类型 {icontype_arg.lower()}. 可用类型: {[i.value for i in ICON_TYPES]}")
+            await msg.finish(gdicon)
+    
+    icon_id=icon.get_icon_for_type(icon_type.value) or 0
+    url=construct_icon_url(icon_type,icon_id,icon.color,icon.color2,icon.glow_color)
+    
+    logger.info(url)
+    icon=get_icon(icon_type,icon_id,icon.color,icon.color2,icon.glow_color)
+    if icon:
+        msg.addImage(icon,"icon.png",True)
+    await msg.finish(gdicon)
+    
 def getIconIDs(icon: PlayerIcons):
     id_for_types:dict[IconType,int]={}
     for i in IconType:
@@ -247,4 +295,5 @@ def fill_demons(classic:gd.PlayerDemonLevels,plat:gd.PlayerDemonLevels):
 from .gdhelp import GD_HELP
 @GD_HELP.addHelpFunc
 def get_help(bot:Bot,event:Event):
-    return ["gduser [用户名/ID] 展示玩家信息"]
+    return ["gduser 用户名/ID 展示玩家信息",
+            "gdicon 用户名/ID [图标类型] 获取玩家icon"]
