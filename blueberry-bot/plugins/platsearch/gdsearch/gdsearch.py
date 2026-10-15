@@ -94,6 +94,8 @@ _SEARCH_TYPES:dict[str,SearchTypeArg]={
     "daily":SearchTypeArg(LevelSearchType.DAILY,"Daily Levels"),
     "weekly":SearchTypeArg(LevelSearchType.WEEKLY,"Weekly Levels"),
     "featured":SearchTypeArg(LevelSearchType.FEATURED,"Featured Levels"),
+    "magic":SearchTypeArg(LevelSearchType.MAGIC,"Magic Tab"),
+    "sent":SearchTypeArg(LevelSearchType.SENT,"Sent Tab"),
 }
 
 class BoolFlagArg:
