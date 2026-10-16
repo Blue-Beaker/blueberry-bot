@@ -105,6 +105,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         imargs0.c_demons=c_demons.sum()
         imargs0.pemons=pemons.sum()
         
+        imargs0.followers=user.followers
+        
         imargs1 = fill_nondemons(c,p)
         imargs2 = fill_demons(c_demons,pemons)
         
@@ -147,6 +149,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     if not info_image:
         lines.append(f"{user.user_name}")
         stats_line=f"{user.stars}⭐ {user.moons}🌙 {user.secret_coins}✪ {user.user_coins}© {user.demons}😈 {user.diamonds}💎"
+        if user.followers:
+            stats_line+=f"{user.followers}👤"
         if user.creator_points:
             stats_line+=f"{user.creator_points}🛠"
         lines.append(stats_line)

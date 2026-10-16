@@ -340,8 +340,10 @@ async def getUser_async(search:int|str):
         return None
     user=spl[0]
     pages=spl[1]
-    logger.debug(f"getGJUsers20.php parsed user dict: {parseDict(user)}")
-    player_info.load(parseDict(user))
+    
+    users_dict=parseDict(user)
+    logger.debug(f"getGJUsers20.php parsed user dict: {users_dict}")
+    player_info.load(users_dict)
     userid=player_info.account_id
         
     data["targetAccountID"]=str(userid)
@@ -349,10 +351,12 @@ async def getUser_async(search:int|str):
     # logger.info(f"Getting user info for {search}...")
     req = await client.post(GD_ENDPOINT_BASE+"/database/getGJUserInfo20.php", data=data)
     
+    userinfo_dict=parseDict(req.text)
     # print(req.text)
     # print(parseDict(req.text))
+    logger.debug(f"getGJUserInfo20.php parsed dict: {userinfo_dict}")
     
-    player_info.load(parseDict(req.text))
+    player_info.load(userinfo_dict)
     
     logger.info(f"Got user: name={player_info.user_name} uid={player_info.user_id} accid={player_info.account_id}")
     return player_info

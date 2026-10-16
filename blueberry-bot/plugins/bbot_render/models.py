@@ -36,6 +36,7 @@ class PlayerInfoRenderArgs(RenderArgs):
     coins: int = 0
     usercoins: int = 0
     demons: int = 0
+    followers: int = 0 # added in GD 2.209
     creatorpoints: int = 0
     nondemons: int|str = 0
     nonpemons: int|str = 0

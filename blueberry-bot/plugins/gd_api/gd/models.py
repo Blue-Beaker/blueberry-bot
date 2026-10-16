@@ -440,6 +440,9 @@ class PlayerInfo:
     plat_levels: PlayerLevels
     classic_demons: PlayerDemonLevels
     plat_demons: PlayerDemonLevels
+    
+    # 2.209 new
+    followers: int
 
     def __init__(self) -> None:
         self.user_name = ""
@@ -459,6 +462,7 @@ class PlayerInfo:
         self.plat_levels = PlayerLevels()
         self.classic_demons = PlayerDemonLevels()
         self.plat_demons = PlayerDemonLevels()
+        self.followers = 0
 
     def load(self, data: dict[str, str]) -> PlayerInfo:
         self.user_name = data.get("1", self.user_name)
@@ -473,6 +477,7 @@ class PlayerInfo:
         self.diamonds = safeInt(data.get("46"), self.diamonds)
         self.mod_level = safeInt(data.get("49"), self.mod_level)
         self.moons = safeInt(data.get("52"), self.moons)
+        self.followers = safeInt(data.get("67"), self.followers)
 
         icon = self.icon
         icon.color = safeInt(data.get("10"), icon.color)
