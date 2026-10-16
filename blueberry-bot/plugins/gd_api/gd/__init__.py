@@ -340,7 +340,7 @@ async def getUser_async(search:int|str):
         return None
     user=spl[0]
     pages=spl[1]
-    # logger.debug(f"getGJUsers20.php parsed user dict: {parseDict(user)}")
+    logger.debug(f"getGJUsers20.php parsed user dict: {parseDict(user)}")
     player_info.load(parseDict(user))
     userid=player_info.account_id
         
