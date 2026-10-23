@@ -45,9 +45,12 @@ PATTERN_PAGE_ARG=re.compile(r"-p [0-9]+")
 gdlocalsearch=on_command("gdlocalsearch",aliases=set(["gdls","gdlsearch"]))
 @gdlocalsearch.handle()
 async def _(bot:Bot,event:Event,args: Message = CommandArg()):
-    
     supports_image=bbot_api.supportsImage(bot)
     raw_args=args.extract_plain_text().split()
+    if not raw_args and not event.get_message().extract_plain_text().endswith(" "):
+        await gdlocalsearch.finish('\n'.join([
+            "用法: gdls [参数] [关名/ID]",
+            "gdls -h 查询所有参数."]))
     try:
         parser=ArgParser("gdlocalsearch")
         parser.add_argument('-p',help='Page',type=int)
