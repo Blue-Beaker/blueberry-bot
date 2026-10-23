@@ -96,7 +96,7 @@ class QQTextImageMessage(BaseTextImageMessage[QQMessage]):
         has_image=False
         md_data=self.markdown_data
         if md_data:
-            logger.info(md_data.content)
+            logger.debug(md_data.content)
         for i in self.msg:
             if has_image and not i.is_text():
                 # Send part of message
