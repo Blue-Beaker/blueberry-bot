@@ -143,12 +143,15 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     
     if lists_arg:
         levels_from_lists=await get_levels_from_lists(lists_arg)
-        results.extend([l for l in all_levels if l.id in levels_from_lists and not l.challenge])
+        for l in levels_from_lists:
+            results.extend([l for l in PLAT_CHART_CACHE.get_for_id(l) if not l.challenge])
+        # results.extend([l for l in all_levels if l.id in levels_from_lists and not l.challenge])
             
     for s in search:
         if not s:
             continue
-        levels=[l for l in all_levels if (l.exactMatch(s) or (str(l.id)==s and not l.challenge)) and l.weight]
+        search_id=safeInt(s,None)
+        levels=[l for l in all_levels if (l.exactMatch(s) or (l.id==search_id and not l.challenge)) and l.weight]
         if levels.__len__()==1:
             results.append(levels[0])
             continue
