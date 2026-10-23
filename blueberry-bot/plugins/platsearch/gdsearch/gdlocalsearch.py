@@ -1,7 +1,8 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 import asyncio
 import time
-from nonebot import require, get_driver, get_plugin_config
+from typing import Generic, TypeVar, override
+from nonebot import logger, require, get_driver, get_plugin_config
 from nonebot import on_command
 from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
@@ -13,13 +14,14 @@ from ...bbot_api.message_compat import TextImageMessage
 from ...bbot_api.message_compat.buttons import KBButton
 
 from ..gd_data import AREDL_CACHE,PLAT_CHART_CACHE,PLAT_SHEET_CACHE,UNDERRATED_CACHE,GDDL_BACKUP
-from ..data_cache import BaseCache
+from ..data_cache import BaseCache,CacheWithIDMap
 from ..utils import select_page
 from .gdsearch_backend import GDLevelInfoProvider, fetch_extra_songs
-from ..models import LevelEntry
+from ..models import LevelEntry,BaseLevelEntry
 from ..models.gdapi import AREDLLevel
 from ..config import Config
 from ..utils import searchInName
+from ..sheets_data.gddl_backup import GDDLSheetEntry
 
 require('bbot_render')
 from ...bbot_render import RenderAPI
@@ -206,31 +208,109 @@ class SearchProvider:
     def search(self,search:str,fuzzy:bool) -> list[MinimalLevel]:
         return []
     
-class BaseLevelSearchProvider(SearchProvider):
-    def __init__(self,data:BaseCache[LevelEntry],name:str,cname:str|None) -> None:
+_T = TypeVar("_T")
+class LevelAdaptor(Generic[_T],ABC):
+    @abstractmethod
+    def get_name(self,l:_T) -> str:
+        return ''
+    @abstractmethod
+    def get_creator(self,l:_T) -> str:
+        return ''
+    @abstractmethod
+    def get_id(self,l:_T) -> int:
+        return -1
+    def matchesSearch(self,l:_T,search:str,fuzzy:bool):
+        return searchInName(search,self.get_name(l),fuzzy) or str(self.get_id(l))==search
+    
+class AdaptedSearchProvider(SearchProvider):
+    def __init__(self,data:BaseCache[BaseLevelEntry],adaptor:LevelAdaptor,name:str,cname:str|None,update_on_search:bool=True) -> None:
         super().__init__(name,cname)
         self.data=data
+        self.adaptor=adaptor
+        self.update_on_search=update_on_search
     def search(self,search:str,fuzzy:bool):
-        levels=self.data.getOrUpdate()
-        return [MinimalLevel(l.id,l.name,ProviderMeta(self.name,self.cname),getattr(l,"creator","")) for l in levels if (l.matchesName(search,fuzzy) or str(l.getID())==search)]
+        if self.update_on_search:
+            levels=self.data.getOrUpdate()
+        else:
+            levels=self.data.get()
+        search_id:int=-1
+        
+        if search.isdecimal():
+            search_id=int(search)
+        
+        if not fuzzy and isinstance(self.data,CacheWithIDMap):
+            levels=self.data.search_for_name(search)
+            if search_id>0:
+                levels.extend(self.data.get_for_id(search_id))
+            
+        return [MinimalLevel(self.adaptor.get_id(l),self.adaptor.get_name(l),ProviderMeta(self.name,self.cname),self.adaptor.get_creator(l)) for l in levels if (self.adaptor.matchesSearch(l,search,fuzzy) or (search_id>0 and l.getID()==search_id))]
     
-class AREDLSearchProvider(SearchProvider):
-    def __init__(self,data:BaseCache[AREDLLevel],name:str,cname:str|None) -> None:
-        super().__init__(name,cname)
-        self.data=data
-    def search(self,search:str,fuzzy:bool):
-        levels=self.data.getOrUpdate()
-        return [MinimalLevel(l.level_id,l.name,ProviderMeta(self.name,self.cname),getattr(l,"creator","")) for l in levels if (searchInName(search,l.name,fuzzy) or str(l.getID())==search)]
+
+# class BaseLevelSearchProvider(SearchProvider):
+#     def __init__(self,data:BaseCache[LevelEntry],name:str,cname:str|None) -> None:
+#         super().__init__(name,cname)
+#         self.data=data
+#     def search(self,search:str,fuzzy:bool):
+#         levels=self.data.getOrUpdate()
+#         # if not fuzzy and isinstance(self.data,CacheWithIDMap):
+#         #     levels=self.data.search_for_name(search)
+#         return [MinimalLevel(l.id,l.name,ProviderMeta(self.name,self.cname),getattr(l,"creator","")) for l in levels if (l.matchesName(search,fuzzy) or str(l.getID())==search)]
     
-class GDDLCacheProvider(SearchProvider):
-    def __init__(self,name:str,cname:str|None) -> None:
-        super().__init__(name,cname)
-    def search(self,search:str,fuzzy:bool):
-        data=GDDL_BACKUP.get()
-        if not data:
-            return []
-        levels=data
-        return [MinimalLevel(l.get_id(),l.Name,ProviderMeta(self.name,self.cname),l.Publisher) for l in levels if (searchInName(search,l.Name,fuzzy) or str(l.get_id())==search)]
+# class AREDLSearchProvider(SearchProvider):
+#     def __init__(self,data:BaseCache[AREDLLevel],name:str,cname:str|None) -> None:
+#         super().__init__(name,cname)
+#         self.data=data
+#     def search(self,search:str,fuzzy:bool):
+#         levels=self.data.getOrUpdate()
+#         # if not fuzzy and isinstance(self.data,CacheWithIDMap):
+#         #     levels=self.data.search_for_name(search)
+#         return [MinimalLevel(l.level_id,l.name,ProviderMeta(self.name,self.cname),getattr(l,"creator","")) for l in levels if (searchInName(search,l.name,fuzzy) or str(l.getID())==search)]
+    
+# class GDDLCacheProvider(SearchProvider):
+#     def __init__(self,name:str,cname:str|None) -> None:
+#         super().__init__(name,cname)
+#     def search(self,search:str,fuzzy:bool):
+#         data=GDDL_BACKUP.get()
+#         if not data:
+#             return []
+#         levels=data
+#         # if not fuzzy:
+#         #     levels=GDDL_BACKUP.search_for_name(search)
+#         return [MinimalLevel(l.get_id(),l.Name,ProviderMeta(self.name,self.cname),l.Publisher) for l in levels if (searchInName(search,l.Name,fuzzy) or str(l.get_id())==search)]
+    
+
+class BaseLevelAdaptor(LevelAdaptor[BaseLevelEntry]):
+    @override
+    def get_name(self,l:BaseLevelEntry) -> str:
+        return l.getName()
+    @override
+    def get_creator(self,l:BaseLevelEntry) -> str:
+        return getattr(l,"creator","")
+    @override
+    def get_id(self,l:BaseLevelEntry) -> int:
+        return l.getID()
+    
+class AREDLLevelAdaptor(LevelAdaptor[AREDLLevel]):
+    @override
+    def get_name(self,l:AREDLLevel) -> str:
+        return l.name
+    @override
+    def get_creator(self,l:AREDLLevel) -> str:
+        return getattr(l,"creator","")
+    @override
+    def get_id(self,l:AREDLLevel) -> int:
+        return l.level_id
+    
+class GDDLLevelAdaptor(LevelAdaptor[GDDLSheetEntry]):
+    @override
+    def get_name(self,l:GDDLSheetEntry) -> str:
+        return l.Name
+    @override
+    def get_creator(self,l:GDDLSheetEntry) -> str:
+        return l.Publisher
+    @override
+    def get_id(self,l:GDDLSheetEntry) -> int:
+        return l.ID
     
 class LocalSearchManager:
     providers:list[SearchProvider]
@@ -240,21 +320,30 @@ class LocalSearchManager:
         self.providers.append(provider)
     def search(self,search:str,fuzzy:bool):
         results_by_id:dict[int,list[MinimalLevel]]={}
+        logger.info(f"Searching {search} locally{' (f)' if fuzzy else ''}...")
+        start_ns=time.time_ns()
         for provider in self.providers:
             results=provider.search(search,fuzzy)
             for r in results:
                 if r.id not in results_by_id:
                     results_by_id[r.id]=[]
                 results_by_id[r.id].append(r)
+        logger.info(f"Search took {(time.time_ns()-start_ns)//1000} us.")
         return results_by_id
     
         
 SEARCH_MANAGER=LocalSearchManager()
-SEARCH_MANAGER.addProvider(GDDLCacheProvider("GDDL","GDDL"))
-SEARCH_MANAGER.addProvider(AREDLSearchProvider(AREDL_CACHE,"AREDL","A"))
-SEARCH_MANAGER.addProvider(BaseLevelSearchProvider(PLAT_CHART_CACHE,"DiffChart","DC"))
-SEARCH_MANAGER.addProvider(BaseLevelSearchProvider(PLAT_SHEET_CACHE,"NLW-Like","NLW"))
-SEARCH_MANAGER.addProvider(BaseLevelSearchProvider(UNDERRATED_CACHE,"Underrated","UND"))
+# SEARCH_MANAGER.addProvider(GDDLCacheProvider("GDDL","GDDL"))
+# SEARCH_MANAGER.addProvider(AREDLSearchProvider(AREDL_CACHE,"AREDL","A"))
+# SEARCH_MANAGER.addProvider(BaseLevelSearchProvider(PLAT_CHART_CACHE,"DiffChart","DC"))
+# SEARCH_MANAGER.addProvider(BaseLevelSearchProvider(PLAT_SHEET_CACHE,"NLW-Like","NLW"))
+# SEARCH_MANAGER.addProvider(BaseLevelSearchProvider(UNDERRATED_CACHE,"Underrated","UND"))
+
+SEARCH_MANAGER.addProvider(AdaptedSearchProvider(GDDL_BACKUP,GDDLLevelAdaptor(),"GDDL","GDDL",False))
+SEARCH_MANAGER.addProvider(AdaptedSearchProvider(AREDL_CACHE,AREDLLevelAdaptor(),"AREDL","A"))
+SEARCH_MANAGER.addProvider(AdaptedSearchProvider(PLAT_CHART_CACHE,BaseLevelAdaptor(),"DiffChart","DC"))
+SEARCH_MANAGER.addProvider(AdaptedSearchProvider(PLAT_SHEET_CACHE,BaseLevelAdaptor(),"NLW-Like","NLW"))
+SEARCH_MANAGER.addProvider(AdaptedSearchProvider(UNDERRATED_CACHE,BaseLevelAdaptor(),"Underrated","UND"))
     
 from ..gdhelp import GD_HELP
 @GD_HELP.addHelpFunc

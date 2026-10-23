@@ -1,13 +1,14 @@
 import time
 import traceback
 from typing import Any, Callable, Generic, Sequence, Type,TypeVar, override
-from .models import BaseSerializableEntry
+from .models import BaseSerializableEntry,LevelEntry,BaseLevelEntry
 import json
 from nonebot import logger
 
 _TA = TypeVar("_TA", covariant=True)
 _T = TypeVar("_T", covariant=True, bound=BaseSerializableEntry)
 _K = TypeVar("_K")
+_L = TypeVar("_L",covariant=True,bound=BaseLevelEntry)
     
 class BaseCache(Generic[_T]):
     expiration_time:int
@@ -143,21 +144,30 @@ class KeyMapCache(Generic[_TA,_K]):
     def get(self,id:_K):
         return self.map.get(id,[])
     
-class IDMapCache(KeyMapCache[_T,int]):
+class IDMapCache(KeyMapCache[_L,int]):
     def __init__(self) -> None:
         super().__init__(IDMapCache.get_serializable_id)
     def get_for_id(self,id:int):
         return super().get(id)
     @staticmethod
-    def get_serializable_id(entry:BaseSerializableEntry):
+    def get_serializable_id(entry:BaseLevelEntry):
         return entry.getID()
     
-class CacheWithIDMap(BaseCacheWithMaps[_T]):
-    def __init__(self, t: type[_T], file_path: str | None = None, ttl: int = 3600, name: str = "UNNAMED") -> None:
+class CacheWithIDMap(BaseCacheWithMaps[_L]):
+    def __init__(self, t: type[_L], file_path: str | None = None, ttl: int = 3600, name: str = "UNNAMED") -> None:
         super().__init__(t, file_path, ttl, name)
-        self.id_map:IDMapCache[_T]=IDMapCache()
-        self.keymaps.append(self.id_map)
+        self.id_map:IDMapCache[_L]=IDMapCache()
+        self.add_keymap(self.id_map)
+        
+        def get_name_key(l:_L):
+            return l.nameKey()
+        self.name_key_map=KeyMapCache(get_name_key)
+        self.add_keymap(self.name_key_map)
+        
     def get_for_id(self,id:int):
         return self.id_map.get_for_id(id)
+    
+    def search_for_name(self,search:str):
+        return self.name_key_map.get(search.lower().strip())
         
         

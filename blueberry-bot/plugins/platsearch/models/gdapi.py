@@ -9,20 +9,32 @@ class GDDLLevel(GenericLevelEntry[gddl.GDDLLevel],gddl.GDDLLevel):
     @override
     def getID(self):
         return self.get_id()
+    @override
+    def getName(self):
+        return self.Name
     
 class AREDLLevel(GenericLevelEntry[aredl.Level],aredl.Level):
     @override
     def getID(self):
         return self.get_id()
+    @override
+    def getName(self):
+        return self.name
     
 class PemonlistLevel(GenericLevelEntry[pemonlist.Level],pemonlist.Level):
     @override
     def getID(self):
         return self.get_id()
+    @override
+    def getName(self):
+        return self.name
     
 class TPLLevel(GenericLevelEntry[platformerlist.Level],platformerlist.Level):
     @override
     def getID(self):
         return self.get_id()
+    @override
+    def getName(self):
+        return self.name
     
 

@@ -9,8 +9,6 @@ from typing import Generic, TypeVar
 
 
 class BaseSerializableEntry:
-    def getID(self) -> int:
-        return -1
     def to_dict(self) -> dict:
         data={}
         
@@ -30,14 +28,26 @@ class BaseSerializableEntry:
         # inst.__dict__.update(data)
         return inst
     
+class BaseLevelEntry(BaseSerializableEntry):
+    def getID(self) -> int:
+        return -1
+    def getName(self):
+        return ""
+    def nameKey(self):
+        return self.getName().lower().strip()
+    
 BASENAME_REGEX = re.compile(r"(.*)\((.*)\)")
-class LevelEntry(BaseSerializableEntry):
+class LevelEntry(BaseLevelEntry):
     id:int=0
     name:str
     
     @override
     def getID(self) -> int:
         return self.id
+    @override
+    def getName(self):
+        return self.name
+    
     def exactMatch(self,search:str):
         return search.lower().replace("(","").replace(")","").strip() == self.name.lower().replace("(","").replace(")","").strip()
     def matchesName(self,search:str,fuzzy_match:bool=False):
@@ -51,12 +61,10 @@ class LevelEntry(BaseSerializableEntry):
             if matched:
                 name=matched.group(1)
             return search.lower().strip() == name.lower().strip()
-    def nameKey(self):
-        return self.name.lower().strip()
     
 _L = TypeVar("_L")
     
-class GenericLevelEntry(BaseSerializableEntry,Generic[_L]):
+class GenericLevelEntry(BaseLevelEntry,Generic[_L]):
     def __init__(self,level:_L|None=None) -> None:
         super().__init__()
         if level is not None:

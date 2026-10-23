@@ -1,1 +1,1 @@
-from .basic_models import BaseSerializableEntry,GenericLevelEntry,LevelEntry
+from .basic_models import BaseSerializableEntry,GenericLevelEntry,LevelEntry,BaseLevelEntry
