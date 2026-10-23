@@ -7,6 +7,7 @@ from nonebot import logger
 from enum import Enum
 from typing import Generic, TypeVar
 
+from functools import lru_cache
 
 class BaseSerializableEntry:
     def to_dict(self) -> dict:
@@ -70,11 +71,15 @@ class GenericLevelEntry(BaseLevelEntry,Generic[_L]):
         if level is not None:
             self.__dict__.update(level.__dict__)
         
+@lru_cache(maxsize=None)
+def _type_hints(cls):
+    return get_type_hints(cls)
+
 def adapt_variable(inst,key:str,value:Any):
     if value is None:
         return
     targets=[]
-    type_hint=get_type_hints(type(inst)).get(key,None)
+    type_hint=_type_hints(type(inst)).get(key,None)
     if isinstance(type_hint,UnionType):
         targets.extend(type_hint.__args__)
     elif type_hint is not None:

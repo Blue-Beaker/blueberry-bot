@@ -1,16 +1,21 @@
 
 from abc import abstractmethod
 from enum import Enum
+from functools import lru_cache
 from types import NoneType, UnionType
 from typing import Any, get_type_hints
 from nonebot import logger
+
+@lru_cache(maxsize=None)
+def _type_hints(cls):
+    return get_type_hints(cls)
     
 class BaseAdaptingModel:
     def adapt_variable(self,key:str,value:Any):
         if value is None:
             return
         targets=[]
-        type_hint=get_type_hints(type(self)).get(key,None)
+        type_hint=_type_hints(type(self)).get(key,None)
         if isinstance(type_hint,UnionType):
             targets.extend(type_hint.__args__)
         elif type_hint is not None:
