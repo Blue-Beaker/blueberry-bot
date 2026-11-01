@@ -14,6 +14,7 @@ from ...gd_api.gd import Length
 from ...gd_api import gd
 from ...gd_api.gd import Level as GDLevel, Song as GDSong, getSong_async
 from ...gd_api.gddl import GDDLLevel
+from ...gd_api.gddl.models import GDDLLevelTag
 require('bbot_render')
 from ...bbot_render.models import LevelLargeRenderArgs
 
@@ -128,7 +129,9 @@ class GDLevelInfoProvider:
             
         if self.dc_challenges:
             dc_challenge=self.dc_challenges[0]
-            imargs.challenge_name=f"{dc_challenge.challenge} ({dc_challenge.weight})"
+            imargs.challenge_name=f"{dc_challenge.challenge}"
+            if dc_challenge.weight:
+                imargs.challenge_name+=f" ({dc_challenge.weight})"
             imargs.challenge_tier=dc_challenge.tier or ''
             imargs.challenge_tags= ','.join([t for t in dc_challenge.tags if not dc_entry or (t not in dc_entry.tags)])
             
@@ -156,6 +159,26 @@ class GDLevelInfoProvider:
                 
         if gddl_entry:
             if gddl_entry.seconds and not getattr(imargs,'length2',None): imargs.length2=format_time(gddl_entry.seconds)+"\n(GDDL)"
+            
+            if gddl_entry.Rating:
+                imargs.gddl_tier=f"{gddl_entry.Rating:.1f}"
+            if gddl_entry.Enjoyment:
+                imargs.gddl_enj=f"{gddl_entry.Enjoyment:.1f}"
+            if gddl_entry.tags:
+                def sort_tag(tag:GDDLLevelTag):
+                    return tag.ReactCount
+                tags=gddl_entry.tags.copy()
+                tags.sort(key=sort_tag,reverse=True)
+                if len(tags)>3:
+                    tags=tags[0:3]
+                    
+                def format_react_count(count:int):
+                    if count<1000:
+                        return str(count)
+                    else:
+                        return f"{count/1000:.1f}K"
+                
+                imargs.gddl_tags=",".join([f"{t.get_tag().name.lower()}:{format_react_count(t.ReactCount)}" for t in tags])
                 
         description2_lines:list[str]=[]
         if aredl_entry and aredl_entry.description:
@@ -197,6 +220,11 @@ class GDLevelInfoProvider:
                 
             if level.song_ids or level.sfx_ids:
                 imargs.song_info=f"Songs: {len(level.song_ids or '')}, SFXs: {len(level.sfx_ids or '')}"
+                
+            if level.upload_date:
+                imargs.date_upl=level.upload_date
+            if level.update_date:
+                imargs.date_upd=level.update_date
             
         if self.gd_song:
             song=self.gd_song

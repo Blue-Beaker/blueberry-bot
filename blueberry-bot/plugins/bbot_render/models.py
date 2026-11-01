@@ -132,6 +132,9 @@ class LevelLargeRenderArgs(LevelRenderArgs):
     length2: str
     # Detailed song info
     song_info: str
+    # Level Upload/Update date
+    date_upl: str
+    date_upd: str
     
     # Plarformer Data
     checkpoints: str
@@ -151,6 +154,10 @@ class LevelLargeRenderArgs(LevelRenderArgs):
     nlw_type: str
     nlw_tier: str
     nlw_tags: str
+    # GDDL
+    gddl_tier: str
+    gddl_enj: str
+    gddl_tags: str
     
 class PlayerAllRenderArgs(RenderArgs):
     scene_type: str = "player_all"
