@@ -107,8 +107,11 @@ class BaseManager:
         try:
             with open(self.save_path,"r") as f:
                 data=json.load(f)
-                self.load_dict(data)
+            self.load_dict(data)
         except FileNotFoundError:
+            self.entries={}
+        except (json.JSONDecodeError,UnicodeDecodeError,OSError) as e:
+            logger.error(f"加载会话文件 {self.save_path} 失败，已忽略: {e}")
             self.entries={}
     
 class SessionManager(BaseManager):

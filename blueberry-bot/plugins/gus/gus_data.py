@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+from nonebot import logger
+
 
 class GusEntry:
     file:str=""
@@ -42,8 +44,11 @@ class GusData:
         try:
             with open(self.config_path,"r") as f:
                 data=json.load(f)
-                self.load_dict(data)
+            self.load_dict(data)
         except FileNotFoundError:
+            self.entries={}
+        except (json.JSONDecodeError,UnicodeDecodeError,OSError) as e:
+            logger.error(f"加载 gus 数据 {self.config_path} 失败，已忽略: {e}")
             self.entries={}
             
     def save(self):

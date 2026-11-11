@@ -1,6 +1,6 @@
 import json
 from typing import Any
-from nonebot import require
+from nonebot import require, logger
 
 require("gd_api")
 from ..gd_api.gd import Level
@@ -89,8 +89,11 @@ class BaseManager:
         try:
             with open(self.save_path,"r") as f:
                 data=json.load(f)
-                self.load_dict(migrate_entries_keys(data))
+            self.load_dict(migrate_entries_keys(data))
         except FileNotFoundError:
+            self.entries={}
+        except (json.JSONDecodeError,UnicodeDecodeError,OSError) as e:
+            logger.error(f"加载会话文件 {self.save_path} 失败，已忽略: {e}")
             self.entries={}
     
 

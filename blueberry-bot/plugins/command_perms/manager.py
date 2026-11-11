@@ -177,5 +177,11 @@ class CommandPermManager:
             return False
         if not os.path.isfile(self.config_path):
             return False
-        with open(self.config_path,"r") as f:
-            self.load_dict(json.load(f))
+        try:
+            with open(self.config_path,"r") as f:
+                data=json.load(f)
+        except (json.JSONDecodeError,UnicodeDecodeError,OSError) as e:
+            logger.error(f"加载权限配置 {self.config_path} 失败，已忽略: {e}")
+            return False
+        self.load_dict(data)
+        return True

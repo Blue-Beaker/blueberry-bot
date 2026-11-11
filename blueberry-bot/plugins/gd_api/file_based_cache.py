@@ -79,8 +79,12 @@ class FileBasedCache(Generic[_D]):
             with open(self.cache_path,"rb") as f:
                 return cast(_D, f.read())
         else:
-            with open(self.cache_path,"r") as f:
-                return json.load(f)
+            try:
+                with open(self.cache_path,"r") as f:
+                    return json.load(f)
+            except (json.JSONDecodeError,UnicodeDecodeError,OSError) as e:
+                logger.error(f"缓存文件 [{self.cache_name}] {self.cache_path} 损坏或不可读，已忽略: {e}")
+                return None
     
     async def _call_update(self) -> _D:
         """调用 updateFunction，支持同步和异步函数。"""

@@ -97,8 +97,12 @@ class EntityDataManager:
         self.category_data={}
         self.entity_to_categories={}
         self.entity_to_categories_not_present=[]
-        with open(ENTITY_CATEGORIES_FILE) as f:
-            data:dict[str,dict]=json.load(f)
+        try:
+            with open(ENTITY_CATEGORIES_FILE) as f:
+                data:dict[str,dict]=json.load(f)
+        except (json.JSONDecodeError,UnicodeDecodeError,OSError) as e:
+            logger.error(f"解析实体类别文件 {ENTITY_CATEGORIES_FILE} 失败: {e}")
+            return
         for tagID,tagJson in data.items():
             # load category from json
             try:
@@ -162,8 +166,12 @@ class MapDataManager:
         self.map_data={}
         self.file_to_mapdata={}
         self.alias_to_mapdata={}
-        with open(MAP_NAMES_FILE) as f:
-            data:dict[str,dict]=json.load(f)
+        try:
+            with open(MAP_NAMES_FILE) as f:
+                data:dict[str,dict]=json.load(f)
+        except (json.JSONDecodeError,UnicodeDecodeError,OSError) as e:
+            logger.error(f"解析地图名文件 {MAP_NAMES_FILE} 失败: {e}")
+            return
         for mapID,mapJson in data.items():
             # load category from json
             try:

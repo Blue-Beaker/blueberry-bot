@@ -1,3 +1,4 @@
+import os
 import time
 import traceback
 from typing import Any, Callable, Generic, Sequence, Type,TypeVar, override
@@ -105,15 +106,35 @@ class BaseCache(Generic[_T]):
         try:
             with open(path,"r") as f:
                 data=json.load(f)
-                self.entries=[self.entry_type.from_dict(e) for e in data.get("entries",[])]
-                self.expiration_time=data.get("expiration_time",0)
+            self.entries=[self.entry_type.from_dict(e) for e in data.get("entries",[])]
+            self.expiration_time=data.get("expiration_time",0)
         except FileNotFoundError:
+            self.entries=[]
+            self.expiration_time=0
+        except (json.JSONDecodeError,UnicodeDecodeError,OSError) as e:
+            logger.error(f"Cache file [{self.name}] {path} is corrupted or unreadable, ignoring: {e}")
+            self.entries=[]
+            self.expiration_time=0
+        except Exception as e:
+            logger.error(f"Error while loading cache [{self.name}] from {path}: {e}")
+            logger.debug("Traceback: "+traceback.format_exc())
             self.entries=[]
             self.expiration_time=0
             
     def save(self,path:str):
-        with open(path,"w") as f:
-            json.dump(self.to_dict(),f)
+        # 原子写入：先写临时文件再替换，避免写入中断导致缓存文件变成空/半截内容
+        tmp_path=path+".tmp"
+        try:
+            with open(tmp_path,"w") as f:
+                json.dump(self.to_dict(),f)
+            os.replace(tmp_path,path)
+        except Exception as e:
+            logger.error(f"Failed to save cache [{self.name}] to {path}: {e}")
+            try:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except OSError:
+                pass
 
 class BaseCacheWithMaps(BaseCache[_T]):
     keymaps:list["KeyMapCache[_T,Any]"]

@@ -37,7 +37,11 @@ class FillerMapping:
             logger.info(f"Config {path} not found. Not loading mappings")
             return
         with open(path,"r") as f:
-            data=yaml.load(f,yaml.BaseLoader)
+            try:
+                data=yaml.load(f,yaml.BaseLoader)
+            except yaml.YAMLError as e:
+                logger.error(f"解析 {path} 失败，已忽略: {e}")
+                return self
             
         if not isinstance(data,dict):
             return

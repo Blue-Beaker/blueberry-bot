@@ -13,6 +13,8 @@ from nonebot.adapters.discord import MessageEvent as DCMessageEvent, MessageSegm
 
 from ..bbot_api import getid
 
+from utils.safe_json import safe_load_json
+
 from . import guess_data
 from . import handler_mc
 from . import handler_dc
@@ -45,12 +47,15 @@ async def load():
     logger.debug(f"地图: {', '.join(guess_data.MAP_MANAGER.map_data.keys())}")
 
     if os.path.exists(SESSIONS_FILE):
-        with open(SESSIONS_FILE,"r") as f:
-            handler_base.INSTANCES.load(json.load(f))
+        data = safe_load_json(SESSIONS_FILE, default=None, name="guess sessions")
+        if isinstance(data, dict):
+            handler_base.INSTANCES.load(data)
             logger.info(f"已加载{len(handler_base.INSTANCES.dump().keys())}个会话")
             logger.debug(f'会话: {handler_base.INSTANCES.dump()}')
-        # 加载后立即以新格式覆写，完成自动迁移
-        saveSessions()
+            # 加载后立即以新格式覆写，完成自动迁移
+            saveSessions()
+        else:
+            logger.warning(f"会话文件 {SESSIONS_FILE} 无法读取或格式异常，跳过加载")
 @driver.on_shutdown
 async def save_sessions():
     saveSessions()

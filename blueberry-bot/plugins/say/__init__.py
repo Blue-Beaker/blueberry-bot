@@ -152,14 +152,18 @@ class SayConfigOld:
     def load(self):
         if not self.config_path or not os.path.exists(self.config_path):
             return
-        with open(self.config_path,"r") as f:
-            data=json.load(f)
-            if isinstance(data,dict):
-                raw_sessions = data.get("allowed_sessions", self.allowed_sessions)
-                self.allowed_sessions = {}
-                for k, v in raw_sessions.items():
-                    self.allowed_sessions[migrate_id_key(k)] = v
-                self.default_enabled=data.get("default_enabled",self.default_enabled)
+        try:
+            with open(self.config_path,"r") as f:
+                data=json.load(f)
+        except (json.JSONDecodeError,UnicodeDecodeError,OSError) as e:
+            logger.error(f"加载 say 配置 {self.config_path} 失败，已忽略: {e}")
+            return
+        if isinstance(data,dict):
+            raw_sessions = data.get("allowed_sessions", self.allowed_sessions)
+            self.allowed_sessions = {}
+            for k, v in raw_sessions.items():
+                self.allowed_sessions[migrate_id_key(k)] = v
+            self.default_enabled=data.get("default_enabled",self.default_enabled)
 
 say_config_old = SayConfigOld(CONFIG_FILE)
     
