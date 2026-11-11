@@ -241,7 +241,8 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     try:
         level = ensure_gd_level(levels,pageinfo)
     except SearchException as e:
-        await gdsearch.finish(await bbot_api.auto_pack_message(bot,e.msg,6))
+        lines.addLine(e.msg)
+        await gdsearch.finish(await lines.send(gdsearch))
         return
     
     
