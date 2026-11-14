@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 from enum import Enum
+import math
 from typing import Any, Callable, override
 from urllib.parse import unquote
 
@@ -175,6 +176,16 @@ class PageInfo(FetchResult):
         except Exception:
             pass
         return self
+    
+    @property
+    def page_ordinal(self):
+        return int(self.offset/self.amount)+1
+    @property
+    def total_pages(self):
+        return math.ceil(self.total/self.amount)
+    @property
+    def offset_end(self):
+        return self.offset+self.amount
 
 LEVEL_MAPPING = GDModelMapping()
 LEVEL_MAPPING.add(MappingEntry('stars', '18', int))

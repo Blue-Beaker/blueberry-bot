@@ -1,5 +1,6 @@
+from abc import abstractmethod
 import asyncio
-from typing import Iterable
+from typing import Any, Callable, Generic, Iterable, TypeVar
 from nonebot import require
 from ..plat_sheets import NLWLikeEntry,PlatChartEntry
 from ..gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,PEMONLIST_CACHE,AREDL_CACHE,UNDERRATED_CACHE,GDDL_BACKUP
@@ -9,6 +10,8 @@ from ..utils import repr_level_base,add_format_func
 from .. import formatters
 
 require('bbot_api')
+from ...bbot_api.message_compat import TextImageMessage
+from ...bbot_api.message_compat.buttons import KBButton
 require('gd_api')
 from ...gd_api.gd import Length
 from ...gd_api import gd
@@ -430,18 +433,17 @@ async def fetch_extra_songs(song_ids:Iterable[int],info_provider:GDLevelInfoProv
     info_provider.extra_songs=[i for i in results if i]
     
 # Add additional info to level representation.
-@add_format_func
-def get_level_line(level:GDLevel,base:str) -> str:
-    levelstr=base
-    provider=GDLevelInfoProvider(level.id)
-    provider.fetch(level.demon,level.is_plat())
+def get_level_extra_info(level_id:int,is_demon:bool|None=None,is_plat:bool|None=None) -> str:
+    provider=GDLevelInfoProvider(level_id)
+    provider.fetch(is_demon,is_plat)
     provider.fetch_GDDL_backup()
     
+    levelstr=""
     if provider.dc_entry:
         l2=provider.dc_entry
         levelstr+=f" E{l2.enj or '-'} W{l2.weight or '-'}"
         
-    if provider.gddl_entry and not level.is_plat():
+    if provider.gddl_entry and not is_plat:
         l2=provider.gddl_entry
         levelstr+=f" T{l2.format_tier()} E{l2.format_enjoyment()}"
         
@@ -452,5 +454,39 @@ def get_level_line(level:GDLevel,base:str) -> str:
     if provider.aredl_entry:
         l2=provider.aredl_entry
         levelstr+=f" A#{l2.position}"
-    
     return levelstr
+    
+@add_format_func
+def get_level_line(level:GDLevel,base:str) -> str:
+    levelstr=base+get_level_extra_info(level.id,level.demon,level.is_plat())
+    return levelstr
+
+
+_T = TypeVar("_T")
+COMMAND_SEARCH_FUNCTION=Callable[[_T],str]
+
+class SearchResultFormatter(Generic[_T]):
+    level_formatter:Callable[[_T,TextImageMessage,COMMAND_SEARCH_FUNCTION],Any]
+    cmd_constructor:COMMAND_SEARCH_FUNCTION
+    def __init__(self,level_formatter:Callable[[_T,TextImageMessage,COMMAND_SEARCH_FUNCTION],Any],cmd_constructor:COMMAND_SEARCH_FUNCTION) -> None:
+        super().__init__()
+        self.level_formatter=level_formatter
+        self.cmd_constructor=cmd_constructor
+        
+    def format_page(self,entries:Iterable[_T],msg:TextImageMessage):
+        for l in entries:
+            msg.addLine("")
+            self.level_formatter(l,msg,self.cmd_constructor)
+        return msg
+    
+def format_gd_line_adv(l:GDLevel,msg:TextImageMessage,cmd_constructor:Callable[[GDLevel],str]):
+    base_text=repr_level_base(l)
+    id_text=f"({l.id})"
+    if(msg.supportsButton()):
+        msg.addText(base_text.removesuffix(id_text))
+        msg.addButton(KBButton(text=id_text,command=cmd_constructor(l)))
+    else:
+        msg.addText(base_text)
+        
+    msg.addText(get_level_extra_info(l.id,l.demon,l.is_plat()))
+    return

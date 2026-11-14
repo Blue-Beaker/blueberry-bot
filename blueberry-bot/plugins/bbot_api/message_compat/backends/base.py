@@ -61,4 +61,8 @@ class BaseTextImageMessage(Generic[_T]):
         await self.send(matcher,**kwargs)
         await matcher.finish()
         
+    def merge(self,other:"BaseTextImageMessage"):
+        self.msg+=other.msg
+        return self
+        
 BUILD_FUNC:Callable[[Bot],BaseTextImageMessage]|None=None

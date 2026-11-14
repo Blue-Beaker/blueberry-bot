@@ -1,4 +1,5 @@
 import asyncio
+import re
 import time
 from typing import Iterable
 from nonebot import on_command,logger,get_plugin_config
@@ -23,9 +24,10 @@ from ...gd_api.gddl.search import getGDDLLevel
 require("bbot_perms")
 from ...bbot_perms import get_perms
 
-from ..utils import repr_level_base,ensure_gd_level,SearchException
+from ..utils import repr_level_base,ensure_gd_level,SearchException,format_pageinfo
+from .utils import add_page_buttons
 
-from .gdsearch_backend import GDLevelInfoProvider, fetch_extra_songs
+from .gdsearch_backend import GDLevelInfoProvider, fetch_extra_songs, SearchResultFormatter, format_gd_line_adv
 from .orb_helpers import get_download_level
 
 driver=get_driver()
@@ -223,13 +225,32 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     if levels and not get_perms(event).gd_unrated and bbot_api.should_filter_message(event):
         levels = [censor_unrate_levels(l) for l in levels]
     
-    try:
-        level = ensure_gd_level(levels,pageinfo)
-    except SearchException as e:
-        lines.addLine(e.msg)
-        await gdsearch.finish(await lines.send(gdsearch))
-        return
-    
+    if not isinstance(levels,list) or not pageinfo.success():
+        raise SearchException("查找出错."+pageinfo.status.value)
+    if levels.__len__()==0:
+        raise SearchException("没有查找到任何关卡.")
+    elif levels.__len__()>1:
+        # Format search result
+        lines.addLine("找到多个关卡,请用id选择:")
+        lines.addLine(format_pageinfo(pageinfo))
+        
+        PATTERN_PAGE_ARG=re.compile(r"-p [0-9]+")
+        cmd=event.get_plaintext()
+        cmd_no_page=PATTERN_PAGE_ARG.sub("",cmd).strip()
+        def get_page_cmd(page:int):
+            return f"{cmd_no_page} -p {page}"
+        def get_level_cmd(level:Level):
+            return f"{cmd.strip().split(" ")[0]} {level.id}"
+        
+        if lines.supportsButton():
+            add_page_buttons(pageinfo.page_ordinal,lines,1,pageinfo.total_pages,get_page_cmd)
+        
+        formatter=SearchResultFormatter(format_gd_line_adv,get_level_cmd)
+        formatter.format_page(levels,lines)
+        
+        await lines.finish(gdsearch)
+    else:
+        level=levels[0]
     
     supports_image=bbot_api.supportsImage(bot)
     show_thumbnail = (show_thumbnail and supports_image)
