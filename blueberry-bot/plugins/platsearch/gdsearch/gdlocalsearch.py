@@ -95,8 +95,10 @@ async def _(bot:Bot,event:Event,args: Message = CommandArg()):
         if reply.supportsButton() and maxpages>1:
             cmd=event.get_plaintext()
             cmd_no_page=PATTERN_PAGE_ARG.sub("",cmd).strip()
+            def get_page_cmd(page:int):
+                return f"{cmd_no_page} -p {page}"
             
-            add_page_buttons(page, reply, maxpages, cmd_no_page)
+            add_page_buttons(page, reply, 1, maxpages, get_page_cmd)
 
         for l in results:
             if reply.supportsButton():
