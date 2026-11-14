@@ -5,7 +5,7 @@ from ..plat_sheets import NLWLikeEntry,PlatChartEntry
 from ..gd_data import PLAT_CHART_CACHE,PLAT_SHEET_CACHE,PEMONLIST_CACHE,AREDL_CACHE,UNDERRATED_CACHE,GDDL_BACKUP
 from ..models.gdapi import AREDLLevel,PemonlistLevel
 from ..underrated_data import UnderratedLevel,formatUnderrated
-from ..utils import repr_level
+from ..utils import repr_level_base,add_format_func
 from .. import formatters
 
 require('bbot_api')
@@ -379,7 +379,7 @@ class GDLevelInfoProvider:
     
     def repr_level_base(self):
         if self.gd_level:
-            return repr_level(self.gd_level)
+            return repr_level_base(self.gd_level)
         elif self.gddl_entry:
             l=self.gddl_entry
             return f"{l.Name} by {l.Publisher} ({l.Difficulty.as_abbr()} {l.get_stars()}{'⭐' if not l.is_plat() else '🌙'}) ({l.ID})"
@@ -428,3 +428,29 @@ async def fetch_extra_songs(song_ids:Iterable[int],info_provider:GDLevelInfoProv
     awaitables=[getSong_async(i) for i in song_ids]
     results = await asyncio.gather(*awaitables)
     info_provider.extra_songs=[i for i in results if i]
+    
+# Add additional info to level representation.
+@add_format_func
+def get_level_line(level:GDLevel,base:str) -> str:
+    levelstr=base
+    provider=GDLevelInfoProvider(level.id)
+    provider.fetch(level.demon,level.is_plat())
+    provider.fetch_GDDL_backup()
+    
+    if provider.dc_entry:
+        l2=provider.dc_entry
+        levelstr+=f" E{l2.enj or '-'} W{l2.weight or '-'}"
+        
+    if provider.gddl_entry and not level.is_plat():
+        l2=provider.gddl_entry
+        levelstr+=f" T{l2.format_tier()} E{l2.format_enjoyment()}"
+        
+    if provider.pemonlist_entry:
+        l2=provider.pemonlist_entry
+        levelstr+=f" P#{l2.placement}"
+        
+    if provider.aredl_entry:
+        l2=provider.aredl_entry
+        levelstr+=f" A#{l2.position}"
+    
+    return levelstr

@@ -1,7 +1,6 @@
 import asyncio
 import math
 import time
-import traceback
 from typing import Callable, Generic, Type, TypeVar
 from nonebot import on_command,logger,get_plugin_config
 from nonebot.adapters import Message,Event,Bot
@@ -10,25 +9,20 @@ from nonebot.exception import MatcherException
 from nonebot import get_driver,require
 
 from ..config import Config
-from ..utils import repr_level
-from ..gd_data import PLAT_CHART_CACHE,AREDL_CACHE,TPL_CACHE
 
 require('bbot_api')
 from .. import bbot_api
 from ...bbot_api.argparse import ArgParser
 require('gd_api')
-from ...gd_api.gd import getLevelSearch2_async,LevelSearchType,downloadLevel2_async,getLevelsFromUser_async,getSong_async
-from ...gd_api import gd
-from ...gd_api.gd import Level
+from ...gd_api.gd import LevelSearchType,downloadLevel2_async
 from ...gd_api.thumbs import getThumbnail_async,getThumbnailUrl
 from ...gd_api.gddl.search import getGDDLLevel,searchGDDLLevel
 from ...gd_api.gddl.search_args import GDDLSearchArgs,Length,Difficulty,TwoPlayer,Sort,SortDir
 from ...gd_api.gddl.models import GDDLTags
 
 require("bbot_perms")
-from ...bbot_perms import get_perms
 
-from ..utils import repr_level,ensure_gd_level,SearchException
+from ..utils import SearchException
 
 from .gdsearch_backend import GDLevelInfoProvider
 from ..formatters import formatGDDLLevel

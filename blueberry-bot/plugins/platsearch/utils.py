@@ -18,9 +18,22 @@ def select_page(results:list[T],count:int,entries_per_page:int,page:int):
     if count>entries_per_page:
         results=results[(page-1)*entries_per_page:min(page*entries_per_page,count)]
     return results,maxpages,page
-
-def repr_level(l:Level,fromuser:bool=False):
+# Represents GD level with its basic info.
+def repr_level_base(l:Level,fromuser:bool=False):
     return f"{l.name} by {l.creator} ({l.repr_difficulty()}) ({l.id})" if not fromuser else f"{l.name} ({l.repr_difficulty()}) ({l.id})"
+
+LEVEL_FORMAT_FUNCS:list[Callable[[Level,str],str]]=[]
+
+def add_format_func(func:Callable[[Level,str],str]):
+    LEVEL_FORMAT_FUNCS.append(func)
+    return func
+
+# Represents GD level with extended info.
+def repr_level(l:Level,fromuser:bool=False):
+    basestr=repr_level_base(l,fromuser)
+    for f in LEVEL_FORMAT_FUNCS:
+        basestr=f(l,basestr)
+    return basestr
 
 def repr_list(l:LevelList,fromuser:bool=False):
     return f"{l.name} by {l.creator} ({l.id}) ({l.levels.__len__()} 个关卡)" if not fromuser else f"{l.name} ({l.id}) ({l.levels.__len__()} 个关卡)"
@@ -56,13 +69,13 @@ class SearchException(Exception):
     def get_message(self):
         return self.msg
     
-REPR_LEVEL_FUNC:Callable[[Level],str]=repr_level
+# REPR_LEVEL_FUNC:Callable[[Level],str]=repr_level_base
 
 # Ensures exactly one GD level for later use.
 # When not exactly one level, a SearchException is raised, with the message to reply to the user.
 def ensure_gd_level(levels:list[Level]|None,pageinfo:PageInfo,repr_level_function:Callable[[Level],str]|None=None) -> Level:
     if not repr_level_function:
-        repr_level_function=REPR_LEVEL_FUNC
+        repr_level_function=repr_level
     if not isinstance(levels,list) or not pageinfo.success():
         raise SearchException("查找出错."+pageinfo.status.value)
     if levels.__len__()==0:
@@ -70,11 +83,14 @@ def ensure_gd_level(levels:list[Level]|None,pageinfo:PageInfo,repr_level_functio
     elif levels.__len__()>1:
         lines=[]
         lines.append("找到多个关卡,请用id选择:")
-        lines.append(f"第 {int(pageinfo.offset/pageinfo.amount)+1}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})")
+        lines.append(format_pageinfo(pageinfo))
         for l in levels:
             lines.append(repr_level_function(l))
         raise SearchException("\n".join(lines))
     return levels[0]
+
+def format_pageinfo(pageinfo:PageInfo):
+    return f"第 {int(pageinfo.offset/pageinfo.amount)+1}/{math.ceil(pageinfo.total/pageinfo.amount)} 页 ({pageinfo.offset}-{pageinfo.offset+pageinfo.amount}/{pageinfo.total})"
 
 def searchInName(search:str,name:str,fuzzy:bool):
     if fuzzy:

@@ -8,7 +8,6 @@ from nonebot.exception import MatcherException
 from nonebot import get_driver,require
 
 from ..config import Config
-from ..utils import repr_level
 from ..gd_data import PLAT_CHART_CACHE,AREDL_CACHE,TPL_CACHE
 
 require('bbot_api')
@@ -24,25 +23,11 @@ from ...gd_api.gddl.search import getGDDLLevel
 require("bbot_perms")
 from ...bbot_perms import get_perms
 
-from ..utils import repr_level,ensure_gd_level,SearchException
-from .. import utils
+from ..utils import repr_level_base,ensure_gd_level,SearchException
 
 from .gdsearch_backend import GDLevelInfoProvider, fetch_extra_songs
 from .orb_helpers import get_download_level
 
-def get_level_line(level:Level) -> str:
-    levelstr=repr_level(level)
-    if level.is_plat():
-        levelstr+=("".join([f" E{l2.enj or '-'} W{l2.weight or '-'} P{l2.pemon or '-'}" for l2 in PLAT_CHART_CACHE.get_for_id(level.id)]))
-    if level.demon:
-        aredl_levels=AREDL_CACHE.get_for_id(level.id)
-        if aredl_levels:
-            l2=aredl_levels[0]
-            levelstr+=f" A#{l2.position}"
-    return levelstr
-
-utils.REPR_LEVEL_FUNC=get_level_line
-    
 driver=get_driver()
 plugin_cfg=get_plugin_config(Config)
 
@@ -315,7 +300,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             img=await render_api.render(imargs,request_id=f"{req_id_base}_{time.time()//1}")
             if isinstance(img,bytes):
                 msg2=bbot_api.TextImageMessage.build(bot)
-                msg2.addLine(repr_level(level))
+                msg2.addLine(repr_level_base(level))
                 msg2.addImage(img)
                 info_image=True
                 await msg2.send(gdsearch)
@@ -324,7 +309,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             lines.addImage(thumb)
         # Basic Info (Text)
         if not info_image:
-            lines.addLine(repr_level(level))
+            lines.addLine(repr_level_base(level))
         
         if not verbose:
             lines.addLine(f"-v 参数查询具体时长, 上传/更新日期, 及额外曲目.")

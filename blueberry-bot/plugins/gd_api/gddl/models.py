@@ -215,6 +215,16 @@ class GDDLLevel(LevelWithID):
     def __repr__(self) -> str:
         return f"GDDLLevel[{self.Name} by {self.Publisher} {self.ID}]"
     
+    def format_tier(self) -> str:
+        return format_value(self.Rating)
+    def format_enjoyment(self) -> str:
+        return format_value(self.Enjoyment)
+    
+def format_value(value:float|None) -> str:
+    if value and value>0:
+        return f"{float(value):.1f}"
+    return "-"
+    
 class GDDLLevelTag(BaseAdaptingModel):
     levelID:int
     HasVoted:int
