@@ -224,11 +224,11 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
     if levels and not get_perms(event).gd_unrated and bbot_api.should_filter_message(event):
         levels = [censor_unrate_levels(l) for l in levels]
-    
+        
     if not isinstance(levels,list) or not pageinfo.success():
-        raise SearchException("查找出错."+pageinfo.status.value)
+        await gdsearch.finish("查找出错."+pageinfo.status.value)
     if levels.__len__()==0:
-        raise SearchException("没有查找到任何关卡.")
+        await gdsearch.finish("没有查找到任何关卡.")
     elif levels.__len__()>1:
         # Format search result
         lines.addLine("找到多个关卡,请用id选择:")
