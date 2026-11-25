@@ -38,7 +38,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     if not raw_args and not event.get_message().extract_plain_text().endswith(" "):
         await geodesearch.finish('\n'.join([
             "用法: geodesearch [参数] [Mod名/ID]",
-            "gdls -h 查询所有参数."]))
+            "geodesearch -h 查询所有参数."]))
     try:
         searchArgs=ModSearchArgs()
         parser=ArgParser("geodesearch")
