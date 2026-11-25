@@ -6,6 +6,8 @@ from plugins.geodesearch.api import (
     getModVersions_async,
     getModVersion_async,
     getModDownloadUrl,
+    getModIcon_async,
+    getModIconUrl,
 )
 from plugins.geodesearch.api.search_args import ModSearchArgs, Platform
 
@@ -123,3 +125,42 @@ async def test_get_mod_version():
 def test_get_mod_download_url():
     url = getModDownloadUrl(MOD_ID, "1.23.3")
     assert url.endswith(f"/v1/mods/{MOD_ID}/versions/1.23.3/download")
+
+
+def test_get_mod_icon_url():
+    url = getModIconUrl(MOD_ID)
+    assert url.endswith(f"/v1/mods/{MOD_ID}/logo")
+    assert "?" not in url
+
+
+def test_get_mod_icon_url_with_version():
+    url = getModIconUrl(MOD_ID, "1.23.3")
+    assert url.endswith(f"/v1/mods/{MOD_ID}/logo?version=1.23.3")
+
+
+@pytest.mark.asyncio
+async def test_get_mod_icon():
+    png, err = await getModIcon_async(MOD_ID)
+    assert err is None
+    assert png is not None
+    assert png.startswith(b"\x89PNG")
+    print(len(png))
+
+
+@pytest.mark.asyncio
+async def test_get_mod_icon_with_version():
+    versions, err = await getModVersions_async(MOD_ID, per_page=1)
+    assert err is None
+    assert versions is not None
+    png, err = await getModIcon_async(MOD_ID, versions.data[0].version)
+    assert err is None
+    assert png is not None
+    assert png.startswith(b"\x89PNG")
+
+
+@pytest.mark.asyncio
+async def test_get_mod_icon_not_found():
+    png, err = await getModIcon_async("geode.loader")
+    assert png is None
+    assert err is not None
+    print(err)

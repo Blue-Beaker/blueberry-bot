@@ -11,6 +11,8 @@ from .api import (
     GEODE_ENDPOINT_BASE,
     getMod_async,
     getModDownloadUrl,
+    getModIcon_async,
+    getModIconUrl,
     getModVersion_async,
     getModVersions_async,
     searchMods_async,
@@ -35,4 +37,6 @@ __all__ = [
     "getModVersions_async",
     "getModVersion_async",
     "getModDownloadUrl",
+    "getModIconUrl",
+    "getModIcon_async",
 ]

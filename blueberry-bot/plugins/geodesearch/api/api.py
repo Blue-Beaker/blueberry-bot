@@ -127,3 +127,29 @@ async def getModVersion_async(mod_id: str, version: str):
 def getModDownloadUrl(mod_id: str, version: str) -> str:
     """返回版本下载链接（302 重定向到 .geode 文件）。"""
     return f"{GEODE_ENDPOINT_BASE}/v1/mods/{mod_id}/versions/{version}/download"
+
+
+def getModIconUrl(mod_id: str, version: str | None = None) -> str:
+    """返回 mod 图标 URL（PNG）。
+
+    version 可选；不传或传无效版本时返回最新版图标。
+    """
+    url = f"{GEODE_ENDPOINT_BASE}/v1/mods/{mod_id}/logo"
+    return f"{url}?version={version}" if version else url
+
+
+async def getModIcon_async(mod_id: str, version: str | None = None):
+    """下载 mod 图标，返回 (png_bytes, error)。
+
+    mod 不存在时返回 (None, "HTTP 404")。
+    """
+    url = getModIconUrl(mod_id, version)
+    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+        try:
+            resp = await client.get(url, headers=_HEADERS)
+        except httpx.HTTPError as e:
+            logger.error(f"Geode API 请求失败 {url}: {e}")
+            return None, f"{type(e).__name__}: {e}"
+    if resp.status_code != 200:
+        return None, f"HTTP {resp.status_code}"
+    return resp.content, None
