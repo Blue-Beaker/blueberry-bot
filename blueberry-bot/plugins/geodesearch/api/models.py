@@ -1,5 +1,19 @@
+from datetime import datetime
 from typing import Any, ClassVar, get_type_hints
 from typing_extensions import Self
+
+
+def _parse_time(value: str | None) -> datetime | None:
+    """解析 API 返回的 ISO8601 时间字符串（如 2026-11-24T20:11:09Z）。
+
+    空字符串或解析失败时返回 None。
+    """
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
 
 
 class _GeodeModel:
@@ -115,6 +129,14 @@ class Version(_GeodeModel):
         ]
         return self
 
+    @property
+    def created_datetime(self) -> datetime | None:
+        return _parse_time(self.created_at)
+
+    @property
+    def updated_datetime(self) -> datetime | None:
+        return _parse_time(self.updated_at)
+
     def __str__(self) -> str:
         return f"{self.name} v{self.version}"
 
@@ -149,6 +171,14 @@ class Mod(_GeodeModel):
     @property
     def latest_version(self) -> Version | None:
         return self.versions[0] if self.versions else None
+
+    @property
+    def created_datetime(self) -> datetime | None:
+        return _parse_time(self.created_at)
+
+    @property
+    def updated_datetime(self) -> datetime | None:
+        return _parse_time(self.updated_at)
 
     @property
     def owner(self) -> Developer | None:

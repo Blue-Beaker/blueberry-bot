@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime, timezone
 from plugins.geodesearch.api.models import (
     Dependency,
     Developer,
@@ -100,6 +101,20 @@ class TestVersion:
         assert ver.dependencies[0].mod_id == "geode.node-ids"
         assert ver.incompatibilities[0].is_incompatibility is True
 
+    def test_datetime(self):
+        ver = Version.from_dict(MOD_DATA["versions"][0])
+        assert isinstance(ver.created_datetime, datetime)
+        assert ver.created_datetime == datetime(2026, 11, 21, 9, 30, 33, tzinfo=timezone.utc)
+        assert ver.updated_datetime == datetime(2026, 11, 21, 9, 30, 33, tzinfo=timezone.utc)
+
+    def test_datetime_invalid(self):
+        data = dict(MOD_DATA["versions"][0])
+        data["created_at"] = ""
+        data["updated_at"] = "not-a-date"
+        ver = Version.from_dict(data)
+        assert ver.created_datetime is None
+        assert ver.updated_datetime is None
+
 
 class TestMod:
     def test_from_dict(self):
@@ -142,6 +157,20 @@ class TestMod:
         data = dict(MOD_DATA)
         data["links"] = None
         assert Mod.from_dict(data).links is None
+
+    def test_datetime(self):
+        mod = Mod.from_dict(MOD_DATA)
+        assert isinstance(mod.created_datetime, datetime)
+        assert isinstance(mod.updated_datetime, datetime)
+        assert mod.updated_datetime == datetime(2026, 11, 21, 9, 30, 33, tzinfo=timezone.utc)
+
+    def test_datetime_invalid(self):
+        data = dict(MOD_DATA)
+        data["created_at"] = ""
+        data["updated_at"] = ""
+        mod = Mod.from_dict(data)
+        assert mod.created_datetime is None
+        assert mod.updated_datetime is None
 
     def test_str(self):
         mod = Mod.from_dict(MOD_DATA)

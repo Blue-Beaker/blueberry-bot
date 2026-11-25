@@ -10,6 +10,7 @@ from nonebot.rule import is_type
 from nonebot.adapters import Message,Event,Bot
 from nonebot.params import CommandArg
 from nonebot.permission import SUPERUSER
+from nonebot.exception import MatcherException
 import nonebot.config
 from nonebot import get_driver,require
 from nonebot.internal.matcher import Matcher
@@ -18,6 +19,7 @@ from .config import Config
 
 from .api.search_args import ModSearchArgs,Platform
 from .api.api import searchModsWithArgs_async,getMod_async,getModDownloadUrl,getModVersion_async,getModVersions_async
+from .api.models import Mod,Developer,Dependency
 
 require('bbot_api')
 from ..bbot_api.argparse import ArgumentError,ArgParser
@@ -43,7 +45,7 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         parser.add_argument('--gd',help='GD version',type=str,default='')
         parser.add_argument('--geode',help='Geode version',type=str,default='')
         
-        parser.add_argument('--platform', type=str, help=f"Platform ({' | '.join(Platform.__members__)})", default='search')
+        parser.add_argument('--platform', type=str, help=f"Platform ({' | '.join(Platform.__members__)})", default='')
         
         parsed=parser.parse_args(raw_args)
         
@@ -51,15 +53,26 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         searchArgs.query=search
         searchArgs.page=int(parsed.p)
         searchArgs.per_page=int(parsed.pagesize)
-        searchArgs.developer=str(parsed.dev) or None
-        searchArgs.tags=[s.strip() for s in str(parsed.tags).split(",")] if parsed.tags else None
-        searchArgs.gd=parsed.gd or None
-        searchArgs.geode=parsed.geode or None
-        searchArgs.platform=Platform.__members__.get(parsed.platform,None)
+        if parsed.dev:
+            searchArgs.developer=str(parsed.dev)
+        if parsed.tags:
+            searchArgs.tags=[s.strip() for s in str(parsed.tags).split(",")]
+        if parsed.gd:
+            searchArgs.gd=parsed.gd
+        if parsed.geode:
+            searchArgs.geode=parsed.geode
+        if parsed.platform:
+            platform=str.upper(parsed.platform)
+            if platform not in Platform.__members__:
+                await geodesearch.finish(f"未知平台. 可用选项: {', '.join(Platform.__members__)}")
+            searchArgs.platform=Platform.__members__.get(platform,None)
         
-        print(searchArgs.__dict__)
+        
+        logger.info(f"Geode search: {searchArgs.__dict__}")
         
     except Exception as e:
+        if isinstance(e,MatcherException):
+            raise e
         await geodesearch.finish(str(e))
         
     reply=TextImageMessage.build(bot)
@@ -76,6 +89,10 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         reply.addLine(f"搜索到 {search_result.count} 个结果:")
         
         for m in search_result.data:
-            reply.addLine(f"{m.id} {m.name} by {m.owner.display_name if m.owner else ''} ({m.created_at},{m.updated_at})")
+            reply.addLine(f"{m.id} {m.name} by {m.owner.display_name if m.owner else ''} ({m.created_datetime},{m.updated_datetime})")
+        await reply.finish(geodesearch)
+
+    m:Mod = search_result.data[0]
+    reply.addLine(f"{m.id} {m.name} by {m.owner.display_name if m.owner else ''} ({m.created_datetime},{m.updated_datetime})")
         
     await reply.finish(geodesearch)
