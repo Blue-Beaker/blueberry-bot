@@ -5,7 +5,7 @@ import random
 import threading
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypeVar
+from typing import Any, Callable, TypeVar
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
 from nonebot.rule import is_type
 from nonebot.adapters import Message,Event,Bot
@@ -27,6 +27,7 @@ from ..bbot_api.argparse import ArgumentError,ArgParser
 from ..bbot_api import TextImageMessage,supportsImage,safeInt,safeFloat,supportsMarkdown
 from .. import bbot_api
 from ..bbot_api.message_compat import file
+from ..bbot_api.message_compat.buttons import KBButton
 
 geodesearch = on_command("geodesearch")
 @geodesearch.handle()
@@ -85,25 +86,36 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     elif not search_result:
         reply.addLine(f"错误: 没有返回结果")
         await reply.finish(geodesearch)
+        
+    cmd=event.get_message().extract_plain_text().split()[0]
+    def jump_cmd_func(modid:str):
+        return cmd+" "+modid
     
     if search_result.count!=1:
         reply.addLine(f"搜索到 {search_result.count} 个结果:")
         
         for m in search_result.data:
-            reply.addLine(repr_mod_line(m))
+            repr_mod(m,reply,jump_cmd_func)
         await reply.finish(geodesearch)
 
     m:Mod = search_result.data[0]
-    reply.addLine(repr_mod_line(m))
+    repr_mod(m,reply,jump_cmd_func)
         
     await reply.finish(geodesearch)
     
-def repr_mod_line(m:Mod):
-    mod_line=f"{m.name} by {m.owner.display_name if m.owner else ''}"
+def repr_mod(m:Mod, msg:TextImageMessage, jump_cmd_func:Callable[[str],str]|None=None):
+    mod_line1=f"{m.name} by {m.owner.display_name if m.owner else ''}"
     if m.developers.__len__()>1:
-        mod_line+=f"..."
+        mod_line1+=f"..."
             
-    mod_line+=f"\n{m.id}\t"
+    msg.addLine(mod_line1)
+    msg.addLine("")
+    
+    if not msg.supportsButton() or not jump_cmd_func:
+        mod_line2=f"{m.id}\t"
+    else:
+        mod_line2=f"\t"
+        msg.addButton(KBButton(text=m.id,command=jump_cmd_func(m.id)))
     
     if m.latest_version:
         latest_gd_vers:set[str] = set()
@@ -111,14 +123,14 @@ def repr_mod_line(m:Mod):
             if isinstance(v,str):
                 latest_gd_vers.add(v)
         if latest_gd_vers:
-            mod_line += f" GD: {','.join(latest_gd_vers)}"
+            mod_line2 += f" GD: {','.join(latest_gd_vers)}"
             
     if m.created_datetime and m.updated_datetime:
         now=datetime.now(timezone.utc)
         
-        mod_line+=f" ({humanize(get_time_delta(now,m.created_datetime),short=True,precision=1)},{humanize(get_time_delta(now,m.updated_datetime),short=True,precision=1)})"
+        mod_line2+=f" ({humanize(get_time_delta(now,m.created_datetime),short=True,precision=1)},{humanize(get_time_delta(now,m.updated_datetime),short=True,precision=1)})"
         
-    return mod_line
+    msg.addText(mod_line2)
     
 def get_time_delta(base:datetime, cmp:datetime):
     delta=base-cmp
