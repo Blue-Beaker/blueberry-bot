@@ -36,7 +36,8 @@ GEODE_ENDPOINT_BASE = plugin_cfg.geode_endpoint_base
 async def _request(path: str, params: dict | None = None):
     """发起 GET 请求并解开 {"error","payload"} 包装。
 
-    返回 (payload, error)。网络错误 / 非 200 / API 返回 error 时 payload 为 None。
+    返回 (payload, error)。网络错误 / 非 200 / API 返回 error 时 payload 为 None，
+    error 为错误消息（响应体截断到 200 字符）。
     """
     url = GEODE_ENDPOINT_BASE + path
     async with httpx.AsyncClient(timeout=30) as client:
@@ -44,12 +45,14 @@ async def _request(path: str, params: dict | None = None):
             resp = await client.get(url, headers=_HEADERS, params=params)
         except httpx.HTTPError as e:
             logger.error(f"Geode API 请求失败 {url}: {e}")
-            return None, str(e)
+            return None, f"{type(e).__name__}: {e}"
     if resp.status_code != 200:
+        logger.error(f"HTTP {resp.status_code}: {resp.text[:200]}")
         return None, f"HTTP {resp.status_code}: {resp.text[:200]}"
     try:
         body = resp.json()
     except ValueError as e:
+        logger.error(f"响应解析失败: {e}\n{resp.text[:200]}")
         return None, f"响应解析失败: {e}"
     if body.get("error"):
         return None, str(body["error"])
