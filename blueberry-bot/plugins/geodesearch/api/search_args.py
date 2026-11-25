@@ -13,6 +13,27 @@ class Platform(Enum):
     IOS = "ios"
 
 
+class ModStatus(Enum):
+    """mod 审核状态，对应 API 的 status 参数。"""
+
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    UNLISTED = "unlisted"
+
+
+class Sort(Enum):
+    """搜索结果排序方式，对应 API 的 sort 参数。"""
+
+    DOWNLOADS = "downloads"
+    RECENTLY_UPDATED = "recently_updated"
+    RECENTLY_PUBLISHED = "recently_published"
+    OLDEST = "oldest"
+    NAME = "name"
+    NAME_REVERSE = "name_reverse"
+    RANDOM = "random"
+
+
 class ModSearchArgs:
     """mod 搜索参数。
 
@@ -33,6 +54,11 @@ class ModSearchArgs:
     gd: str | None = None
     geode: str | None = None
     platform: Platform | str | None = None
+    featured: bool | None = None
+    status: ModStatus | str | None = None
+
+    # 排序
+    sort: Sort | str | None = None
 
     def getData(self) -> dict[str, Any]:
         data: dict[str, Any] = {}
@@ -44,6 +70,9 @@ class ModSearchArgs:
                 v = v.value
             elif isinstance(v, list):
                 v = ",".join(str(i) for i in v)
+            elif isinstance(v, bool):
+                # 布尔值转成 API 期望的 "true"/"false"
+                v = "true" if v else "false"
             data[k] = v
         return data
 

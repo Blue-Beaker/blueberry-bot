@@ -1,4 +1,4 @@
-from plugins.geodesearch.api.search_args import ModSearchArgs, Platform
+from plugins.geodesearch.api.search_args import ModSearchArgs, ModStatus, Platform, Sort
 
 
 class TestPlatform:
@@ -9,6 +9,25 @@ class TestPlatform:
         assert Platform.MAC_INTEL.value == "mac-intel"
         assert Platform.MAC_ARM.value == "mac-arm"
         assert Platform.IOS.value == "ios"
+
+
+class TestModStatus:
+    def test_values(self):
+        assert ModStatus.PENDING.value == "pending"
+        assert ModStatus.ACCEPTED.value == "accepted"
+        assert ModStatus.REJECTED.value == "rejected"
+        assert ModStatus.UNLISTED.value == "unlisted"
+
+
+class TestSort:
+    def test_values(self):
+        assert Sort.DOWNLOADS.value == "downloads"
+        assert Sort.RECENTLY_UPDATED.value == "recently_updated"
+        assert Sort.RECENTLY_PUBLISHED.value == "recently_published"
+        assert Sort.OLDEST.value == "oldest"
+        assert Sort.NAME.value == "name"
+        assert Sort.NAME_REVERSE.value == "name_reverse"
+        assert Sort.RANDOM.value == "random"
 
 
 class TestModSearchArgs:
@@ -61,6 +80,9 @@ class TestModSearchArgs:
         args.gd = "2.2091"
         args.geode = "6.0.0"
         args.platform = Platform.WIN
+        args.featured = True
+        args.status = ModStatus.ACCEPTED
+        args.sort = Sort.DOWNLOADS
         assert args.getData() == {
             "page": 2,
             "per_page": 5,
@@ -70,4 +92,30 @@ class TestModSearchArgs:
             "gd": "2.2091",
             "geode": "6.0.0",
             "platform": "win",
+            "featured": "true",
+            "status": "accepted",
+            "sort": "downloads",
         }
+
+    def test_get_data_featured_false(self):
+        args = ModSearchArgs()
+        args.featured = False
+        assert args.getData()["featured"] == "false"
+
+    def test_get_data_status_str(self):
+        args = ModSearchArgs()
+        args.status = "accepted"
+        assert args.getData()["status"] == "accepted"
+
+    def test_get_data_sort_str(self):
+        args = ModSearchArgs()
+        args.sort = "random"
+        assert args.getData()["sort"] == "random"
+
+    def test_equality_ignores_enum_vs_str(self):
+        a = ModSearchArgs()
+        a.sort = Sort.NAME
+        b = ModSearchArgs()
+        b.sort = "name"
+        assert a == b
+        assert hash(a) == hash(b)

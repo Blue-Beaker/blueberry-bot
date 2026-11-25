@@ -16,7 +16,7 @@ from nonebot import logger, get_plugin_config
 from pydantic import BaseModel
 
 from .models import Mod, ModSearchResult, Version, VersionListResult
-from .search_args import ModSearchArgs, Platform
+from .search_args import ModSearchArgs, ModStatus, Platform, Sort
 
 GEODE_ENDPOINT_BASE = "https://api.geode-sdk.org"
 
@@ -95,6 +95,9 @@ async def searchMods_async(
     gd: str | None = None,
     geode: str | None = None,
     platform: Platform | str | None = None,
+    featured: bool | None = None,
+    status: ModStatus | str | None = None,
+    sort: Sort | str | None = None,
 ):
     """搜索 mod。
 
@@ -104,6 +107,9 @@ async def searchMods_async(
     :param gd: 按 GD 版本过滤
     :param geode: 按 Geode 版本过滤
     :param platform: 见 Platform 枚举
+    :param featured: 只返回精选 mod
+    :param status: 按审核状态过滤，见 ModStatus 枚举
+    :param sort: 排序方式，见 Sort 枚举
     """
     args = ModSearchArgs()
     args.page = page
@@ -114,6 +120,9 @@ async def searchMods_async(
     args.gd = gd
     args.geode = geode
     args.platform = platform
+    args.featured = featured
+    args.status = status
+    args.sort = sort
     return await searchModsWithArgs_async(args)
 
 

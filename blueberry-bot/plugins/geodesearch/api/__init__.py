@@ -20,7 +20,7 @@ from .api import (
     searchModsCached_async,
     searchModsWithArgs_async,
 )
-from .search_args import ModSearchArgs, Platform
+from .search_args import ModSearchArgs, ModStatus, Platform, Sort
 
 __all__ = [
     "Developer",
@@ -31,7 +31,9 @@ __all__ = [
     "Version",
     "VersionListResult",
     "ModSearchArgs",
+    "ModStatus",
     "Platform",
+    "Sort",
     "GEODE_ENDPOINT_BASE",
     "searchMods_async",
     "searchModsWithArgs_async",

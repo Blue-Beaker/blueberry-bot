@@ -18,7 +18,7 @@ from nonebot.internal.matcher import Matcher
 
 from .config import Config
 
-from .api.search_args import ModSearchArgs,Platform
+from .api.search_args import ModSearchArgs,ModStatus,Platform,Sort
 from .api.api import searchModsWithArgs_async,getMod_async,getModDownloadUrl,getModVersion_async,getModVersions_async,getModIcon_async
 from .api.models import Mod,Developer,Dependency
 
@@ -49,6 +49,10 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         
         parser.add_argument('--platform', type=str, help=f"Platform ({' | '.join(Platform.__members__)})", default='')
         
+        parser.add_argument('--featured', action='store_true', help='Only featured mods')
+        parser.add_argument('--status', type=str, help=f"Status ({' | '.join(ModStatus.__members__)})", default='')
+        parser.add_argument('--sort', type=str, help=f"Sort ({' | '.join(Sort.__members__)})", default='')
+        
         parsed=parser.parse_args(raw_args)
         
         search=" ".join(parsed.search)
@@ -68,6 +72,18 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
             if platform not in Platform.__members__:
                 await geodesearch.finish(f"未知平台. 可用选项: {', '.join(Platform.__members__)}")
             searchArgs.platform=Platform.__members__.get(platform,None)
+        if parsed.featured:
+            searchArgs.featured=True
+        if parsed.status:
+            status=str.upper(parsed.status)
+            if status not in ModStatus.__members__:
+                await geodesearch.finish(f"未知状态. 可用选项: {', '.join(ModStatus.__members__)}")
+            searchArgs.status=ModStatus.__members__.get(status,None)
+        if parsed.sort:
+            sort=str.upper(parsed.sort)
+            if sort not in Sort.__members__:
+                await geodesearch.finish(f"未知排序. 可用选项: {', '.join(Sort.__members__)}")
+            searchArgs.sort=Sort.__members__.get(sort,None)
         
         
         logger.info(f"Geode search: {searchArgs.__dict__}")
