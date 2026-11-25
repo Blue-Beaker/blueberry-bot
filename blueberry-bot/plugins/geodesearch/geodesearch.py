@@ -4,6 +4,7 @@ import os
 import random
 import threading
 import time
+from datetime import datetime, timedelta, timezone
 from typing import Any, TypeVar
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
 from nonebot.rule import is_type
@@ -89,10 +90,84 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         reply.addLine(f"搜索到 {search_result.count} 个结果:")
         
         for m in search_result.data:
-            reply.addLine(f"{m.id} {m.name} by {m.owner.display_name if m.owner else ''} ({m.created_datetime},{m.updated_datetime})")
+            reply.addLine(repr_mod_line(m))
         await reply.finish(geodesearch)
 
     m:Mod = search_result.data[0]
-    reply.addLine(f"{m.id} {m.name} by {m.owner.display_name if m.owner else ''} ({m.created_datetime},{m.updated_datetime})")
+    reply.addLine(repr_mod_line(m))
         
     await reply.finish(geodesearch)
+    
+def repr_mod_line(m:Mod):
+    mod_line=f"{m.name} by {m.owner.display_name if m.owner else ''}"
+    if m.developers.__len__()>1:
+        mod_line+=f"..."
+            
+    mod_line+=f"\n{m.id}\t"
+    
+    if m.latest_version:
+        latest_gd_vers:set[str] = set()
+        for k,v in m.latest_version.gd.items():
+            if isinstance(v,str):
+                latest_gd_vers.add(v)
+        if latest_gd_vers:
+            mod_line += f" GD: {','.join(latest_gd_vers)}"
+            
+    if m.created_datetime and m.updated_datetime:
+        now=datetime.now(timezone.utc)
+        
+        mod_line+=f" ({humanize(get_time_delta(now,m.created_datetime),short=True,precision=1)},{humanize(get_time_delta(now,m.updated_datetime),short=True,precision=1)})"
+        
+    return mod_line
+    
+def get_time_delta(base:datetime, cmp:datetime):
+    delta=base-cmp
+    return delta
+
+# (秒数, 长格式单数, 长格式复数, 短格式)
+_TIME_UNITS:list[tuple[int,str,str,str]]=[
+    (86400*365,"year","years","y"),
+    (86400*30,"month","months","mo"),
+    (86400,"day","days","d"),
+    (3600,"hour","hours","h"),
+    (60,"minute","minutes","m"),
+    (1,"second","seconds","s"),
+]
+
+def humanize(delta:timedelta, short:bool=False, precision:int=1, ago:bool=True) -> str:
+    """把 timedelta 转成可读字符串。
+
+    :param short: True 用短格式（2d 5h），False 用长格式（2 days 5 hours）
+    :param precision: 最多显示几级单位，1 表示只显示最大单位
+    :param ago: 长格式下是否追加 " ago"（短格式忽略）
+
+    示例:
+        humanize(timedelta(days=2))                    -> "2 days ago"
+        humanize(timedelta(days=2), short=True)        -> "2d"
+        humanize(timedelta(days=2, hours=5), precision=2) -> "2 days 5 hours ago"
+        humanize(timedelta(days=2, hours=5), short=True, precision=2) -> "2d 5h"
+    """
+    s=int(delta.total_seconds())
+    if s<0:
+        s=-s
+
+    parts:list[str]=[]
+    for unit_s,long_single,long_plural,short_s in _TIME_UNITS:
+        if len(parts)>=precision:
+            break
+        if s<unit_s:
+            continue
+        n=s//unit_s
+        s-=n*unit_s
+        if short:
+            parts.append(f"{n}{short_s}")
+        else:
+            parts.append(f"{n} {long_single if n==1 else long_plural}")
+
+    if not parts:
+        parts.append("0s" if short else "0 seconds")
+
+    result=" ".join(parts)
+    if not short and ago:
+        result+=" ago"
+    return result
