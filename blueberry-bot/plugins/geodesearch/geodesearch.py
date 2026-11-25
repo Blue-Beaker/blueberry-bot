@@ -5,6 +5,7 @@ import random
 import threading
 import time
 from datetime import datetime, timedelta, timezone, tzinfo
+import traceback
 from typing import Any, Callable, TypeVar
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
 from nonebot.rule import is_type
@@ -33,6 +34,11 @@ geodesearch = on_command("geodesearch")
 @geodesearch.handle()
 async def _(bot:Bot, event:Event, args: Message = CommandArg()):
     raw_args=args.extract_plain_text().split()
+    
+    if not raw_args and not event.get_message().extract_plain_text().endswith(" "):
+        await geodesearch.finish('\n'.join([
+            "用法: geodesearch [参数] [Mod名/ID]",
+            "gdls -h 查询所有参数."]))
     try:
         searchArgs=ModSearchArgs()
         parser=ArgParser("geodesearch")
@@ -254,3 +260,14 @@ def humanize(delta:timedelta, short:bool=False, precision:int=1, ago:bool=True) 
     if not short and ago:
         result+=" ago"
     return result
+
+try:
+    require("bbot_help")
+    from ..bbot_help import addHelpFunc,getExtraRegistry
+    GD_HELP=getExtraRegistry("gd")
+    
+    @GD_HELP.addHelpFunc
+    def get_help(bot:Bot,event:Event):
+        return ["geodesearch [参数] [Mod名/ID] 查询 Geode Index 上的 Mod"]
+except:
+    logger.error(traceback.format_exc())

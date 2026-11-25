@@ -15,3 +15,9 @@ def addHelpFunc(func:HELP_FUNC_TYPE):
 
 async def getAllHelp(bot:Bot,event:Event):
     return await HELP_REGISTRY.getAllHelp(bot,event)
+
+_EXTRA_REGISTRIES:dict[str,HelpRegistry]={}
+def getExtraRegistry(reg_id:str):
+    if reg_id not in _EXTRA_REGISTRIES.keys():
+        _EXTRA_REGISTRIES[reg_id]=HelpRegistry()
+    return _EXTRA_REGISTRIES[reg_id]
