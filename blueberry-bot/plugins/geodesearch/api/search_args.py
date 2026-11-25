@@ -46,3 +46,12 @@ class ModSearchArgs:
                 v = ",".join(str(i) for i in v)
             data[k] = v
         return data
+
+    def __hash__(self) -> int:
+        # 基于最终请求参数计算哈希，保证同样参数命中同一缓存
+        return hash(tuple(sorted(self.getData().items())))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ModSearchArgs):
+            return NotImplemented
+        return self.getData() == other.getData()

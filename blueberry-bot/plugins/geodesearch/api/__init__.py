@@ -12,10 +12,12 @@ from .api import (
     getMod_async,
     getModDownloadUrl,
     getModIcon_async,
+    getModIconCached_async,
     getModIconUrl,
     getModVersion_async,
     getModVersions_async,
     searchMods_async,
+    searchModsCached_async,
     searchModsWithArgs_async,
 )
 from .search_args import ModSearchArgs, Platform
@@ -39,4 +41,6 @@ __all__ = [
     "getModDownloadUrl",
     "getModIconUrl",
     "getModIcon_async",
+    "getModIconCached_async",
+    "searchModsCached_async",
 ]

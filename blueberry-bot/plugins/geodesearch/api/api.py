@@ -6,7 +6,12 @@ API 文档: https://api.geode-sdk.org
 所有函数返回 (结果, 错误信息)，成功时错误信息为 None。
 """
 
+import functools
+
 import httpx
+from cachetools import TTLCache
+from cachetools.keys import hashkey
+from cachetools_async import cached as async_cached
 from nonebot import logger, get_plugin_config
 from pydantic import BaseModel
 
@@ -19,6 +24,28 @@ _HEADERS = {
     "User-Agent": "",
     "accept": "application/json",
 }
+
+
+def cached_result(cache: TTLCache):
+    """只缓存成功结果的 TTL 缓存装饰器。
+
+    被装饰函数须返回 (结果, 错误)。错误信息非 None 时把该 key 从缓存中移除，
+    避免把临时失败（网络错误、404 等）长期缓存住。
+    """
+
+    def decorator(func):
+        cached_func = async_cached(cache)(func)
+
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            result = await cached_func(*args, **kwargs)
+            if isinstance(result, tuple) and len(result) == 2 and result[1] is not None:
+                cache.pop(hashkey(*args, **kwargs), None)
+            return result
+
+        return wrapper
+
+    return decorator
 
 
 class Config(BaseModel):
@@ -98,6 +125,14 @@ async def searchModsWithArgs_async(args: ModSearchArgs):
     return ModSearchResult.from_dict(payload), None
 
 
+# 搜索请求参数组合多、命中率低，缓存小、TTL 短
+@cached_result(TTLCache(maxsize=50, ttl=60))  # type: ignore[arg-type]
+async def searchModsCached_async(args: ModSearchArgs):
+    """带缓存的 mod 搜索（相同参数 60 秒内复用结果）。"""
+    return await searchModsWithArgs_async(args)
+
+
+@cached_result(TTLCache(maxsize=200, ttl=180))  # type: ignore[arg-type]
 async def getMod_async(mod_id: str):
     """获取 mod 详情（含全部内嵌版本、about、changelog）。"""
     payload, err = await _request(f"/v1/mods/{mod_id}")
@@ -106,6 +141,8 @@ async def getMod_async(mod_id: str):
     return Mod.from_dict(payload), None
 
 
+# 版本列表分页多，缓存适中
+@cached_result(TTLCache(maxsize=100, ttl=180))  # type: ignore[arg-type]
 async def getModVersions_async(mod_id: str, page: int = 1, per_page: int = 10):
     """获取 mod 的版本列表（分页，含依赖 / 冲突信息）。"""
     payload, err = await _request(
@@ -116,6 +153,8 @@ async def getModVersions_async(mod_id: str, page: int = 1, per_page: int = 10):
     return VersionListResult.from_dict(payload), None
 
 
+# 单版本内容固定不变，可长期缓存
+@cached_result(TTLCache(maxsize=300, ttl=1800))  # type: ignore[arg-type]
 async def getModVersion_async(mod_id: str, version: str):
     """获取 mod 的单个版本详情（含依赖 / 冲突信息、开发者、标签）。"""
     payload, err = await _request(f"/v1/mods/{mod_id}/versions/{version}")
@@ -153,3 +192,10 @@ async def getModIcon_async(mod_id: str, version: str | None = None):
     if resp.status_code != 200:
         return None, f"HTTP {resp.status_code}"
     return resp.content, None
+
+
+# 图标体积较大，缓存数量少但保留久
+@cached_result(TTLCache(maxsize=30, ttl=1800))  # type: ignore[arg-type]
+async def getModIconCached_async(mod_id: str, version: str | None = None):
+    """带缓存的 mod 图标下载。"""
+    return await getModIcon_async(mod_id, version)

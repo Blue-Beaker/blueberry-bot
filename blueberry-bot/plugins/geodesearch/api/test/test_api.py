@@ -2,11 +2,13 @@ import pytest
 from plugins.geodesearch.api import (
     searchMods_async,
     searchModsWithArgs_async,
+    searchModsCached_async,
     getMod_async,
     getModVersions_async,
     getModVersion_async,
     getModDownloadUrl,
     getModIcon_async,
+    getModIconCached_async,
     getModIconUrl,
 )
 from plugins.geodesearch.api.search_args import ModSearchArgs, Platform
@@ -164,3 +166,53 @@ async def test_get_mod_icon_not_found():
     assert png is None
     assert err is not None
     print(err)
+
+
+@pytest.mark.asyncio
+async def test_search_mods_cached():
+    args = ModSearchArgs()
+    args.query = "node"
+    first, err = await searchModsCached_async(args)
+    assert err is None
+    assert first is not None
+
+    # 相同参数应命中缓存，返回同一对象
+    second, err = await searchModsCached_async(args)
+    assert err is None
+    assert second is first
+
+
+@pytest.mark.asyncio
+async def test_get_mod_icon_cached():
+    first, err = await getModIconCached_async(MOD_ID)
+    assert err is None
+    assert first is not None
+
+    second, err = await getModIconCached_async(MOD_ID)
+    assert err is None
+    assert second is first
+
+
+@pytest.mark.asyncio
+async def test_error_not_cached():
+    """错误结果不应被缓存 —— 不存在 mod 的请求每次都会重新发起。"""
+    from plugins.geodesearch.api import api
+
+    calls = 0
+    original = api._request
+
+    async def counting_request(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return await original(*args, **kwargs)
+
+    api._request = counting_request
+    try:
+        first, err1 = await api.getMod_async("geode.loader")
+        second, err2 = await api.getMod_async("geode.loader")
+    finally:
+        api._request = original
+
+    assert first is None and err1 is not None
+    assert second is None and err2 is not None
+    assert calls == 2
