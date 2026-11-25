@@ -4,7 +4,7 @@ import os
 import random
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, tzinfo
 from typing import Any, Callable, TypeVar
 from nonebot import on_command,logger,on_startswith,get_plugin_config,on_type,get_adapter
 from nonebot.rule import is_type
@@ -19,7 +19,7 @@ from nonebot.internal.matcher import Matcher
 from .config import Config
 
 from .api.search_args import ModSearchArgs,Platform
-from .api.api import searchModsWithArgs_async,getMod_async,getModDownloadUrl,getModVersion_async,getModVersions_async
+from .api.api import searchModsWithArgs_async,getMod_async,getModDownloadUrl,getModVersion_async,getModVersions_async,getModIcon_async
 from .api.models import Mod,Developer,Dependency
 
 require('bbot_api')
@@ -99,9 +99,67 @@ async def _(bot:Bot, event:Event, args: Message = CommandArg()):
         await reply.finish(geodesearch)
 
     m:Mod = search_result.data[0]
-    repr_mod(m,reply,jump_cmd_func)
+    # repr_mod(m,reply,jump_cmd_func)
+    if bbot_api.supportsImage(bot) and m.latest_version:
+        img, err = await getModIcon_async(m.id, m.latest_version.version)
+        if isinstance(img,bytes):
+            reply.addImage(img,m.id+".png")
+    show_mod_details(m,reply)
         
     await reply.finish(geodesearch)
+    
+def show_mod_details(m:Mod, msg:TextImageMessage):
+    msg.addLine(f"{m.name} by {','.join([u.display_name for u in m.developers])}")
+    msg.addLine("")
+    if m.latest_version:
+        latest=m.latest_version
+        msg.addLine(f"{latest.description}")
+        msg.addLine("")
+        msg.addLine(f"Version: {latest.version}")
+        
+        if latest.dependencies:
+            deps:dict[str,list[Dependency]]={}
+            for d in latest.dependencies:
+                if d.importance not in deps:
+                    deps[d.importance]=[]
+                deps[d.importance].append(d)
+            
+            msg.addLine("")
+            msg.addLine(f"Dependencies:")
+            for imp,deps2 in deps.items():
+                msg.addLine(f"{imp}: {','.join([d.mod_id+'='+d.version for d in deps2])}")
+    
+    msg.addLine("")
+    msg.addLine(f"Supported versions:")
+    for geode_ver,gd_ver in m.supported_versions.items():
+        plats,vers=collect_gd_versions(gd_ver)
+        msg.addLine(f"Geode {geode_ver}, GD {','.join(plats)}-{','.join(vers)}")
+    
+    if m.created_datetime:
+        local_create_time=m.created_datetime.astimezone(tz=datetime.now().tzinfo)
+        msg.addLine(f"Created {local_create_time}")
+    if m.updated_datetime:
+        local_update_time=m.updated_datetime.astimezone(tz=datetime.now().tzinfo)
+        msg.addLine(f"Updated {local_update_time}")
+        
+def collect_gd_versions(gd_versions:dict[str,str]):
+    platforms:set[str]=set()
+    versions:set[str]=set()
+    for k,v in gd_versions.items():
+        if isinstance(v,str):
+            platforms.add(str(k))
+            versions.add(v)
+            
+    if 'mac-arm' in platforms and 'mac-intel' in platforms:
+        platforms.remove('mac-arm')
+        platforms.remove('mac-intel')
+        platforms.add('mac')    
+    if 'android64' in platforms and 'android32' in platforms:
+        platforms.remove('android64')
+        platforms.remove('android32')
+        platforms.add('android')    
+    
+    return platforms,versions
     
 def repr_mod(m:Mod, msg:TextImageMessage, jump_cmd_func:Callable[[str],str]|None=None):
     mod_line1=f"{m.name} by {m.owner.display_name if m.owner else ''}"
@@ -118,12 +176,9 @@ def repr_mod(m:Mod, msg:TextImageMessage, jump_cmd_func:Callable[[str],str]|None
         msg.addButton(KBButton(text=m.id,command=jump_cmd_func(m.id)))
     
     if m.latest_version:
-        latest_gd_vers:set[str] = set()
-        for k,v in m.latest_version.gd.items():
-            if isinstance(v,str):
-                latest_gd_vers.add(v)
-        if latest_gd_vers:
-            mod_line2 += f" GD: {','.join(latest_gd_vers)}"
+        plats,vers=collect_gd_versions(m.latest_version.gd)
+        if vers:
+            mod_line2 += f" GD: {','.join(vers)}"
             
     if m.created_datetime and m.updated_datetime:
         now=datetime.now(timezone.utc)
