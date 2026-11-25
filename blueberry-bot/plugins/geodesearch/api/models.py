@@ -160,6 +160,18 @@ class Mod(_GeodeModel):
     def __str__(self) -> str:
         owner = self.owner
         return f"{self.id}" + (f" by {owner}" if owner else "")
+    
+    @property
+    def name(self) -> str|None:
+        return self.latest_version.name if self.latest_version else None
+    
+    @property
+    def supported_versions(self):
+        versions_by_geode:dict[str,dict[str,str]]={}
+        for v in self.versions:
+            if v.geode not in versions_by_geode:
+                versions_by_geode[v.geode]=v.gd
+        return versions_by_geode
 
 
 class ModSearchResult(_GeodeModel):
